@@ -1,0 +1,22 @@
+{
+  "semi": false,
+  "plugins": [
+    "@trivago/prettier-plugin-sort-imports",
+    "prettier-plugin-tailwindcss"
+  ],
+  "importOrder": [
+    "^@/assets/(.*)$",
+    "^@/components/(.*)$",
+    "^@/components/ui/(.*)$",
+    "^@/ts/(.*)$",
+    "^@/utils/(.*)$",
+    "^@/constants/(.*)$",
+    "^@/services/(.*)$",
+    "^[./]",
+    "^@/pinia/(.*)$",
+    "pinia(.*)$",
+    "^vue(.*)$",
+    "^[a-z]"
+  ],
+  "importOrderSortSpecifiers": true
+}

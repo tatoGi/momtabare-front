@@ -1,0 +1,16 @@
+{
+  "production": "PRODUCTION",
+  "gear": "Gear",
+  "chooseName": "Search With Name",
+  "location": "Location",
+  "chooseLocation": "Choose A City/Region",
+  "period": "Period",
+  "choosePeriod": "Choose A Period",
+  "categories": "Categories",
+  "all": "All",
+  "allProduct": "All Products",
+  "daily": "Daily",
+  "comment": "Comments",
+  "popular": "Popular",
+  "popularProduction": "Popular Production"
+}

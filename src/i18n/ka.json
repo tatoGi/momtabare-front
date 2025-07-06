@@ -1,0 +1,15 @@
+{
+    "production": "პროდუქცია",
+    "gear": "აღჭურვილობა",
+    "chooseName": "მიუთითე დასახელება",
+    "location": "მდებარეობა",
+    "chooseLocation": "აირჩიე ქალაქი/რაიონი",
+    "period": "პერიოდი",
+    "choosePeriod": "აირჩიე პერიოდი",
+    "categories":"კატეგორიები",
+    "all":"ყველა",
+    "allProducts":"ყველა პროდუქტი",
+    "daily" : "დღეში",
+    "comment" : "კომენტარი",
+    "popularProduction": "პოპულარული პროდუქცია"
+}

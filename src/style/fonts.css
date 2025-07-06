@@ -1,0 +1,61 @@
+.font-uppercase {
+  font-feature-settings: "case" 1;
+}
+
+.avenir {
+  font-family: "avenir", sans-serif;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-UltLt.otf");
+  font-weight: 100;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Thin.otf");
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Light.otf");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Regular.otf");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Medium.otf");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Demi.otf");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Bold.otf");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-XtraBd.otf");
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: "avenir";
+  src: url("@/assets/fonts/AvenirNextGeorgian-Black.otf");
+  font-weight: 900;
+}

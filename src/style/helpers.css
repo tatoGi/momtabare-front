@@ -1,0 +1,15 @@
+.frosted-glass {
+  @apply shadow-2xl backdrop-blur-lg;
+}
+
+.absolute-center {
+  @apply left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.dark-white-text-hover {
+  @apply dark:text-white dark:hover:text-customRed;
+}
