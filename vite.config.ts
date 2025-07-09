@@ -6,7 +6,7 @@ import tailwind from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/momtabare-front/' : '/',
+  base: '/',
   css: {
     preprocessorOptions: {
       scss: {
