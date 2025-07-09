@@ -12,7 +12,7 @@ import steps from "@/assets/img/steps.png"
     />
 
     <div class="flex flex-col gap-10">
-      <div>
+      <div class="right-20 relative">
         <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
           იქირავე შენთვის სასურველი
         </h2>

@@ -1,222 +1,198 @@
 <script lang="ts" setup>
 import BaseButton from "@/components/base/BaseButton.vue"
 import BaseIcon from "@/components/base/BaseIcon.vue"
-import {DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import {ICategory} from "@/ts/models/category.types.ts"
-import {useAppStore} from "@/pinia/app.pinia.ts"
-import {useCategoryStore} from "@/pinia/category.pinia.ts"
-import {computed, ref, watch} from "vue"
-import {useRouter} from "vue-router"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { ICategory, IProduct } from "@/ts/models/category.types"
+import { useAppStore } from "@/pinia/app.pinia"
+import { useCategoryStore } from "@/pinia/category.pinia"
+import { computed, ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
+import categoriesData from "@/data/categories";
 
 const router = useRouter()
-
 const appStore = useAppStore()
 const categoryStore = useCategoryStore()
 
 const isDropdownOpen = ref<boolean>(false)
-
-const activeCategory = ref<number | null>(null)
-const activeSubcategory = ref<number | null>(null)
-
-const selectedCategory = ref<ICategory | null>(null)
-const selectedSubcategory = ref<ICategory | null>(null)
-
-const categories = computed<ICategory[] | null>(() => {
-  return categoryStore.getCategories
-})
-
+const categories = ref<ICategory[]>(categoriesData);
+const hoveredCategory = ref<ICategory | null>(null);
+const hoveredSubcategory = ref<ICategory | null>(null);
 const computedLanguage = computed(() => appStore.getLanguage)
 
-function openCategory(index: number, category: ICategory): void {
-  if (category?.children?.length < 1) {
-    activeCategory.value = null
-    selectedCategory.value = null
-    return
+// Mock products for demonstration
+const getMockProducts = (subcategoryId: number): IProduct[] => {
+  const products: Record<number, IProduct[]> = {
+    1001: [
+      { id: 1, name: { en: 'Osprey Talon 22', ka: 'Osprey Talon 22' }, price: 120, slug: 'osprey-talon-22' },
+      { id: 2, name: { en: 'Deuter Speed Lite 24', ka: 'Deuter Speed Lite 24' }, price: 110, slug: 'deuter-speed-lite-24' }
+    ],
+    1002: [
+      { id: 3, name: { en: 'Osprey Atmos AG 65', ka: 'Osprey Atmos AG 65' }, price: 270, slug: 'osprey-atmos-ag-65' },
+      { id: 4, name: { en: 'Gregory Baltoro 75', ka: 'Gregory Baltoro 75' }, price: 350, slug: 'gregory-baltoro-75' }
+    ],
+    5001: [
+      { id: 5, name: { en: 'Rossignol Experience 80', ka: 'Rossignol Experience 80' }, price: 450, slug: 'rossignol-experience-80' },
+      { id: 6, name: { en: 'Atomic Vantage 90', ka: 'Atomic Vantage 90' }, price: 600, slug: 'atomic-vantage-90' }
+    ],
+    5004: [
+      { id: 7, name: { en: 'Burton Custom Flying V', ka: 'Burton Custom Flying V' }, price: 700, slug: 'burton-custom-flying-v' },
+      { id: 8, name: { en: 'Lib Tech Orca', ka: 'Lib Tech Orca' }, price: 750, slug: 'lib-tech-orca' }
+    ]
   }
-  activeCategory.value = index
-  selectedCategory.value = category
-  activeSubcategory.value = null
-  selectedSubcategory.value = null
-  console.log(categories.value)
-  console.log(selectedCategory.value?.children?.length)
+  return products[subcategoryId] || []
 }
 
-function closeDropdown(): void {
-  isDropdownOpen.value = false
-}
-
-
-function openSubcategory(index: number, subCategory: ICategory): void {
-  activeSubcategory.value = index
-  selectedSubcategory.value = subCategory
-}
+onMounted(() => {
+  // Use store categories if available, otherwise use the imported categoriesData
+  if (categoryStore.getCategories?.length) {
+    categories.value = categoryStore.getCategories;
+  } else {
+    // Fallback to local categories data if store is empty
+    categories.value = categoriesData;
+  }
+})
 
 function moveToCategory(category: ICategory): void {
+  if (category.children?.length) return // Don't navigate if category has children
   router.push(`/products?category=${category.slug}`)
   isDropdownOpen.value = false
 }
 
-watch(isDropdownOpen, (value: boolean) => {
-  if (!value) {
-    setTimeout(() => {
-      activeCategory.value = null
-      selectedCategory.value = null
-      activeSubcategory.value = null
-      selectedSubcategory.value = null
-    }, 200)
-  }
-})
+function closeDropdown(): void {
+  isDropdownOpen.value = false
+  setTimeout(() => {
+    hoveredCategory.value = null
+    hoveredSubcategory.value = null
+  }, 200)
+}
+
+const getProducts = (subcategoryId: number) => {
+  return getMockProducts(subcategoryId)
+}
 </script>
 
 <template>
   <DropdownMenu v-model:open="isDropdownOpen">
     <DropdownMenuTrigger as-child>
       <BaseButton
-          :height="48"
-          :width="184"
-          class="bg-customBlack dark:bg-customDarkGrey"
-          @click="isDropdownOpen = true"
+        :height="48"
+        :width="184"
+        class="bg-customBlack dark:bg-customDarkGrey"
+        @click="isDropdownOpen = true"
       >
         <BaseIcon
-            :name="isDropdownOpen ? 'close' : 'menu'"
-            :size="24"
-            class="text-white"
-            rounded
+          :name="isDropdownOpen ? 'close' : 'menu'"
+          :size="24"
+          class="text-white"
+          rounded
         />
         <p class="font-uppercase text-sm font-bold text-white">
-          {{ $t("production") }}
+          {{ $t("categories") }}
         </p>
       </BaseButton>
     </DropdownMenuTrigger>
 
     <DropdownMenuContent
-        align="start"
-        class="rounded-2xl bg-white px-0 py-5 shadow-xl dark:bg-customBlack"
-
+      align="start"
+      class="rounded-2xl bg-white shadow-xl dark:bg-customBlack p-0 overflow-hidden"
+      :class="{ 'w-[800px]': hoveredCategory }"
     >
-      <div class="flex" @mouseleave="closeDropdown">
-        <section class="flex flex-col gap-2.5">
-          <h2 class="category-title font-uppercase dark:text-white">
+      <div class="flex" @mouseleave="hoveredCategory = null; hoveredSubcategory = null">
+        <!-- Categories Column -->
+        <div class="w-64 border-r border-gray-200 dark:border-gray-700 h-[500px] overflow-y-auto custom-scrollbar">
+          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
             {{ $t("categories") }}
           </h2>
-
-          <div class="flex max-h-[280px] flex-col flex-wrap gap-2 pr-8">
-            <div
-                v-for="(category, index) in categories"
-                :key="index"
-                class="group flex cursor-pointer items-center gap-6 font-semibold hover:text-customRed"
-                @click="moveToCategory(category)"
-                @mouseenter="openCategory(index, category)"
+          <div class="py-2">
+            <div 
+              v-for="category in categories" 
+              :key="category.id"
+              class="flex items-center px-4 py-3 cursor-pointer transition-colors"
+              :class="{
+                'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredCategory?.id === category.id,
+                'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredCategory?.id !== category.id
+              }"
+              @mouseenter="hoveredCategory = category; hoveredSubcategory = null"
+              @click="moveToCategory(category)"
             >
-              <div
-                  :class="
-                  selectedCategory?.name[computedLanguage] ===
-                  category?.name[computedLanguage]
-                    ? 'visible'
-                    : 'invisible'
-                "
-                  class="category-selector"
-              />
-              <div class="flex items-center gap-3">
-                <BaseIcon
-                    :class="
-                    selectedCategory?.name[computedLanguage] ===
-                    category.name[computedLanguage]
-                      ? 'text-customRed dark:text-customRed'
-                      : 'dark:text-white'
-                  "
-                    :name="category.icon"
-                    :size="24"
-                    class="transition-all group-hover:text-customRed"
-                />
-                <p
-                    :class="
-                    selectedCategory?.name[computedLanguage] ===
-                    category.name[computedLanguage]
-                      ? 'text-customRed dark:text-customRed'
-                      : 'dark:text-white'
-                  "
-                    class="text-nowrap text-sm font-semibold transition-all group-hover:text-customRed"
-                >
-                  {{ category?.name[computedLanguage] }}
-                </p>
-              </div>
+              <span class="font-medium">{{ category.name[computedLanguage] }}</span>
+             
             </div>
           </div>
-        </section>
-        <section
-            v-if="activeCategory !== null && categories[activeCategory]?.children?.length > 0"
-            class="flex min-w-52 flex-col gap-2.5 border-l border-customBlack/10 dark:border-white/10"
+        </div>
+
+        <!-- Subcategories Column -->
+        <div 
+          v-if="hoveredCategory?.children?.length" 
+          class="w-64 border-r border-gray-200 dark:border-gray-700 h-[500px] overflow-y-auto custom-scrollbar"
         >
-          <h2 class="category-title font-uppercase dark:text-white">
-            {{ selectedCategory.name[computedLanguage] }}
+          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
+            {{ hoveredCategory?.name[computedLanguage] }}
           </h2>
-
-          <div class="flex max-h-[280px] flex-col flex-wrap gap-1.5 pr-8">
-            <div
-                v-for="(subcategory, subIndex) in categories[activeCategory]
-                .children"
-                :key="subIndex"
-                class="group flex cursor-pointer items-center gap-7 rounded-lg font-medium text-gray-800"
-                @mouseenter="openSubcategory(subIndex, subcategory)"
+          <div class="py-2">
+            <div 
+              v-for="subcategory in hoveredCategory.children" 
+              :key="subcategory.id"
+              class="flex items-center px-4 py-3 cursor-pointer transition-colors"
+              :class="{
+                'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredSubcategory?.id === subcategory.id,
+                'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredSubcategory?.id !== subcategory.id
+              }"
+              @mouseenter="hoveredSubcategory = subcategory"
+              @click="moveToCategory(subcategory)"
             >
-              <div
-                  :class="
-                  selectedSubcategory?.name === subcategory.name
-                    ? 'visible'
-                    : 'invisible'
-                "
-                  class="category-selector"
-              ></div>
-
-              <p
-                  :class="
-                  selectedSubcategory?.name === subcategory.name
-                    ? 'text-customRed dark:text-customRed'
-                    : 'dark:text-white'
-                "
-                  class="text-nowrap text-sm font-semibold text-customBlack/70 transition-all group-hover:text-customRed"
-                  @click="moveToCategory(subcategory)"
-              >
-                {{ subcategory.name[computedLanguage] }}
-              </p>
+              <span class="font-medium">{{ subcategory.name[computedLanguage] }}</span>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section
-            v-if="activeSubcategory !== null && selectedSubcategory?.children?.length > 0"
-            class="flex min-w-52 flex-col gap-3.5 border-l border-customBlack/10 dark:border-white/10 px-8"
+        <!-- Products Column -->
+        <div 
+          v-if="hoveredSubcategory?.children?.length" 
+          class="w-64 h-[500px] overflow-y-auto custom-scrollbar"
         >
-          <h2 class="font-uppercase text-nowrap font-extrabold dark:text-white">
-            {{ selectedSubcategory.name[computedLanguage] }}
+          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
+            {{ hoveredSubcategory?.name[computedLanguage] }}
           </h2>
-
-          <div class="flex max-h-[280px] flex-col flex-wrap gap-[18px]">
-            <div
-                v-for="(item, itemIndex) in selectedSubcategory.children"
-                :key="itemIndex"
-                class="group flex cursor-pointer items-center rounded-lg pr-2 font-normal text-gray-600"
+          <div class="py-2">
+            <div 
+              v-for="product in hoveredSubcategory.children" 
+              :key="product.id"
+              class="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              @click="moveToCategory(product)"
             >
-              <p
-                  class="text-nowrap text-sm font-semibold text-customBlack/70 transition-all dark:text-white group-hover:text-customRed"
-              >
-                {{ item.name[computedLanguage] }}
-              </p>
+              <div class="font-medium">{{ product.name[computedLanguage] }}</div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </DropdownMenuContent>
   </DropdownMenu>
 </template>
 
-<style lang="css" scoped>
-.category-selector {
-  @apply h-8 w-1 rounded-r-2xl bg-customRed group-hover:visible;
+<style scoped>
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.category-title {
-  @apply text-nowrap px-8 font-extrabold;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a5568;
 }
 </style>
+
+

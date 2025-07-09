@@ -2,15 +2,13 @@
 import BaseAlertDialog from "@/components/base/BaseAlertDialog.vue"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import { Checkbox } from "@/components/ui/checkbox/index.js"
-import {
-  NumberField,
-  NumberFieldContent,
-  NumberFieldDecrement,
-  NumberFieldIncrement,
-  NumberFieldInput,
-} from "@/components/ui/number-field/index.js"
+import NumberField from "@/components/ui/number-field/NumberField.vue"
+import NumberFieldContent from "@/components/ui/number-field/NumberFieldContent.vue"
+import NumberFieldDecrement from "@/components/ui/number-field/NumberFieldDecrement.vue"
+import NumberFieldIncrement from "@/components/ui/number-field/NumberFieldIncrement.vue"
+import NumberFieldInput from "@/components/ui/number-field/NumberFieldInput.vue"
 import { IProduct } from "@/ts/models/product.types.ts"
-import { removeFromCart, updateCart } from "@/services/cart.ts"
+import { removeFromCart, updateCartItem } from "@/services/cart.ts"
 import { useCartStore } from "@/pinia/cart.pinia.ts"
 import { computed, watch } from "vue"
 
@@ -37,7 +35,7 @@ async function removeFromCartTrigger(id: number) {
 watch(quantity, async (value) => {
   if (!value) return
 
-  await updateCart(
+  await updateCartItem(
     { quantity: value, rental_days: props.rental_days },
     props.id,
   )

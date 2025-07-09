@@ -11,9 +11,9 @@ const appStore = useAppStore()
 </script>
 
 <template>
-  <div class="flex items-center justify-between pb-10">
-    <div class="flex flex-col items-start gap-2 top-14 left-0">
-      <div class="flex flex-col gap-1">
+  <div class="flex items-center joinUs_Section">
+    <div class="flex flex-col relative left-10 z-10">
+      <div class="flex flex-col">
         <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
           გამოიმუშავე დამატებითი
         </h2>
@@ -23,7 +23,7 @@ const appStore = useAppStore()
         </h2>
       </div>
 
-      <div class="flex flex-col gap-7 mt-4 max-w-[470px]">
+      <div class="flex flex-col description">
         <p class="text-customBlack/80 text-sm font-medium dark:text-white">
           მომთაბარე ონლაინ პლატფორმაა, სადაც სპორტული ინვენტარის გაქირავებით
           დამატებითი შემოსავლის მიღებას სულ რამდენიმე წუთში შეძლებ.
@@ -39,7 +39,7 @@ const appStore = useAppStore()
         </p>
       </div>
 
-      <BaseButton :height="48" :width="211" class="bg-customBlue mt-6">
+      <BaseButton :height="48" :width="211" class="bg-customBlue join_us_button">
         <p class="text-sm font-bold text-white font-uppercase">შემოგვიერთდი</p>
       </BaseButton>
     </div>

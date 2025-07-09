@@ -110,3 +110,81 @@
 /*::-webkit-scrollbar-thumb:hover {*/
 /*  background: #f44000;*/
 /*}*/
+
+/* category */ 
+.category-card {
+    width: 193px;
+    height: 240px;
+    transform: rotate(0deg);
+    opacity: 1;
+    position: relative;
+    overflow: hidden;
+}
+.category-card img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+/* Category Item Hover Effects */
+.group {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.group img {
+    transition: transform 0.3s ease;
+}
+
+.group h4 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    transition: all 0.3s ease;
+    text-align: center;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.group:hover h4 {
+    transform: translateX(-50%) translateY(-15px);
+}
+
+.group h4::after {
+    content: attr(data-count);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: normal;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.group:hover h4::after {
+    opacity: 1;
+    transform: translateY(5px);
+}
+.joinUs_Section .description{
+    margin-top: 32px;
+    max-width: 409px;
+    gap: 32px;
+}
+.join_us_button{
+    margin-top: 32px;
+}
+.cart-svg{
+    width: 16px;
+    height: 18px;
+}
+.count-cart{
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+}
+.heart-svg{
+    width: 18px;
+    height: 16px;
+}
+

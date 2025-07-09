@@ -23,4 +23,19 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Add any API proxies here if needed
+    }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor and app code
+          'vendor': ['vue', 'vue-router', 'pinia'],
+        }
+      }
+    }
+  }
 })

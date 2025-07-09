@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import BaseButton from "@/components/base/BaseButton.vue"
 import ProductItem from "@/components/products/ProductItem.vue"
 import ProductItemSkeleton from "@/components/products/ProductItemSkeleton.vue"
 import {IProductListItem} from "@/ts/models/product.types.js"
@@ -19,16 +18,13 @@ const props = defineProps<{
       <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
         {{ props.title }}
       </h2>
-      <BaseButton
+      <RouterLink 
           v-if="props.routeToName || props.routeToPath"
-          :height="44"
-          :route-to-name="props.routeToName ?? null"
-          :route-to-path="props.routeToPath ?? null"
-          :width="111"
-          class="bg-customRed"
+          :to="props.routeToName ? { name: props.routeToName } : { path: props.routeToPath }"
+          class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity"
       >
-        <p class="text-white text-xs font-extrabold font-uppercase">{{ $t('all') }}</p>
-      </BaseButton>
+        {{ $t('allProducts') }}
+      </RouterLink>
     </div>
     <transition name="fade">
       <div

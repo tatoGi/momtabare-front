@@ -3,7 +3,7 @@ import BaseIcon from "@/components/base/BaseIcon.vue"
 import CommentsStatusComponent from "@/components/products/product-stats/CommentsStatusComponent.vue"
 import LocationStatusComponent from "@/components/products/product-stats/LocationStatusComponent.vue"
 import RatingStatusComponent from "@/components/products/product-stats/RatingStatusComponent.vue"
-import { IProductListItem } from "@/ts/models/product.types.js"
+import { IProductListItem } from "../../ts/models/product.types"
 import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { toggleFavoriteProduct } from "../../services/products"
@@ -19,7 +19,13 @@ const userStore = useUserStore()
 const heart = ref<boolean>(props.item.is_favorited)
 console.log(props.item)
 const computedImageUrl = computed<string>(() => {
-  return `${import.meta.env.VITE_BACKEND_URL}/${props.item.images[0].url}`
+  const imageUrl = props.item.images[0]?.url || ''
+  // If the URL already starts with http or /, use it as is
+  if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+    return imageUrl
+  }
+  // Otherwise, prepend the backend URL
+  return `${import.meta.env.VITE_BACKEND_URL}/${imageUrl}`
 })
 const router = useRouter()
 
@@ -66,7 +72,7 @@ async function favoriteProduct(): Promise<void> {
           {{ props.item.name }}
         </p>
         <CommentsStatusComponent
-          :comments_amount="props.item.comments_amount"
+          :comments_amount="props.item.comments_amount || 0"
         />
       </div>
 

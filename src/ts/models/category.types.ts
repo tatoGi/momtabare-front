@@ -5,8 +5,8 @@ export interface ICategory {
     ka: string
   }
   slug: string
-  icon: string
-  image: string
-  parent: ICategory | null
+  icon?: string
+  image?: string
+  parent: ICategory | number | null
   children: ICategory[]
 }

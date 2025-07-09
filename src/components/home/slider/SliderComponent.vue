@@ -53,10 +53,10 @@ watchOnce(api, (api) => {
       @init-api="setApi"
     >
       <CarouselPrevious
-        class="opacity-0 group-hover:opacity-100 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 left-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
+        class="opacity-1 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 left-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
       />
       <CarouselNext
-        class="opacity-0 group-hover:opacity-100 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 right-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
+        class="opacity-1 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 right-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
       />
       <SliderPaginatorComponent
         :current-slide="currentSlide"

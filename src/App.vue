@@ -25,7 +25,6 @@ onMounted(async () => {
   await userStore.fetchUser()
   await cartStore.fetchCart()
   await orderStore.fetchOrders()
-  console.log(userStore.getUser)
 })
 
 watch(
@@ -46,7 +45,7 @@ watch(
   <div class="py-6">
     <main class="max-w-[1360px] mx-auto flex-col">
       <TheHeader />
-      <RouterView />
+      <RouterView :key="$route.fullPath" />
       <TheFooter />
     </main>
   </div>

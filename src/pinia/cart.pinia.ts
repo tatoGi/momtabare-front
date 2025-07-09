@@ -1,5 +1,5 @@
-import {getCart} from "../services/cart.ts"
-import {ICartState} from "../ts/pinia/cart.types.ts"
+import {getCart} from "../services/cart"
+import {ICartState} from "../ts/pinia/cart.types"
 import {defineStore} from "pinia"
 
 export const useCartStore = defineStore("cart", {

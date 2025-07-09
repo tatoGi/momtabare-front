@@ -1,5 +1,5 @@
-import { IProduct } from "./product.types.ts"
-import { IUser } from "./user.types.ts"
+import { IProduct } from "./product.types"
+import { IUser } from "./user.types"
 
 export interface ICart {
   items: ICartItem[]
