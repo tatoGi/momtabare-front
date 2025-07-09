@@ -17,7 +17,6 @@ const props = defineProps<{
 
 const userStore = useUserStore()
 const heart = ref<boolean>(props.item.is_favorited)
-console.log(props.item)
 const computedImageUrl = computed<string>(() => {
   const imageUrl = props.item.images[0]?.url || ''
   // If the URL already starts with http or /, use it as is

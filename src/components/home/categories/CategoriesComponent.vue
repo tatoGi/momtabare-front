@@ -4,7 +4,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import { Navigation } from 'swiper/modules';
 import CategoryItem from '@/components/home/categories/CategoryItem.vue';
-import type { ICategory } from '@/ts/models/category.types';
+import type { ICategory } from '../../../ts/models/category.types';
 import { ref } from 'vue'
 import tentImg from '@/assets/img/tent.png'
 import Bicycle from '@/assets/img/Bicycle.png'
@@ -13,7 +13,7 @@ import Mountain from '@/assets/img/mountain.png';
 import boat from '@/assets/img/boat.png'
 import urban from '@/assets/img/urban.png'
 import leftArrow from '@/assets/svg/arrowleft.svg'
-import rightArrow from '@/assets/svg/arrowrigth.svg'
+import rightArrow from '@/assets/svg/arrowright.svg'
 
 // Create a local array of 8 mock categories
 const categories = ref<ICategory[]>([

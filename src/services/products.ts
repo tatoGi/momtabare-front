@@ -1,10 +1,4 @@
-import AxiosJSON from "../utils/helpers/axios.ts"
-import {
-  IGetProductByIdQuery,
-  IGetProductByIdResponse,
-  IGetProductsQuery,
-  IGetProductsResponse,
-} from "../ts/services/products.types"
+// Mock data for development
 
 export async function getProducts() {
   return {
@@ -38,6 +32,8 @@ export async function getFavoriteProducts() {
   };
 }
 
-export async function toggleFavoriteProduct() {
+export async function toggleFavoriteProduct(productId: number): Promise<{ success: boolean }> {
+  console.log('Toggling favorite for product:', productId);
+  // In a real implementation, this would make an API call
   return { success: true };
 }
