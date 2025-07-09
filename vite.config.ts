@@ -6,7 +6,7 @@ import tailwind from 'tailwindcss'
 import autoprefixer from 'autoprefixer'
 
 export default defineConfig({
-  base: '/',
+  base: process.env.NODE_ENV === 'production' ? '/' : '/',
   css: {
     preprocessorOptions: {
       scss: {
@@ -21,6 +21,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@ts': path.resolve(__dirname, './src/ts'),
     },
   },
   server: {
