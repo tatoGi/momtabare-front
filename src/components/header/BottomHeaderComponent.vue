@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseIcon from "@/components/base/BaseIcon.vue";
 import AuthDialog from "@/components/dialogs/AuthDialog.vue";
@@ -11,9 +11,22 @@ import { useCartStore } from "@/pinia/cart.pinia";
 import cartsvg from "@/assets/svg/cart.svg";
 import heartsvg from "@/assets/svg/heart.svg";
 
+interface INavItem {
+  title: string;
+  route: string;
+}
+
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const cartStore = useCartStore();
+
+const navItems: INavItem[] = [
+  { title: "მთავარი", route: "/home" },
+  { title: "ბლოგი", route: "/blog" },
+  { title: "მარშუტები", route: "/routes" },
+  { title: "FAQ", route: "/faq" },
+];
 
 const showMobileSearch = ref(false);
 const user = userStore.user;
@@ -41,11 +54,11 @@ cartStore.$subscribe(() => {
 </script>
 
 <template>
-  <header class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-0">
-    <!-- Categories and Search Section -->
-    <div class="w-full flex flex-col md:flex-row items-stretch md:items-center">
-      <!-- Categories Dropdown (Desktop) -->
-      <div class="hidden md:block ml-[53px]">
+  <header class="bg-white">
+    <!-- Desktop Header -->
+    <div class="hidden md:flex flex-row items-center justify-between max-w-7xl mx-auto px-4 py-2">
+      <!-- Categories Dropdown -->
+      <div class="ml-[53px]">
         <HeaderProductMenu />
       </div>
       
@@ -55,18 +68,71 @@ cartStore.$subscribe(() => {
           <HeaderSearchComponent />
         </div>
       </div>
+      
+      <!-- Desktop Icons -->
+      <div class="flex items-center gap-4">
+        <button class="relative p-2" @click="routeToFavorites">
+          <img :src="heartsvg" alt="favorites" class="w-6 h-6" />
+        </button>
+        
+        <button class="relative p-2" @click="routeToCart">
+          <img :src="cartsvg" alt="cart" class="w-6 h-6" />
+          <span 
+            v-if="cartItems"
+            class="absolute -top-1 -right-1 bg-customRed text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+          >
+            {{ cartItems }}
+          </span>
+        </button>
+        
+        <div>
+          <BaseButton
+            v-if="user"
+            :height="40"
+            :width="40"
+            class="rounded-full bg-customRed"
+            @click.left="router.push('/user')"
+          >
+            <BaseIcon :size="20" class="text-white" name="account_circle"/>
+          </BaseButton>
+          
+          <AuthDialog v-else>
+            <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
+              <BaseIcon :size="20" class="text-white" name="account_circle"/>
+            </BaseButton>
+          </AuthDialog>
+        </div>
+      </div>
     </div>
     
-    <!-- Mobile menu button -->
-    <div class="md:hidden flex items-center justify-between">
-      <HeaderProductMenu />
-      <button @click="showMobileSearch = !showMobileSearch" class="p-2">
-        <BaseIcon :name="showMobileSearch ? 'close' : 'search'" :size="24" />
+    <!-- Mobile Header -->
+    <div class="md:hidden flex items-center justify-between px-4 py-3">
+      <!-- Burger Menu -->
+      <button @click="$emit('toggleMobileNav')" class="p-2">
+        <BaseIcon name="menu" :size="24" />
       </button>
-    </div>
-
-    <div class="flex items-center justify-between md:justify-end gap-4">
-      <!-- Mobile search overlay -->
+      <!-- Icons -->
+      <div class="flex items-center gap-2">
+        <button @click="showMobileSearch = !showMobileSearch" class="p-2">
+          <BaseIcon :name="showMobileSearch ? 'close' : 'search'" :size="20" />
+        </button>
+        
+        <button class="relative p-2" @click="routeToFavorites">
+          <img :src="heartsvg" alt="favorites" class="w-5 h-5" />
+        </button>
+        
+        <button class="relative p-2" @click="routeToCart">
+          <img :src="cartsvg" alt="cart" class="w-5 h-5" />
+          <span 
+            v-if="cartItems"
+            class="absolute -top-1 -right-1 bg-customRed text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center"
+          >
+            {{ cartItems }}
+          </span>
+        </button>
+      </div>
+      
+      <!-- Mobile Search Overlay -->
       <div v-if="showMobileSearch" class="fixed inset-0 bg-white z-50 p-4 flex flex-col">
         <div class="flex items-center gap-2 mb-4">
           <HeaderSearchComponent class="flex-1" />
@@ -74,62 +140,6 @@ cartStore.$subscribe(() => {
             <BaseIcon name="close" :size="24" />
           </button>
         </div>
-        <!-- Categories in mobile search overlay -->
-        <div class="mt-4">
-          <h3 class="text-lg font-semibold mb-2">Categories</h3>
-          <HeaderProductMenu />
-        </div>
-      </div>
-
-      <button class="relative p-2" @click="routeToFavorites">
-        <img :src="heartsvg" alt="favorites" class="w-6 h-6" />
-      </button>
-      
-      <button class="relative p-2" @click="routeToCart">
-        <img :src="cartsvg" alt="cart" class="w-6 h-6" />
-        <span 
-          v-if="cartItems"
-          class="absolute -top-1 -right-1 bg-customRed text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
-        >
-          {{ cartItems }}
-        </span>
-      </button>
-
-      <div class="hidden md:block">
-        <BaseButton
-          v-if="user"
-          :height="40"
-          :width="40"
-          class="rounded-full bg-customRed"
-          @click.left="router.push('/user')"
-        >
-          <BaseIcon :size="20" class="text-white" name="account_circle"/>
-        </BaseButton>
-
-        <AuthDialog v-else>
-          <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
-            <BaseIcon :size="20" class="text-white" name="account_circle"/>
-          </BaseButton>
-        </AuthDialog>
-      </div>
-      
-      <!-- Mobile profile button -->
-      <div class="md:hidden">
-        <BaseButton
-          v-if="user"
-          :height="40"
-          :width="40"
-          class="rounded-full bg-customRed"
-          @click.left="router.push('/user')"
-        >
-          <BaseIcon :size="20" class="text-white" name="account_circle"/>
-        </BaseButton>
-
-        <AuthDialog v-else>
-          <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
-            <BaseIcon :size="20" class="text-white" name="account_circle"/>
-          </BaseButton>
-        </AuthDialog>
       </div>
     </div>
   </header>

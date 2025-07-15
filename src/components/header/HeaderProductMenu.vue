@@ -99,8 +99,9 @@ const getProducts = (subcategoryId: number) => {
     >
       <div class="flex" @mouseleave="hoveredCategory = null; hoveredSubcategory = null">
         <!-- Categories Column -->
-        <div class="w-64 border-r border-gray-200 dark:border-gray-700 h-[500px] overflow-y-auto custom-scrollbar">
-          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
+        <div class="w-64 h-[315px] overflow-y-auto custom-scrollbar">
+          <h2 class="p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title"
+             >
             {{ $t("categories") }}
           </h2>
           <div class="py-2">
@@ -124,9 +125,9 @@ const getProducts = (subcategoryId: number) => {
         <!-- Subcategories Column -->
         <div 
           v-if="hoveredCategory?.children?.length" 
-          class="w-64 border-r border-gray-200 dark:border-gray-700 h-[500px] overflow-y-auto custom-scrollbar"
+          class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
         >
-          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
+          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title">
             {{ hoveredCategory?.name[computedLanguage] }}
           </h2>
           <div class="py-2">
@@ -149,9 +150,9 @@ const getProducts = (subcategoryId: number) => {
         <!-- Products Column -->
         <div 
           v-if="hoveredSubcategory?.children?.length" 
-          class="w-64 h-[500px] overflow-y-auto custom-scrollbar"
+          class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
         >
-          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 border-b border-gray-200 dark:border-gray-700 dark:text-white">
+          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 cateogries-title">
             {{ hoveredSubcategory?.name[computedLanguage] }}
           </h2>
           <div class="py-2">

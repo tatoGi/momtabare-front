@@ -10,6 +10,7 @@ import {IGetProductsResponse} from "@/ts/services/products.types.ts"
 import {getProducts} from "@/services/products.js"
 import {onMounted, ref} from "vue"
 import itemPlaceholder from "@/assets/img/itemplaceholder.png"
+import BlogList from "@/components/blog/BlogList.vue"
 
 // Static popular products data
 const popularProducts = ref<IProductListItem[]>([
@@ -209,7 +210,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col py-11 dark:bg-customBlack" style="gap: 120px;">
+  <div class="flex flex-col py-11 dark:bg-customBlack main-div">
     <SliderComponent/>
     <CategoriesComponent/>
     
@@ -232,7 +233,7 @@ onMounted(async () => {
         route-to-name="products"
     /> -->
     <RentalStepsComponent/>
-    <!--    <BlogList />-->
+    <BlogList />
     <FAQComponent/>
   </div>
 </template>

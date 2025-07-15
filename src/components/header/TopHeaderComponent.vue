@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Switch } from "@/components/ui/switch";
@@ -10,6 +10,7 @@ import momtabareLogoWithTextDark from "@/assets/svg/momtabare-logo-with-text-dar
 import momtabareLogoWithTextLight from "@/assets/svg/momtabare-logo-with-text.svg";
 import ukFlagIcon from '@/assets/img/uk-flag.svg';
 import globeIcon from '@/assets/img/Vector.svg';
+import { X, Menu } from "lucide-vue-next"
 // Simple confirmation dialog using browser's native confirm
 async function showConfirmationDialog(options: {
   title: string;
@@ -27,6 +28,25 @@ const { locale } = useI18n();
 
 const appStore = useAppStore()
 
+const isMenuOpen = ref(false)
+
+const props = defineProps({
+  isMobileNavOpen: Boolean
+})
+
+const emit = defineEmits(['toggleMobileNav'])
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+  document.body.style.overflow = isMenuOpen.value ? 'hidden' : ''
+}
+
+// Watch for changes to isMobileNavOpen prop
+watch(() => props.isMobileNavOpen, (newVal) => {
+  isMenuOpen.value = newVal
+  document.body.style.overflow = newVal ? 'hidden' : ''
+})
+
 const navItems: INavItem[] = [
   { title: "მთავარი", route: "/home" },
   { title: "ბლოგი", route: "/blog" },
@@ -42,7 +62,8 @@ const chosenLanguage = ref('GEO')
 const showLangDropdown = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 
-function toggleLangDropdown() {
+function toggleLangDropdown(event: MouseEvent) {
+  event.stopPropagation();
   showLangDropdown.value = !showLangDropdown.value;
 }
 
@@ -53,6 +74,21 @@ function selectLanguage(lang: string) {
 
 // Track if we're in the process of navigation
 const isNavigating = ref(false);
+
+// Handle click outside to close dropdown
+const handleClickOutside = (event: MouseEvent) => {
+  if (showLangDropdown.value && dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+    showLangDropdown.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 async function moveToPage(routePath: string): Promise<void> {
   // Prevent multiple rapid clicks
@@ -125,7 +161,7 @@ watch(chosenLanguage, () => {
 </script>
 
 <template>
-  <header class="grid grid-cols-3 items-center justify-between md:grid-cols-4">
+  <header class="flex items-center justify-between px-4 py-2 md:grid md:grid-cols-4">
     <img
         :src="
         appStore.darkMode
@@ -133,12 +169,13 @@ watch(chosenLanguage, () => {
           : momtabareLogoWithTextLight
       "
         alt="Momtabare"
-        class="cursor-pointer"
+        class="cursor-pointer h-8 md:h-auto"
         @click.left="moveToPage('/home')"
     />
 
-    <nav class="flex justify-center md:justify-start md:col-span-2">
-      <ul class="align-center flex gap-7 text-sm md:gap-10">
+    <!-- Desktop Navigation -->
+    <nav class="hidden md:flex justify-center md:justify-start md:col-span-2">
+      <ul class="flex items-center gap-4 md:gap-10">
         <li
             v-for="navItem in navItems"
             :key="navItem.title + 1"
@@ -183,13 +220,13 @@ watch(chosenLanguage, () => {
           v-if="showLangDropdown"
           ref="dropdownRef"
           class="absolute left-0 top-12 z-10 w-24 bg-white border border-gray-200 rounded-3xl shadow-lg"
-          v-click-outside="() => showLangDropdown = false"
+          @click.stop
         >
           <button
             v-for="lang in languages.filter(l => l.code !== chosenLanguage)"
             :key="lang.code"
             class="flex-center h-10 w-24 gap-1 rounded-3xl bg-[#F8F8F8] hover:bg-gray-100 transition-all"
-            @click="selectLanguage(lang.code)"
+            @click.stop="selectLanguage(lang.code)"
           >
             <img :src="lang.icon" alt="lang icon" class="w-5 h-5" />
             <span class="text-sm font-semibold">{{ lang.label }}</span>

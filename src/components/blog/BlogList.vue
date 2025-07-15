@@ -1,6 +1,30 @@
 <script setup>
 import BlogItem from "@/components/blog/BlogItem.vue"
 import BaseButton from "../base/BaseButton.vue"
+import blogimage from "@/assets/img/blogitem.png"
+// Sample blog posts data - replace this with actual data from your API
+const blogPosts = [
+  {
+    title: "სიახლე 1",
+    date: "2025-07-15",
+    image: blogimage
+  },
+  {
+    title: "სიახლე 2",
+    date: "2025-07-14",
+    image: blogimage
+  },
+  {
+    title: "სიახლე 3",
+    date: "2025-07-13",
+    image: blogimage
+  },
+  {
+    title: "სიახლე 4",
+    date: "2025-07-12",
+    image: blogimage
+  }
+]
 </script>
 
 <template>
@@ -14,7 +38,11 @@ import BaseButton from "../base/BaseButton.vue"
       </BaseButton>
     </div>
     <div class="grid grid-cols-4 gap-6">
-      <BlogItem v-for="index in 4" :key="index"></BlogItem>
+      <BlogItem 
+        v-for="post in blogPosts" 
+        :key="post.title"
+        :post="post"
+      ></BlogItem>
     </div>
   </div>
 </template>

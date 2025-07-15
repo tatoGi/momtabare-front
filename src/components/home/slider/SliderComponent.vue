@@ -6,8 +6,6 @@ import {
   CarouselApi,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel"
 import { ref } from "vue"
 
@@ -49,15 +47,10 @@ watchOnce(api, (api) => {
     </h2>
     <Carousel
       :opts="{ loop: true }"
-      class="group relative w-full"
+      class="group relative w-full main-banner"
       @init-api="setApi"
     >
-      <CarouselPrevious
-        class="opacity-1 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 left-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
-      />
-      <CarouselNext
-        class="opacity-1 frosted-glass bg-white/80 rounded-full absolute top-1/2 -translate-y-1/2 right-6 z-10 transition-all duration-250 ease-in-out overflow-hidden"
-      />
+      <!-- Navigation arrows removed for mobile -->
       <SliderPaginatorComponent
         :current-slide="currentSlide"
         :total-slides="totalSlides"
@@ -89,4 +82,5 @@ watchOnce(api, (api) => {
 .header-text-style {
   @apply max-w-[950px] pb-10 text-4xl font-extrabold leading-[50px];
 }
+
 </style>
