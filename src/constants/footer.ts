@@ -1,4 +1,4 @@
-import { IFooterItems } from "../ts/layout.types.ts"
+import type { IFooterItems } from "../ts/layout.types"
 
 export const footerItems: IFooterItems = {
   aboutUs: {
@@ -26,5 +26,9 @@ export const footerItems: IFooterItems = {
   contact: {
     title: "კონტაქტი",
     pages: ["+995 598 23 08 23", "vtvau2013@agruni.edu.ge"],
+  },
+  social: {
+    title: "სოციალური ქსელები",
+    pages: ["Facebook", "Instagram", "YouTube", "TikTok"],
   },
 }
