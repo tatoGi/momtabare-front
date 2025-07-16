@@ -1,8 +1,14 @@
 <script lang="ts" setup>
 import { Swiper, SwiperSlide } from 'swiper/vue';
-import { Navigation } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
+
+// Import Swiper core and required modules
+import SwiperCore from 'swiper';
+import { Navigation } from 'swiper/modules';
+
+// Install Swiper modules
+SwiperCore.use([Navigation]);
 import CategoryItem from '@/components/home/categories/CategoryItem.vue';
 import type { ICategory } from '../../../ts/models/category.types';
 import { ref } from 'vue'
