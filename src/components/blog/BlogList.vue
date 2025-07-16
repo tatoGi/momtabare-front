@@ -1,11 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
+import SwiperCore from 'swiper';
 import { Navigation, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
-
-// Initialize Swiper modules
-const modules = [Navigation, Pagination];
+// Use the modules
+SwiperCore.use([Navigation, Pagination]);
 
 // Import components and assets
 import BlogItem from "@/components/blog/BlogItem.vue";
@@ -48,12 +51,12 @@ const blogPosts = [
   }
 ];
 
+const modules = [Navigation, Pagination];
+
 const swiperOptions = ref({
+  modules,
   slidesPerView: 1.2,
   spaceBetween: 16,
-  pagination: {
-    clickable: true,
-  },
   breakpoints: {
     640: {
       slidesPerView: 2.2,
