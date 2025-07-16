@@ -5,11 +5,16 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "npm run build"
+        "distDir": "./dist",
+        "buildCommand": "npm run vercel-build"
       }
     }
   ],
+  "build": {
+    "env": {
+      "NODE_VERSION": "18.x"
+    }
+  },
   "routes": [
     {
       "src": "/assets/(.*)",

@@ -14,7 +14,8 @@
     "dev:full": "vite & node server.js",
     "deploy:github": "npm run build && gh-pages -d dist",
     "deploy:firebase": "npm run build && firebase deploy",
-    "vercel-build": "node vercel-build.js"
+    "vercel-build": "node vercel-build.js",
+    "postinstall": "vite build"
   },
   "dependencies": {
     "@internationalized/date": "^3.5.6",
