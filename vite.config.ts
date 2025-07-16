@@ -23,6 +23,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@ts': path.resolve(__dirname, './src/ts'),
     },
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue']
   },
   server: {
     proxy: {

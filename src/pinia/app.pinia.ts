@@ -1,4 +1,5 @@
-import {ELanguages, IAppState} from "../ts/pinia/app.types.ts"
+import type { IAppState } from "../ts/pinia/app.types"
+import { ELanguages } from "../ts/pinia/app.types"
 import {defineStore} from "pinia"
 
 export const useAppStore = defineStore("app", {
