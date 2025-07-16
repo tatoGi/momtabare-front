@@ -15,7 +15,7 @@ SwiperCore.use([Navigation, Pagination]);
 // Import components and assets
 import BlogItem from "@/components/blog/BlogItem.vue";
 import BaseButton from "../base/BaseButton.vue";
-import blogimage from "@/assets/img/blogitem.png";
+import blogimage from "@/assets/img/blogItem.png";
 
 // Props
 defineProps({
