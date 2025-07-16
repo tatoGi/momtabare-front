@@ -15,13 +15,13 @@ const props = defineProps<{
 <template>
   <div>
     <div v-if="title" class="flex items-center justify-between pb-4">
-      <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
+      <h2 class="text-3xl font-extrabold font-uppercase dark:text-white product-list-title">
         {{ props.title }}
       </h2>
       <RouterLink 
           v-if="props.routeToName || props.routeToPath"
           :to="props.routeToName ? { name: props.routeToName } : { path: props.routeToPath }"
-          class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity"
+          class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity product-list-count"
       >
         {{ $t('allProducts') }}
       </RouterLink>

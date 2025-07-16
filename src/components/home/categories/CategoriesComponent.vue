@@ -75,9 +75,9 @@ const categories = ref<ICategory[]>([
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 category-section">
+  <div class="flex flex-col gap-4 category-section container">
     <div class="flex items-center justify-between">
-      <h2 class="font-uppercase text-3xl font-extrabold text-black dark:text-white">
+      <h2 class="font-uppercase text-3xl font-extrabold text-black dark:text-white category-title">
         {{$t('categories')}}
       </h2>
       <div class="flex items-center gap-2">

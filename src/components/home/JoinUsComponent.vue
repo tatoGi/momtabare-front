@@ -11,14 +11,14 @@ const appStore = useAppStore()
 </script>
 
 <template>
-  <div class="flex items-center joinUs_Section">
-    <div class="flex flex-col relative left-10 z-10">
+  <div class="flex flex-col md:flex-row items-center joinUs_Section">
+    <div class="order-2 md:order-1 flex flex-col relative md:left-10 z-10 mt-8 md:mt-0 px-4 md:px-0">
       <div class="flex flex-col">
-        <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
+        <h2 class="text-3xl font-extrabold font-uppercase dark:text-white top-title">
           გამოიმუშავე დამატებითი
         </h2>
 
-        <h2 class="text-3xl font-extrabold font-uppercase text-customBlue">
+        <h2 class="text-3xl font-extrabold font-uppercase text-customBlue bottom-title">
           შემოსავალი მარტივად
         </h2>
       </div>
@@ -43,19 +43,19 @@ const appStore = useAppStore()
         <p class="text-sm font-bold text-white font-uppercase">შემოგვიერთდი</p>
       </BaseButton>
     </div>
-    <div class="relative pr-24">
-      <img :src="img" alt="Sporting Equipment" class="rounded-xl" />
+    <div class="order-1 md:order-2 relative md:pr-24 w-full md:w-auto px-4 md:px-0">
+      <img :src="img" alt="Sporting Equipment" class="rounded-xl w-full h-auto md:w-auto" />
 
       <img
         :src="appStore.darkMode ? helmetDark : helmet"
         alt="Helmet"
-        class="w-[200px] h-[200px] right-0 top-10 absolute rotate-backward-slowly"
+        class="w-[200px] h-[200px] right-0 top-10 absolute rotate-backward-slowly rotate-slowly"
       />
 
       <img
         :src="appStore.darkMode ? snowboardDark : snowboard"
         alt="Skateboard"
-        class="w-[200px] h-[200px] right-5 -bottom-14 absolute rotate-slowly"
+        class="w-[200px] h-[200px] right-5 -bottom-14 absolute rotate-slowly rotate-backward-slowly"
       />
     </div>
   </div>

@@ -46,14 +46,14 @@
       <!-- Blog Posts -->
       <div class="w-full md:w-3/4">
         <div class="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-6">
-          <router-link 
+          <div 
             v-for="post in blogPosts" 
-            :key="post.id" 
-            :to="{ name: 'blog-show', params: { id: post.id } }"
-            class="block"
+            :key="post.id"
+            class="block cursor-pointer"
+            @click="goToPost(post)"
           >
             <BlogItem :post="post" />
-          </router-link>
+          </div>
         </div>
 
         <!-- Pagination -->
@@ -86,8 +86,18 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import BlogItem from '@/components/blog/BlogItem.vue';
 import blogImage from '@/assets/img/blogItem.png';
+
+interface BlogPost {
+  id: number;
+  title: string;
+  content: string;
+  date: string;
+  category: string | number;
+  image: string;
+}
 
 export default defineComponent({
   name: 'BlogView',
@@ -95,8 +105,23 @@ export default defineComponent({
     BlogItem
   },
   setup() {
+    const router = useRouter();
     const activeCategory = ref('all');
     const currentPage = ref(1);
+    
+    const goToPost = (post: BlogPost) => {
+      router.push({
+        name: 'blog-show',
+        params: { id: post.id },
+        query: { 
+          title: post.title,
+          content: post.content,
+          date: post.date,
+          category: String(Number(post.category) || 0), // Ensure category is a number string
+          image: post.image
+        }
+      });
+    };
     
     const categories = [
       { id: 'all', name: 'ყველა სიახლე', count: 254 },
@@ -112,56 +137,63 @@ export default defineComponent({
     ];
 
     // Mock blog posts data - in a real app, this would come from an API
-    const blogPosts = [
+    const blogPosts: BlogPost[] = [
       {
         id: 1,
         title: 'სათხილამურო კურორტები საქართველოში',
-        date: '28 იანვარი, 2024',
+        date: '2025-07-15',
         image: blogImage,
-        category: 'sports'
+        category: 'sports',
+        content: 'სათხილამურო კურორტების შესახებ სრული ინფორმაცია...'
       },
       {
         id: 2,
         title: 'ულამაზესი ბუნებრივი ტბები საქართველოში',
-        date: '15 იანვარი, 2024',
+        date: '2025-07-14',
         image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'places'
+        category: 'places',
+        content: 'საქართველოს ყველაზე ლამაზი ტბების შესახებ სრული ინფორმაცია...'
       },
       {
         id: 3,
-        title: 'ტრადიციული ქართული კერძების რეცეპტები',
-        date: '5 იანვარი, 2024',
-        image: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'culinary'
+        title: 'ისტორიული ღირსშესანიშნაობები საქართველოში',
+        date: '2025-07-13',
+        image: 'https://images.unsplash.com/photo-1582972236019-e413f40cbfc3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+        category: 'history',
+        content: 'საქართველოს ისტორიული ღირსშესანიშნაობების შესახებ სრული ინფორმაცია...'
       },
       {
         id: 4,
-        title: 'ტბა რიწა - ისტორია და ლეგენდები',
-        date: '20 დეკემბერი, 2023',
-        image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'history'
+        title: 'საუკეთესო რესტორნები თბილისში',
+        date: '2025-07-12',
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+        category: 'food',
+        content: 'თბილისის საუკეთესო რესტორნების შესახებ სრული ინფორმაცია...'
       },
       {
         id: 5,
-        title: 'ვახუშტი ბაგრატიონის რუკები',
-        date: '10 დეკემბერი, 2023',
+        title: 'პიკნიკისთვის იდეალური ადგილები',
+        date: '2025-07-11',
         image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'infographics'
+        category: 'places',
+        content: 'პიკნიკისთვის იდეალური ადგილების შესახებ სრული ინფორმაცია...'
       },
       {
         id: 6,
-        title: 'ზამთრის ტურიზმი გუდაურში',
-        date: '1 დეკემბერი, 2023',
-        image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'sports'
+        title: 'ზაფხულის არდადეგები საქართველოში',
+        date: '2025-07-10',
+        image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+        category: 'places',
+        content: 'ზაფხულის არდადეგებისთვის რეკომენდებული ადგილების შესახებ სრული ინფორმაცია...'
       }
     ];
 
     return {
+      activeCategory,
+      currentPage,
       categories,
       blogPosts,
-      activeCategory,
-      currentPage
+      goToPost
     };
   },
 });

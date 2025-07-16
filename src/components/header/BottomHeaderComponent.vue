@@ -54,11 +54,11 @@ cartStore.$subscribe(() => {
 </script>
 
 <template>
-  <header class="bg-white">
+  <header class="bg-white container">
     <!-- Desktop Header -->
-    <div class="hidden md:flex flex-row items-center justify-between max-w-7xl mx-auto px-4 py-2">
+    <div class="hidden md:flex flex-row items-center justify-between max-w-7xl  py-2">
       <!-- Categories Dropdown -->
-      <div class="ml-[53px]">
+      <div class="dropdown-category">
         <HeaderProductMenu />
       </div>
       
@@ -70,7 +70,7 @@ cartStore.$subscribe(() => {
       </div>
       
       <!-- Desktop Icons -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-6">
         <button class="relative p-2" @click="routeToFavorites">
           <img :src="heartsvg" alt="favorites" class="w-6 h-6" />
         </button>
@@ -106,30 +106,47 @@ cartStore.$subscribe(() => {
     </div>
     
     <!-- Mobile Header -->
-    <div class="md:hidden flex items-center justify-between px-4 py-3">
+    <div class="md:hidden flex">
       <!-- Burger Menu -->
-      <button @click="$emit('toggleMobileNav')" class="p-2">
+      <button @click="$emit('toggleMobileNav')" class="burger-menu">
         <BaseIcon name="menu" :size="24" />
       </button>
       <!-- Icons -->
-      <div class="flex items-center gap-2">
-        <button @click="showMobileSearch = !showMobileSearch" class="p-2">
+      <div class="flex items-center">
+        <button @click="showMobileSearch = !showMobileSearch" class="p-2  search-button">
           <BaseIcon :name="showMobileSearch ? 'close' : 'search'" :size="20" />
         </button>
         
-        <button class="relative p-2" @click="routeToFavorites">
+        <button class="relative p-2 favorite-button" @click="routeToFavorites">
           <img :src="heartsvg" alt="favorites" class="w-5 h-5" />
         </button>
         
-        <button class="relative p-2" @click="routeToCart">
+        <button class="relative p-2 cart-button" @click="routeToCart">
           <img :src="cartsvg" alt="cart" class="w-5 h-5" />
           <span 
             v-if="cartItems"
-            class="absolute -top-1 -right-1 bg-customRed text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center"
+            class="absolute -top-1 right-8 bg-customRed text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center"
           >
             {{ cartItems }}
           </span>
         </button>
+        <div class="flex items-center user-button">
+          <BaseButton
+            v-if="user"
+            :height="40"
+            :width="40"
+            class="rounded-full bg-customRed"
+            @click.left="router.push('/user')"
+          >
+            <BaseIcon :size="20" class="text-black" name="account_circle"/>
+          </BaseButton>
+          
+          <AuthDialog v-else>
+            <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
+              <BaseIcon :size="20" class="text-black" name="account_circle"/>
+            </BaseButton>
+          </AuthDialog>
+        </div>
       </div>
       
       <!-- Mobile Search Overlay -->

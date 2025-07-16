@@ -4,11 +4,12 @@ import JoinUsComponent from "@/components/home/JoinUsComponent.vue"
 import RentalStepsComponent from "@/components/home/RentalStepsComponent.vue"
 import CategoriesComponent from "@/components/home/categories/CategoriesComponent.vue"
 import SliderComponent from "@/components/home/slider/SliderComponent.vue"
+import PopularProductsSlider from "@/components/home/PopularProductsSlider.vue"
 import ProductList from "@/components/products/ProductList.vue"
 import {IProductListItem} from "@/ts/models/product.types.js"
 import {IGetProductsResponse} from "@/ts/services/products.types.ts"
 import {getProducts} from "@/services/products.js"
-import {onMounted, ref} from "vue"
+import { onMounted, onUnmounted, ref } from "vue"
 import itemPlaceholder from "@/assets/img/itemplaceholder.png"
 import BlogList from "@/components/blog/BlogList.vue"
 
@@ -207,23 +208,118 @@ onMounted(async () => {
   const allProducts: IGetProductsResponse | null = await getProducts()
   products.value = allProducts?.products.slice(0, 8) ?? []
 })
+
+const isMobile = ref(false);
+const windowWidth = ref(0);
+const isDev = import.meta.env.DEV;
+
+// Function to safely get viewport width
+const getViewportWidth = () => {
+  if (typeof window === 'undefined') return 0;
+  return Math.min(
+    window.innerWidth,
+    window.screen.width,
+    document.documentElement.clientWidth
+  ) || window.innerWidth;
+};
+
+const checkIfMobile = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Get the most reliable width value
+  const width = getViewportWidth();
+  
+  windowWidth.value = width;
+  
+  // Check viewport settings and device type
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isSmallScreen = width <= 768;
+  
+  // Consider it mobile if any of these are true
+  const mobile = isSmallScreen || isMobileUserAgent || isTouchDevice;
+  
+  // Debug information
+  if (import.meta.env.DEV) {
+    const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    console.log('Mobile Detection:', { 
+      width,
+      isMobile: mobile,
+      isSmallScreen,
+      isMobileUserAgent,
+      isTouchDevice,
+      userAgent: navigator.userAgent,
+      viewport: viewportMeta?.content || 'not found'
+    });
+  }
+  
+  isMobile.value = mobile;
+};
+
+// Initial check on component mount
+onMounted(() => {
+  console.log('Component mounted, checking mobile state...');
+  
+  // Force a small delay to ensure viewport is properly calculated
+  const checkWithDelay = () => {
+    checkIfMobile();
+    // Check again after a short delay to catch any viewport changes
+    setTimeout(checkIfMobile, 50);
+    setTimeout(checkIfMobile, 200);
+  };
+  
+  // Initial check
+  checkWithDelay();
+  
+  // Add event listeners
+  window.addEventListener('resize', checkWithDelay);
+  window.addEventListener('orientationchange', checkWithDelay);
+  
+  // Check again when the page is fully loaded
+  if (document.readyState === 'complete') {
+    checkWithDelay();
+  } else {
+    window.addEventListener('load', checkWithDelay);
+  }
+});
+
+// Clean up event listeners
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', checkIfMobile);
+    window.removeEventListener('orientationchange', checkIfMobile);
+    window.removeEventListener('load', checkIfMobile);
+  }
+});
 </script>
 
 <template>
   <div class="flex flex-col py-11 dark:bg-customBlack main-div">
     <SliderComponent/>
     <CategoriesComponent/>
+   
     
     <!-- Static Popular Products Section -->
    
     
     <JoinUsComponent/>
-    <ProductList
-        :products="popularProducts"
-        :title="$t('popularProducts')"
-        class="w-full"
-        route-to-name="products"
-    />
+    <div class="container mx-auto px-4 mt-8">
+     
+      <!-- Mobile View -->
+      <div v-if="isMobile" class="mobile-view">
+        <PopularProductsSlider :products="popularProducts" />
+      </div>
+      
+      <!-- Desktop View -->
+      <div v-else class="desktop-view">
+        <ProductList
+          :products="popularProducts"
+          :title="$t('popularProducts')"
+          class="w-full"
+          route-to-name="products"
+        />
+      </div>
+    </div>
     <!-- Dynamic Products Section -->
     <!-- <ProductList
         v-if="products && products.length > 0"

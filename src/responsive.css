@@ -1,86 +1,324 @@
 @media (max-width: 768px) {
-    .header-text-style {
-        display: none;
+  /* Footer Mobile Styles */
+  footer {
+    padding: 24px 16px;
+  }
+  
+  .footer-text-top {
+    flex-direction: column;
+    gap: 24px !important;
+    margin-bottom: 40px !important;
+  }
+  
+  .footer-text-top > div:first-child {
+    order: 2;
+  }
+  
+  .footer-text-top > div:last-child {
+    order: 1;
+  }
+  
+  .footer-text-bottom {
+    flex-direction: column;
+    gap: 0 !important;
+    width: 100%;
+  }
+  
+  .footer-text-bottom > div {
+    width: 100%;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 12px 0;
+  }
+  
+  .footer-text-bottom > div:first-child {
+    order: 2;
+  }
+  
+  .footer-text-bottom > div:not(:first-child) {
+    position: relative;
+  }
+  
+  .footer-text-bottom > div:not(:first-child) h2::after {
+    content: '+';
+    position: absolute;
+    right: 0;
+    top: 12px;
+    font-size: 20px;
+    transition: transform 0.3s ease;
+  }
+  
+  .footer-text-bottom > div:not(:first-child).active h2::after {
+    transform: rotate(45deg);
+  }
+  
+  .footer-text-bottom > div:not(:first-child) p {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .footer-text-bottom > div:not(:first-child).active p {
+    max-height: 500px;
+    padding: 8px 0 0;
+  }
+  
+  footer > div:last-child {
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  
+  footer > div:last-child img {
+    align-self: flex-start;
+  }
+  .header-text-style {
+    display: none;
+  }
+
+  .modeswitch {
+    display: none;
+  }
+
+  /* Mobile Navigation Menu Styles */
+  .mobile-menu {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: white;
+    z-index: 1000;
+    transition: left 0.3s ease-in-out;
+    padding: 80px 20px 20px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-menu.open {
+    left: 0;
+    display: block !important;
+  }
+
+  .mobile-menu ul {
+    flex-direction: column;
+    gap: 1rem !important;
+  }
+
+  .mobile-menu li {
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+
+  .dark .mobile-menu {
+    background: #1a1a1a;
+  }
+
+  .main-banner {
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    position: relative;
+    /* top: 140px; */
+    overflow: hidden;
+    border-radius: 0;
+  }
+  .bg-customRed{
+    background-color: #ffff;
+  }
+  .main-banner :deep(.carousel__viewport) {
+    overflow: visible;
+  }
+
+  .main-banner :deep(.carousel__track) {
+    gap: 0;
+  }
+
+  .main-banner :deep(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .logo {
+    width: 100px;
+    height: 24px;
+    gap: 4px;
+    top: 14px;
+    left: 16px;
+    position: relative;
+  }
+
+  .search-header {
+    display: none;
+  }
+
+  .main-div {
+    gap: 60px;
+  }
+
+  .burger-menu {
+    width: 75px;
+    height: 44px;
+    opacity: 1;
+
+  }
+
+  .search-button {
+    width: 75px;
+    height: 44px;
+    opacity: 1;
+  }
+
+  .favorite-button {
+    width: 75px;
+    height: 44px;
+    opacity: 1;
+  }
+
+  .cart-button {
+    width: 75px;
+    height: 44px;
+    opacity: 1;
+  }
+
+  .user-button {
+    width: 75px;
+    height: 44px;
+    opacity: 1;
+  }
+  .category-title{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-size: 20px;
+line-height: 100%;
+text-transform: uppercase;
+  }
+  .category-card{
+    width: 100%;
+    height: 100%;
+    max-width: 167px;
+    max-height: 194px;
+    opacity: 1;
+    border-radius: 16px;
+    object-fit: cover;
+  }
+
+  .top-title{
+   display: none;
+  }
+  .bottom-title{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-size: 20px;
+line-height: 100%;
+text-transform: uppercase;
+  }
+  .rotate-backward-slowly{
+  display: none;
+  }
+  .join_us_button{
+    width: 100% !important;
+    height: 48px;
+    margin-top: 24px;
+  }
+  .product-list-title{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-size: 20px;
+line-height: 100%;
+text-transform: uppercase;
+
+  }
+  .product-list-count{
+   display: none;
+  }
+  .first-title-rental{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-size: 20px;
+line-height: 100%;
+text-transform: uppercase;
+
+  }
+  .second-title-rental{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-size: 20px;
+line-height: 100%;
+text-transform: uppercase;
+
+  }
+  .rental-image{
+    width: 343px;
+    height: 229px;
+    opacity: 1;
+    border-radius: 12px;
+    top: 58px;
+    
+  }
+  .rental-description{
+    font-family: 'Avenir Next Georgian';
+font-weight: 500;
+font-size: 14px;
+line-height: 100%;
+letter-spacing: 0%;
+width: 343px;
+height: 90px;
+top: 307px;
+color: rgba(20, 20, 20, 0.7);
+  }
+  .content-rental{
+    gap:20px;
+    max-width: 343px;
+    width: 100%;
+  }
+  
+  .content-rental > div:last-child {
+    margin-left: -20px;
+    margin-right: -20px;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  .content-rental > div:last-child img {
+    border-radius: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  @media (min-width: 768px) {
+    .content-rental > div:last-child {
+      margin: 0;
+      width: 100%;
+      max-width: 100%;
     }
     
-    /* Mobile Navigation Menu Styles */
-    .mobile-menu {
-        position: fixed;
-        top: 0;
-        left: -100%;
-        width: 80%;
-        max-width: 300px;
-        height: 100vh;
-        background: white;
-        z-index: 1000;
-        transition: left 0.3s ease-in-out;
-        padding: 80px 20px 20px;
-        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    .content-rental > div:last-child img {
+      border-radius: 0 !important;
     }
-    
-    .mobile-menu.open {
-        left: 0;
-        display: block !important;
-    }
-    
-    .mobile-menu ul {
-        flex-direction: column;
-        gap: 1rem !important;
-    }
-    
-    .mobile-menu li {
-        width: 100%;
-        margin: 0 !important;
-    }
-    
-    .menu-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        backdrop-filter: blur(2px);
-    }
-    
-    .dark .mobile-menu {
-        background: #1a1a1a;
-    }
-    .main-banner {
-        width: 375px;
-        height: 300px;
-        opacity: 1;
-        position: relative;
-        top: 140px;
-        overflow: hidden;
-      }
-      
-      .main-banner :deep(.carousel__viewport) {
-        overflow: visible;
-      }
-      
-      .main-banner :deep(.carousel__track) {
-        gap: 0;
-      }
-      
-      .main-banner :deep(img) {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .logo{
-        width: 100px;
-        height: 24px;
-        gap: 4px;
-        top: 14px;
-        left: 16px;
-        position: relative;
-      }
-      .search-header{
-        display: none;
-      }
-      .main-div{
-        gap: 60px;
-      }
+  }
+  .blog-swiper .swiper-slide{
+    width: 302px !important;
+    height: 242px !important;
+    margin-right: 8px !important;
+}
+.footer-text-top{
+  display: block;
+}
+.footer-text-bottom{
+  gap: 20px;
+}
 }

@@ -161,7 +161,7 @@ watch(chosenLanguage, () => {
 </script>
 
 <template>
-  <header class="flex items-center justify-between px-4 py-2 md:grid md:grid-cols-4">
+  <header class="flex items-center justify-between  py-2 md:grid md:grid-cols-4 container">
     <img
         :src="
         appStore.darkMode
@@ -235,7 +235,7 @@ watch(chosenLanguage, () => {
       </div>
       <Switch
         :checked="appStore.darkMode"
-        class="cursor-pointer"
+        class="cursor-pointer modeswitch"
         @update:checked="appStore.toggleTheme"
       />
     </div>
