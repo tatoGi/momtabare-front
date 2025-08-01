@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { ICategory } from '@/ts/models/category.types'
+import type { ICategory } from "@/types/category"
 import { computed } from 'vue'
 import { useAppStore } from '@/pinia/app.pinia'
 import type { ELanguages } from '@/ts/pinia/app.types'

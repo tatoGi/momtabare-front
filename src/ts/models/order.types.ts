@@ -1,4 +1,4 @@
-import { EProductOrderStatus, IProduct } from "./product.types"
+import type { EProductOrderStatus, IProduct } from "./product.types"
 
 export interface IOrder {
   id: number

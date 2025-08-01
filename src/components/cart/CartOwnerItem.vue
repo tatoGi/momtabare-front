@@ -2,7 +2,7 @@
 import CartProductItem from "@/components/cart/CartProductItem.vue"
 import {Checkbox} from "@/components/ui/checkbox"
 import {ICartItem} from "@/ts/models/cart.types.ts"
-import {IUser} from "@/ts/models/user.types.ts"
+import type { IUser } from "@/ts/models/user-types"
 
 defineProps<{
   ownerCart: ICartItem[]

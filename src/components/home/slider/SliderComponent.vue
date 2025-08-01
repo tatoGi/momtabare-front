@@ -42,7 +42,7 @@ watchOnce(api, (api) => {
 
 <template>
   <div>
-    <h2 class="header-text-style font-uppercase flex-wrap dark:text-white">
+    <h2 class="header-text-style font-uppercase flex-wrap dark:text-white banner-title">
       აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.
     </h2>
     <Carousel
@@ -55,32 +55,28 @@ watchOnce(api, (api) => {
         :current-slide="currentSlide"
         :total-slides="totalSlides"
       />
-      <CarouselContent>
-        <CarouselItem>
-          <div class="relative">
+      <CarouselContent class="carousel-content-mobile">
+        <CarouselItem class="carousel-item-mobile">
+          <div class="relative slide-container">
             <img
               alt="slide 1"
-              class="w-full"
+              class="w-full slide-image"
               src="../../../assets/img/slider/slide1/slide1.png"
             />
             <img
               alt="slide character"
-              class="absolute bottom-0 right-0"
+              class="absolute bottom-0 right-0 character-image"
               src="../../../assets/img/slider/slide1/Character.png"
             />
           </div>
         </CarouselItem>
-        <CarouselItem v-for="(image, index) in images" :key="index">
-          <img :alt="image.alt" :src="image.src" class="w-full" />
+        <CarouselItem v-for="(image, index) in images" :key="index" class="carousel-item-mobile">
+          <div class="slide-container">
+            <img :alt="image.alt" :src="image.src" class="w-full slide-image" />
+          </div>
         </CarouselItem>
       </CarouselContent>
     </Carousel>
   </div>
 </template>
 
-<style scoped>
-.header-text-style {
-  @apply max-w-[950px] pb-10 text-4xl font-extrabold leading-[50px];
-}
-
-</style>

@@ -282,4 +282,23 @@ background-color:rgba(20, 20, 20, 0.2) ;
     border-radius: 16px;
     object-fit: cover;
 }
-
+.blue-content{
+    bottom: 0 !important;
+    transform: translateY(-43px) !important;
+    right: -172px !important;
+}
+.banner-title{
+    font-family: 'Avenir Next Georgian';
+font-weight: 800;
+font-style: bold;
+font-size: 36px;
+line-height: 100%;
+letter-spacing: 0%;
+text-transform: uppercase;
+width: 952px;
+height: 76px;
+top: 220px;
+left: 44px;
+opacity: 1;
+margin-bottom: 24px;
+}

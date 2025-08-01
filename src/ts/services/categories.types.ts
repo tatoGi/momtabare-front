@@ -1,4 +1,4 @@
-import { ICategory } from "../models/category.types.ts"
+import type { ICategory } from "@/types/category"
 
 export interface IGetCategoriesResponse {
   message: string

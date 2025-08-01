@@ -2,7 +2,7 @@
 import ownerTemp from "@/assets/img/OwnerTemp1.png"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import {ERetailerTab} from "@/ts/components/retailer.types.ts"
-import {IUser} from "@/ts/models/user.types.ts"
+import type { IUser } from "@/ts/models/user-types"
 import {computed, Ref, ref} from "vue"
 
 const props = defineProps<{

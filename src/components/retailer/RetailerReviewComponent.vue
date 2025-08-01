@@ -9,7 +9,7 @@ import { ref, computed } from "vue";
 import BaseButton from "../base/BaseButton.vue";
 import { rateRetailer } from "../../services/ratings";
 import { commentOnRetailer } from "../../services/comments";
-import { IUser } from "../../ts/models/user.types";
+import type { IUser } from "@/ts/models/user-types"
 import { useRouter } from "vue-router";
 
 const props = defineProps<{

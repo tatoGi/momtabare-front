@@ -10,7 +10,7 @@ import { Navigation } from 'swiper/modules';
 // Install Swiper modules
 SwiperCore.use([Navigation]);
 import CategoryItem from '@/components/home/categories/CategoryItem.vue';
-import type { ICategory } from '../../../ts/models/category.types';
+import type { ICategory } from '@/types/category';
 import { ref } from 'vue'
 import tentImg from '@/assets/img/tent.png'
 import Bicycle from '@/assets/img/Bicycle.png'
@@ -90,7 +90,7 @@ const categories = ref<ICategory[]>([
         <button class="swiper-button-prev-custom w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
           <img :src="leftArrow" alt="Previous" class="w-4 h-4" />
         </button>
-        <button class="swiper-button-next-custom w-8 h-8 flex items-center justify-center rounded-full  hover:bg-gray-200 transition-colors">
+        <button class="swiper-button-next-custom w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors">
           <img :src="rightArrow" alt="Next" class="w-4 h-4" />
         </button>
       </div>
@@ -151,7 +151,6 @@ const categories = ref<ICategory[]>([
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #f3f4f6;
   transition: all 0.3s ease;
   cursor: pointer;
   border: none;

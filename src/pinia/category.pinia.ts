@@ -1,7 +1,7 @@
 import { defineStore } from "pinia"
 import { getCategories } from "../services/categories.ts"
-import { ICategoriesState } from "../ts/pinia/categories.types.ts"
-import { ICategory } from "../ts/models/category.types.ts"
+import type { ICategoriesState } from "../ts/pinia/categories.types.ts"
+import type { ICategory } from "@/types/category"
 
 export const useCategoryStore = defineStore("category", {
   state: (): ICategoriesState => ({

@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { IUser } from "@/ts/models/user.types.ts"
+import type { IUser } from "@/ts/models/user-types"
 import { cities } from "@/constants/cities.ts"
 import { useUserStore } from "@/pinia/user.pinia.ts"
 import { computed, ref, watch } from "vue"

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {IUser} from '../../ts/models/user.types';
+import type { IUser } from "@/ts/models/user-types"
 
 import BaseIcon from '../base/BaseIcon.vue';
 import {useRouter} from 'vue-router';

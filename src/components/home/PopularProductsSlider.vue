@@ -28,7 +28,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:hidden">
+  <div class="md:hidden container">
     <h2 class="text-2xl font-extrabold mb-4 dark:text-white product-list-title">
       {{ $t('popularProducts') }}
     </h2>
@@ -38,11 +38,12 @@ onMounted(() => {
       }"
       class="w-full"
     >
-      <CarouselContent class="-ml-1">
-        <CarouselItem
+      <CarouselContent class="-ml-1"> 
+        <CarouselItem 
           v-for="(product, index) in props.products"
           :key="index"
-          class="pl-1 basis-1/2 sm:basis-1/3"
+          class="pl-1 popular-item"
+          style="flex: 0 0 255px; width: 255px;"
         >
           <div class="p-1">
             <ProductItem :item="product" />

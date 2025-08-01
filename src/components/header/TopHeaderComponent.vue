@@ -10,7 +10,7 @@ import momtabareLogoWithTextDark from "@/assets/svg/momtabare-logo-with-text-dar
 import momtabareLogoWithTextLight from "@/assets/svg/momtabare-logo-with-text.svg";
 import ukFlagIcon from '@/assets/img/uk-flag.svg';
 import globeIcon from '@/assets/img/Vector.svg';
-import { X, Menu } from "lucide-vue-next"
+
 // Simple confirmation dialog using browser's native confirm
 async function showConfirmationDialog(options: {
   title: string;

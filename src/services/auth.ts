@@ -1,4 +1,4 @@
-import {
+import type {
   ICompleteRegistrationParams,
   ICompleteRegistrationResponse,
   IRegisterParams,
@@ -10,7 +10,7 @@ import {
   ISignOutResponse,
   IVerifyCodeParams,
   IVerifyCodeResponse,
-} from "../ts/services/auth.types.ts"
+} from "../ts/services/auth.types"
 import AxiosJSON from "../utils/helpers/axios.ts"
 
 export async function register() {

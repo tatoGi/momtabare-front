@@ -1,307 +1,124 @@
-import type { ICategory } from "@/ts/models/category.types";
+import type { ICategory } from '@/types/category';
+
+
+// Helper function to create a category with required properties
+const createCategory = (id: number, name: { en: string; ka: string }, slug: string, parent: ICategory | number | null = null, children: ICategory[] = []): ICategory => ({
+  id,
+  name,
+  slug,
+  parent,
+  children,
+});
 
 export const categoriesData: ICategory[] = [
-  {
-    id: 1,
-    name: { en: 'Hiking & Camping', ka: 'ლაშქრობა და კემპინგი' },
-    slug: 'hiking-camping',
-    children: [
-      {
-        id: 101,
-        name: { en: 'Tents', ka: 'ქოხები' },
-        slug: 'tents',
-        children: [
-          { id: 1001, name: { en: 'Backpacking Tents', ka: 'ტურისტული ქოხები' }, slug: 'backpacking-tents' },
-          { id: 1002, name: { en: 'Camping Tents', ka: 'კემპინგის ქოხები' }, slug: 'camping-tents' },
-          { id: 1003, name: { en: 'Family Tents', ka: 'ოჯახური ქოხები' }, slug: 'family-tents' },
-          { id: 1004, name: { en: '4-Season Tents', ka: '4-სეზონიანი ქოხები' }, slug: '4-season-tents' }
-        ]
-      },
-      {
-        id: 102,
-        name: { en: 'Sleeping Bags', ka: 'ძილის ტომარები' },
-        slug: 'sleeping-bags',
-        children: [
-          { id: 1005, name: { en: 'Down Sleeping Bags', ka: 'ღრუბლოვანი ტომარები' }, slug: 'down-sleeping-bags' },
-          { id: 1006, name: { en: 'Synthetic Sleeping Bags', ka: 'სინთეტიკური ტომარები' }, slug: 'synthetic-sleeping-bags' },
-          { id: 1007, name: { en: 'Mummy Bags', ka: 'მუმია ტომარები' }, slug: 'mummy-bags' }
-        ]
-      },
-      {
-        id: 103,
-        name: { en: 'Backpacks', ka: 'ზურგჩანთები' },
-        slug: 'backpacks',
-        children: [
-          { id: 1008, name: { en: 'Daypacks', ka: 'დღიური ჩანთები' }, slug: 'daypacks' },
-          { id: 1009, name: { en: 'Hiking Backpacks', ka: 'ლაშქრობის ჩანთები' }, slug: 'hiking-backpacks' },
-          { id: 1010, name: { en: 'Travel Backpacks', ka: 'მოგზაურობის ჩანთები' }, slug: 'travel-backpacks' }
-        ]
-      },
-      {
-        id: 104,
-        name: { en: 'Hiking Boots', ka: 'ლაშქრობის ფეხსაცმელი' },
-        slug: 'hiking-boots',
-        children: [
-          { id: 1011, name: { en: 'Men\'s Hiking Boots', ka: 'კაცის ფეხსაცმელი' }, slug: 'mens-hiking-boots' },
-          { id: 1012, name: { en: 'Women\'s Hiking Boots', ka: 'ქალის ფეხსაცმელი' }, slug: 'womens-hiking-boots' },
-          { id: 1013, name: { en: 'Hiking Shoes', ka: 'ლაშქრობის ფეხსაცმელი' }, slug: 'hiking-shoes' }
-        ]
-      }
+  createCategory(1, { en: 'Hiking & Camping', ka: 'ლაშქრობა და კემპინგი' }, 'hiking-camping', null, [
+    createCategory(101, { en: 'Tents', ka: 'ქოხები' }, 'tents', 1, [
+      createCategory(1001, { en: 'Backpacking Tents', ka: 'ტურისტული ქოხები' }, 'backpacking-tents', 101, []),
+      createCategory(1002, { en: 'Camping Tents', ka: 'კემპინგის ქოხები' }, 'camping-tents', 101, []),
+      createCategory(1003, { en: 'Family Tents', ka: 'ოჯახური ქოხები' }, 'family-tents', 101, []),
+      createCategory(1004, { en: '4-Season Tents', ka: '4-სეზონიანი ქოხები' }, '4-season-tents', 101, [])
+    ]),
+    createCategory(102, { en: 'Sleeping Bags', ka: 'ძილის ტომარები' }, 'sleeping-bags', 1, [
+      createCategory(1005, { en: 'Down Sleeping Bags', ka: 'ღრუბლოვანი ტომარები' }, 'down-sleeping-bags', 102, []),
+      createCategory(1006, { en: 'Synthetic Sleeping Bags', ka: 'სინთეტიკური ტომარები' }, 'synthetic-sleeping-bags', 102, []),
+      createCategory(1007, { en: 'Mummy Bags', ka: 'მუმია ტომარები' }, 'mummy-bags', 102, [])
+    ]),
+      createCategory(103, { en: 'Backpacks', ka: 'ზურგჩანთები' }, 'backpacks', 1, [
+        createCategory(1008, { en: 'Daypacks', ka: 'დღიური ჩანთები' }, 'daypacks', 103, []),
+        createCategory(1009, { en: 'Hiking Backpacks', ka: 'ლაშქრობის ჩანთები' }, 'hiking-backpacks', 103, []),
+        createCategory(1010, { en: 'Travel Backpacks', ka: 'მოგზაურობის ჩანთები' }, 'travel-backpacks', 103, [])
+      ]),
+      createCategory(104, { en: 'Hiking Boots', ka: 'ლაშქრობის ფეხსაცმელი' }, 'hiking-boots', 1, [
+        createCategory(1011, { en: 'Men\'s Hiking Boots', ka: 'კაცის ფეხსაცმელი' }, 'mens-hiking-boots', 104, []),
+        createCategory(1012, { en: 'Women\'s Hiking Boots', ka: 'ქალის ფეხსაცმელი' }, 'womens-hiking-boots', 104, []),
+        createCategory(1013, { en: 'Hiking Shoes', ka: 'ლაშქრობის ფეხსაცმელი' }, 'hiking-shoes', 104, [])
+      ])
     ]
-  },
-  {
-    id: 2,
-    name: { en: 'Climbing', ka: 'ალპინიზმი' },
-    slug: 'climbing',
-    children: [
-      {
-        id: 201,
-        name: { en: 'Climbing Shoes', ka: 'ალპინისტური ფეხსაცმელი' },
-        slug: 'climbing-shoes',
-        children: [
-          { id: 2001, name: { en: 'Beginner Shoes', ka: 'დამწყებთათვის' }, slug: 'beginner-shoes' },
-          { id: 2002, name: { en: 'Intermediate Shoes', ka: 'გამოცდილი' }, slug: 'intermediate-shoes' },
-          { id: 2003, name: { en: 'Advanced Shoes', ka: 'პროფესიონალი' }, slug: 'advanced-shoes' }
-        ]
-      },
-      {
-        id: 202,
-        name: { en: 'Harnesses', ka: 'ამაღიზიანებლები' },
-        slug: 'harnesses',
-        children: [
-          { id: 2004, name: { en: 'Sit Harnesses', ka: 'საჯდომი' }, slug: 'sit-harnesses' },
-          { id: 2005, name: { en: 'Chest Harnesses', ka: 'მკერდის' }, slug: 'chest-harnesses' },
-          { id: 2006, name: { en: 'Full Body Harnesses', ka: 'სრული სხეულის' }, slug: 'full-body-harnesses' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: { en: 'Cycling', ka: 'ველოსპორტი' },
-    slug: 'cycling',
-    children: [
-      {
-        id: 301,
-        name: { en: 'Mountain Bikes', ka: 'მთის ველოსიპედები' },
-        slug: 'mountain-bikes',
-        children: [
-          { id: 3001, name: { en: 'Hardtail', ka: 'ჰარდტეილი' }, slug: 'hardtail' },
-          { id: 3002, name: { en: 'Full Suspension', ka: 'სრული დამშვიდება' }, slug: 'full-suspension' },
-          { id: 3003, name: { en: 'Electric MTB', ka: 'ელექტრო' }, slug: 'electric-mtb' }
-        ]
-      },
-      {
-        id: 302,
-        name: { en: 'Road Bikes', ka: 'გზის ველოსიპედები' },
-        slug: 'road-bikes',
-        children: [
-          { id: 3004, name: { en: 'Race Bikes', ka: 'საგზაო' }, slug: 'race-bikes' },
-          { id: 3005, name: { en: 'Endurance Bikes', ka: 'ტურინგული' }, slug: 'endurance-bikes' },
-          { id: 3006, name: { en: 'Aero Bikes', ka: 'აერო' }, slug: 'aero-bikes' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 4,
-    name: { en: 'Water Sports', ka: 'წყლის სპორტი' },
-    slug: 'water-sports',
-    children: [
-      {
-        id: 401,
-        name: { en: 'Kayaks', ka: 'ბაირკები' },
-        slug: 'kayaks',
-        children: [
-          { id: 4001, name: { en: 'Sit-on-Top Kayaks', ka: 'ღია' }, slug: 'sit-on-top' },
-          { id: 4002, name: { en: 'Sit-Inside Kayaks', ka: 'დახურული' }, slug: 'sit-inside' },
-          { id: 4003, name: { en: 'Touring Kayaks', ka: 'ტურისტული' }, slug: 'touring' }
-        ]
-      },
-      {
-        id: 402,
-        name: { en: 'Stand Up Paddleboards', ka: 'სათხილამურო დაფები' },
-        slug: 'sups',
-        children: [
-          { id: 4004, name: { en: 'All-Around SUPs', ka: 'უნივერსალური' }, slug: 'all-around' },
-          { id: 4005, name: { en: 'Touring SUPs', ka: 'ტურისტული' }, slug: 'touring' },
-          { id: 4006, name: { en: 'Yoga SUPs', ka: 'იოგა' }, slug: 'yoga' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 5,
-    name: { en: 'Ski & Snowboard', ka: 'თხილამურები და სნოუბორდი' },
-    slug: 'ski-snowboard',
-    children: [
-      {
-        id: 501,
-        name: { en: 'Skis', ka: 'თხილამურები' },
-        slug: 'skis',
-        children: [
-          { id: 5001, name: { en: 'All-Mountain Skis', ka: 'უნივერსალური' }, slug: 'all-mountain' },
-          { id: 5002, name: { en: 'Powder Skis', ka: 'ფხვიერი თოვლისთვის' }, slug: 'powder' },
-          { id: 5003, name: { en: 'Carving Skis', ka: 'კარვინგი' }, slug: 'carving' }
-        ]
-      },
-      {
-        id: 502,
-        name: { en: 'Snowboards', ka: 'სნოუბორდები' },
-        slug: 'snowboards',
-        children: [
-          { id: 5004, name: { en: 'All-Mountain Boards', ka: 'უნივერსალური' }, slug: 'all-mountain' },
-          { id: 5005, name: { en: 'Freestyle Boards', ka: 'ფრისტაილი' }, slug: 'freestyle' },
-          { id: 5006, name: { en: 'Freeride Boards', ka: 'ფრიერაიდი' }, slug: 'freeride' }
-        ]
-      },
-      {
-        id: 503,
-        name: { en: 'Ski Boots', ka: 'თხილამურის ფეხსაცმელი' },
-        slug: 'ski-boots',
-        children: [
-          { id: 5007, name: { en: 'Alpine Boots', ka: 'ალპინისტური' }, slug: 'alpine' },
-          { id: 5008, name: { en: 'Touring Boots', ka: 'ტურისტული' }, slug: 'touring' },
-          { id: 5009, name: { en: 'Freeride Boots', ka: 'ფრიერაიდი' }, slug: 'freeride' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 6,
-    name: { en: 'Running', ka: 'სირბილი' },
-    slug: 'running',
-    children: [
-      {
-        id: 601,
-        name: { en: 'Running Shoes', ka: 'სირბილის ფეხსაცმელი' },
-        slug: 'running-shoes',
-        children: [
-          { id: 6001, name: { en: 'Road Running', ka: 'ქუჩის' }, slug: 'road' },
-          { id: 6002, name: { en: 'Trail Running', ka: 'სატრასო' }, slug: 'trail' },
-          { id: 6003, name: { en: 'Racing', ka: 'საკონკურსო' }, slug: 'racing' }
-        ]
-      },
-      {
-        id: 602,
-        name: { en: 'Running Apparel', ka: 'ტანსაცმელი' },
-        slug: 'running-apparel',
-        children: [
-          { id: 6004, name: { en: 'T-Shirts', ka: 'მაისურები' }, slug: 'tshirts' },
-          { id: 6005, name: { en: 'Shorts', ka: 'შორტები' }, slug: 'shorts' },
-          { id: 6006, name: { en: 'Jackets', ka: 'ქურთუკები' }, slug: 'jackets' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 7,
-    name: { en: 'Fitness', ka: 'ფიტნესი' },
-    slug: 'fitness',
-    children: [
-      {
-        id: 701,
-        name: { en: 'Home Gym', ka: 'სახლის ფიტნესი' },
-        slug: 'home-gym',
-        children: [
-          { id: 7001, name: { en: 'Dumbbells', ka: 'გუმბათები' }, slug: 'dumbbells' },
-          { id: 7002, name: { en: 'Resistance Bands', ka: 'წინააღმდეგობის ლენტები' }, slug: 'resistance-bands' },
-          { id: 7003, name: { en: 'Yoga Mats', ka: 'იოგის ხალიჩები' }, slug: 'yoga-mats' }
-        ]
-      },
-      {
-        id: 702,
-        name: { en: 'Cardio Equipment', ka: 'კარდიო აღჭურვილობა' },
-        slug: 'cardio-equipment',
-        children: [
-          { id: 7004, name: { en: 'Treadmills', ka: 'სირბილის ბილიკები' }, slug: 'treadmills' },
-          { id: 7005, name: { en: 'Exercise Bikes', ka: 'ველოტრენაჟორები' }, slug: 'exercise-bikes' },
-          { id: 7006, name: { en: 'Ellipticals', ka: 'ელიფსოიდები' }, slug: 'ellipticals' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 8,
-    name: { en: 'Team Sports', ka: 'გუნდური სპორტი' },
-    slug: 'team-sports',
-    children: [
-      {
-        id: 801,
-        name: { en: 'Soccer', ka: 'ფეხბურთი' },
-        slug: 'soccer',
-        children: [
-          { id: 8001, name: { en: 'Soccer Cleats', ka: 'ბუცები' }, slug: 'cleats' },
-          { id: 8002, name: { en: 'Soccer Balls', ka: 'ბურთები' }, slug: 'balls' },
-          { id: 8003, name: { en: 'Shin Guards', ka: 'პერანჯიკები' }, slug: 'shin-guards' }
-        ]
-      },
-      {
-        id: 802,
-        name: { en: 'Basketball', ka: 'კალათბურთი' },
-        slug: 'basketball',
-        children: [
-          { id: 8004, name: { en: 'Basketballs', ka: 'ბურთები' }, slug: 'basketballs' },
-          { id: 8005, name: { en: 'Basketball Shoes', ka: 'ფეხსაცმელი' }, slug: 'basketball-shoes' },
-          { id: 8006, name: { en: 'Hoops', ka: 'კალათები' }, slug: 'hoops' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 9,
-    name: { en: 'Outdoor Clothing', ka: 'გარე ტანსაცმელი' },
-    slug: 'outdoor-clothing',
-    children: [
-      {
-        id: 901,
-        name: { en: 'Jackets', ka: 'ქურთუკები' },
-        slug: 'jackets',
-        children: [
-          { id: 9001, name: { en: 'Rain Jackets', ka: 'საწვიმარი' }, slug: 'rain' },
-          { id: 9002, name: { en: 'Down Jackets', ka: 'ღრუბლოვანი' }, slug: 'down' },
-          { id: 9003, name: { en: 'Softshell Jackets', ka: 'სოფტშელები' }, slug: 'softshell' }
-        ]
-      },
-      {
-        id: 902,
-        name: { en: 'Pants', ka: 'შარვლები' },
-        slug: 'pants',
-        children: [
-          { id: 9004, name: { en: 'Hiking Pants', ka: 'ლაშქრობის' }, slug: 'hiking' },
-          { id: 9005, name: { en: 'Softshell Pants', ka: 'სოფტშელები' }, slug: 'softshell' },
-          { id: 9006, name: { en: 'Rain Pants', ka: 'საწვიმარი' }, slug: 'rain' }
-        ]
-      }
-    ]
-  },
-  {
-    id: 10,
-    name: { en: 'Accessories', ka: 'აქსესუარები' },
-    slug: 'accessories',
-    children: [
-      {
-        id: 1001,
-        name: { en: 'Headwear', ka: 'ქუდები' },
-        slug: 'headwear',
-        children: [
-          { id: 10001, name: { en: 'Hats', ka: 'ქუდები' }, slug: 'hats' },
-          { id: 10002, name: { en: 'Beanies', ka: 'ქუდ-ჩაფხუტები' }, slug: 'beanies' },
-          { id: 10003, name: { en: 'Caps', ka: 'ქუდები' }, slug: 'caps' }
-        ]
-      },
-      {
-        id: 1002,
-        name: { en: 'Gloves', ka: 'ხელთათმანები' },
-        slug: 'gloves',
-        children: [
-          { id: 10004, name: { en: 'Winter Gloves', ka: 'ზამთრის' }, slug: 'winter' },
-          { id: 10005, name: { en: 'Fingerless Gloves', ka: 'უთითო' }, slug: 'fingerless' },
-          { id: 10006, name: { en: 'Sport Gloves', ka: 'სპორტული' }, slug: 'sport' }
-        ]
-      }
-    ]
-  }
+  ),
+  createCategory(2, { en: 'Climbing', ka: 'ალპინიზმი' }, 'climbing', null, [
+    createCategory(201, { en: 'Climbing Shoes', ka: 'ალპინისტური ფეხსაცმელი' }, 'climbing-shoes', 2, [
+      createCategory(2001, { en: 'Beginner Shoes', ka: 'დამწყებთათვის' }, 'beginner-shoes', 201, []),
+      createCategory(2002, { en: 'Intermediate Shoes', ka: 'გამოცდილი' }, 'intermediate-shoes', 201, []),
+      createCategory(2003, { en: 'Advanced Shoes', ka: 'პროფესიონალი' }, 'advanced-shoes', 201, [])
+    ]),
+    createCategory(202, { en: 'Harnesses', ka: 'ამაღიზიანებლები' }, 'harnesses', 2, [
+      createCategory(2004, { en: 'Sit Harnesses', ka: 'საჯდომი' }, 'sit-harnesses', 202, []),
+      createCategory(2005, { en: 'Chest Harnesses', ka: 'მკერდის' }, 'chest-harnesses', 202, []),
+      createCategory(2006, { en: 'Full Body Harnesses', ka: 'სრული სხეულის' }, 'full-body-harnesses', 202, [])
+    ])
+  ]),
+  createCategory(3, { en: 'Cycling', ka: 'ველოსპორტი' }, 'cycling', null, [
+    createCategory(301, { en: 'Mountain Bikes', ka: 'მთის ველოსიპედები' }, 'mountain-bikes', 3, [
+      createCategory(3001, { en: 'Hardtail', ka: 'ჰარდტეილი' }, 'hardtail', 301, []),
+      createCategory(3002, { en: 'Full Suspension', ka: 'სრული დამშვიდება' }, 'full-suspension', 301, []),
+      createCategory(3003, { en: 'Electric MTB', ka: 'ელექტრო' }, 'electric-mtb', 301, [])
+    ]),
+    createCategory(302, { en: 'Road Bikes', ka: 'გზის ველოსიპედები' }, 'road-bikes', 3, [
+      createCategory(3004, { en: 'Race Bikes', ka: 'საგზაო' }, 'race-bikes', 302, []),
+      createCategory(3005, { en: 'Endurance Bikes', ka: 'ტურინგული' }, 'endurance-bikes', 302, []),
+      createCategory(3006, { en: 'Aero Bikes', ka: 'აერო' }, 'aero-bikes', 302, [])
+    ])
+  ]),
+  createCategory(4, { en: 'Water Sports', ka: 'წყლის სპორტი' }, 'water-sports', null, [
+    createCategory(401, { en: 'Kayaks', ka: 'ბაირკები' }, 'kayaks', 4, [
+      createCategory(4001, { en: 'Sit-on-Top Kayaks', ka: 'ღია' }, 'sit-on-top', 401, []),
+      createCategory(4002, { en: 'Sit-Inside Kayaks', ka: 'დახურული' }, 'sit-inside', 401, []),
+      createCategory(4003, { en: 'Touring Kayaks', ka: 'ტურისტული' }, 'touring', 401, [])
+    ]),
+    createCategory(402, { en: 'Stand Up Paddleboards', ka: 'სათხილამურო დაფები' }, 'sups', 4, [
+      createCategory(4004, { en: 'All-Around SUPs', ka: 'უნივერსალური' }, 'all-around', 402, []),
+      createCategory(4005, { en: 'Touring SUPs', ka: 'ტურისტული' }, 'touring', 402, []),
+      createCategory(4006, { en: 'Yoga SUPs', ka: 'იოგა' }, 'yoga', 402, [])
+    ])
+  ]),
+  createCategory(7, { en: 'Fitness', ka: 'ფიტნესი' }, 'fitness', null, [
+    createCategory(701, { en: 'Home Gym', ka: 'სახლის ფიტნესი' }, 'home-gym', 7, [
+      createCategory(7001, { en: 'Dumbbells', ka: 'გუმბათები' }, 'dumbbells', 701, []),
+      createCategory(7002, { en: 'Resistance Bands', ka: 'წინააღმდეგობის ლენტები' }, 'resistance-bands', 701, []),
+      createCategory(7003, { en: 'Yoga Mats', ka: 'იოგის ხალიჩები' }, 'yoga-mats', 701, [])
+    ]),
+    createCategory(702, { en: 'Cardio Equipment', ka: 'კარდიო აღჭურვილობა' }, 'cardio-equipment', 7, [
+      createCategory(7004, { en: 'Treadmills', ka: 'სირბილის ბილიკები' }, 'treadmills', 702, []),
+      createCategory(7005, { en: 'Exercise Bikes', ka: 'ველოტრენაჟორები' }, 'exercise-bikes', 702, []),
+      createCategory(7006, { en: 'Ellipticals', ka: 'ელიფსოიდები' }, 'ellipticals', 702, [])
+    ])
+  ]),
+  createCategory(8, { en: 'Team Sports', ka: 'გუნდური სპორტი' }, 'team-sports', null, [
+    createCategory(801, { en: 'Soccer', ka: 'ფეხბურთი' }, 'soccer', 8, [
+      createCategory(8001, { en: 'Soccer Cleats', ka: 'ბუცები' }, 'cleats', 801, []),
+      createCategory(8002, { en: 'Soccer Balls', ka: 'ბურთები' }, 'balls', 801, []),
+      createCategory(8003, { en: 'Shin Guards', ka: 'პერანჯიკები' }, 'shin-guards', 801, [])
+    ]),
+    createCategory(802, { en: 'Basketball', ka: 'კალათბურთი' }, 'basketball', 8, [
+      createCategory(8004, { en: 'Basketballs', ka: 'ბურთები' }, 'basketballs', 802, []),
+      createCategory(8005, { en: 'Basketball Shoes', ka: 'ფეხსაცმელი' }, 'basketball-shoes', 802, []),
+      createCategory(8006, { en: 'Hoops', ka: 'კალათები' }, 'hoops', 802, [])
+    ])
+  ]),
+  createCategory(9, { en: 'Outdoor Clothing', ka: 'გარე ტანსაცმელი' }, 'outdoor-clothing', null, [
+    createCategory(901, { en: 'Jackets', ka: 'ქურთუკები' }, 'jackets', 9, [
+      createCategory(9001, { en: 'Rain Jackets', ka: 'წვიმის ქურთუკები' }, 'rain-jackets', 901, []),
+      createCategory(9002, { en: 'Softshell Jackets', ka: 'სოფტშელის ქურთუკები' }, 'softshell-jackets', 901, []),
+      createCategory(9003, { en: 'Insulated Jackets', ka: 'თბილი ქურთუკები' }, 'insulated-jackets', 901, [])
+    ]),
+    createCategory(902, { en: 'Pants', ka: 'შარვლები' }, 'pants', 9, [
+      createCategory(9004, { en: 'Hiking Pants', ka: 'ლაშქრობის შარვლები' }, 'hiking-pants', 902, []),
+      createCategory(9005, { en: 'Convertible Pants', ka: 'ტრანსფორმერი შარვლები' }, 'convertible-pants', 902, []),
+      createCategory(9006, { en: 'Softshell Pants', ka: 'სოფტშელის შარვლები' }, 'softshell-pants', 902, [])
+    ])
+  ]),
+  createCategory(10, { en: 'Accessories', ka: 'აქსესუარები' }, 'accessories', null, [
+    createCategory(1001, { en: 'Headwear', ka: 'ქუდები' }, 'headwear', 10, [
+      createCategory(10001, { en: 'Hats', ka: 'ქუდები' }, 'hats', 1001, []),
+      createCategory(10002, { en: 'Beanies', ka: 'ქუდ-ჩაფხუტები' }, 'beanies', 1001, []),
+      createCategory(10003, { en: 'Caps', ka: 'ქუდები' }, 'caps', 1001, [])
+    ]),
+    createCategory(1002, { en: 'Gloves', ka: 'ხელთათმანები' }, 'gloves', 10, [
+      createCategory(10004, { en: 'Winter Gloves', ka: 'ზამთრის' }, 'winter-gloves', 1002, []),
+      createCategory(10005, { en: 'Fingerless Gloves', ka: 'უთითო' }, 'fingerless-gloves', 1002, []),
+      createCategory(10006, { en: 'Sport Gloves', ka: 'სპორტული' }, 'sport-gloves', 1002, [])
+    ])
+  ])
 ];
 
 export default categoriesData;

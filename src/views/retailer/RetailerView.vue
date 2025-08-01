@@ -10,10 +10,10 @@ import BaseSelect from "@/components/base/BaseSelect.vue"
 import ProductList from "@/components/products/ProductList.vue"
 import RetailerHeader from "@/components/retailer/RetailerHeader.vue"
 import { Input } from "@/components/ui/input"
-import { ICategory } from "@/ts/models/category.types.ts"
+import type { ICategory } from "@/types/category"
 import { IComment } from "@/ts/models/comment.types.ts"
 import { IProductListItem } from "@/ts/models/product.types.ts"
-import { IUser } from "@/ts/models/user.types.ts"
+import type { IUser } from "@/ts/models/user-types"
 import { ELanguages } from "@/ts/pinia/app.types.ts"
 import {
   IGetProductsQuery,

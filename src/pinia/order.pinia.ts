@@ -1,5 +1,5 @@
-import { getOrders } from "../services/order.ts"
-import { IOrderState } from "../ts/pinia/order.types.ts"
+import { getOrders } from "@/services/order"
+import type { IOrderState } from "@/ts/pinia/order.types"
 import { defineStore } from "pinia"
 
 export const useOrderStore = defineStore("order", {

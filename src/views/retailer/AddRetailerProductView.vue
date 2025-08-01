@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ICategory } from "@/ts/models/category.types.ts"
+import type { ICategory } from "@/types/category"
 import { cities } from "@/constants/cities.ts"
 import { addProduct } from "@/services/retailer.ts"
 import { useCategoryStore } from "@/pinia/category.pinia.ts"

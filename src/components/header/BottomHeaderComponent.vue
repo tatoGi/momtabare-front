@@ -10,6 +10,7 @@ import { useUserStore } from "@/pinia/user.pinia";
 import { useCartStore } from "@/pinia/cart.pinia";
 import cartsvg from "@/assets/svg/cart.svg";
 import heartsvg from "@/assets/svg/heart.svg";
+import usersvg from "@/assets/img/usersvg.svg";
 
 interface INavItem {
   title: string;
@@ -31,7 +32,7 @@ const navItems: INavItem[] = [
 const showMobileSearch = ref(false);
 const user = userStore.user;
 const cartItems = ref(cartStore.getCartLength);
-
+console.log(user);
 function routeToCart(): void {
   if (!userStore.getUser) {
     userStore.setAuthDialogState(true);
@@ -54,7 +55,7 @@ cartStore.$subscribe(() => {
 </script>
 
 <template>
-  <header class="bg-white container">
+  <header class="bg-white container md:border-b-0 border-b-2 border-gray-200 dark:border-gray-700">
     <!-- Desktop Header -->
     <div class="hidden md:flex flex-row items-center justify-between max-w-7xl  py-2">
       <!-- Categories Dropdown -->
@@ -109,12 +110,14 @@ cartStore.$subscribe(() => {
     <div class="md:hidden flex">
       <!-- Burger Menu -->
       <button @click="$emit('toggleMobileNav')" class="burger-menu">
-        <BaseIcon name="menu" :size="24" />
+        <BaseIcon name="menu" :size="24" /> 
       </button>
       <!-- Icons -->
       <div class="flex items-center">
         <button @click="showMobileSearch = !showMobileSearch" class="p-2  search-button">
-          <BaseIcon :name="showMobileSearch ? 'close' : 'search'" :size="20" />
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17 17L13.889 13.8889M16.1111 8.55556C16.1111 12.7284 12.7284 16.1111 8.55556 16.1111C4.38274 16.1111 1 12.7284 1 8.55556C1 4.38274 4.38274 1 8.55556 1C12.7284 1 16.1111 4.38274 16.1111 8.55556Z" stroke="#141414" stroke-opacity="0.7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
         
         <button class="relative p-2 favorite-button" @click="routeToFavorites">
@@ -138,12 +141,12 @@ cartStore.$subscribe(() => {
             class="rounded-full bg-customRed"
             @click.left="router.push('/user')"
           >
-            <BaseIcon :size="20" class="text-black" name="account_circle"/>
+            <img :src="usersvg" alt="user" class="w-5 h-5" />
           </BaseButton>
           
           <AuthDialog v-else>
             <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
-              <BaseIcon :size="20" class="text-black" name="account_circle"/>
+              <img :src="usersvg" alt="user" class="w-5 h-5" />
             </BaseButton>
           </AuthDialog>
         </div>

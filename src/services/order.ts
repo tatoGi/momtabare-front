@@ -1,5 +1,5 @@
-import { IGetOrdersResponse } from "../ts/services/order.types.ts"
-import AxiosJSON from "../utils/helpers/axios.ts"
+import type { IGetOrdersResponse } from "@/ts/services/order.types"
+import AxiosJSON from "@/utils/helpers/axios"
 
 export async function checkout() {
   return { success: true, orderId: 123 };

@@ -1,4 +1,5 @@
-import {EFAQCategory, IFAQ, IFAQCards, IFAQItem} from "../ts/components/faq.types.ts"
+import { EFAQCategory } from "@/ts/components/faq.types"
+import type { IFAQ, IFAQCards, IFAQItem } from "@/ts/components/faq.types"
 
 export const FAQCards: IFAQCards[] = [
     {

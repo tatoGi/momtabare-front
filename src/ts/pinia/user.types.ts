@@ -1,4 +1,4 @@
-import { IUser } from "../models/user.types.ts"
+import type { IUser } from "../models/user-types"
 
 export interface IUserState {
   user: IUser | null

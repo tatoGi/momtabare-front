@@ -2,7 +2,7 @@
 import ratingDisplay from "@/assets/svg/rating-display.svg"
 import RatingStatusComponent from "@/components/products/product-stats/RatingStatusComponent.vue"
 import { IComment } from "@/ts/models/comment.types.ts"
-import { IUser } from "@/ts/models/user.types.ts"
+import type { IUser } from "@/ts/models/user-types"
 import { computed } from "vue";
 import BaseIcon from "../../../components/base/BaseIcon.vue";
 

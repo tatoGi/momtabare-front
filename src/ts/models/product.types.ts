@@ -1,5 +1,5 @@
-import { ICategory } from "./category.types.ts"
-import { IUser } from "./user.types.ts"
+import type { ICategory } from "@/types/category"
+import type { IUser } from "./user-types"
 
 export interface IProductThumbnail {
   id: number

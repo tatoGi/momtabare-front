@@ -13,5 +13,4 @@ export interface IFooterItems {
   customer: IFooterSection
   termsAndConditions: IFooterSection
   contact: IFooterSection
-  social: IFooterSection
 }

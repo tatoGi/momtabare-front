@@ -1,6 +1,22 @@
 <script lang="ts" setup>
 import img from "@/assets/img/rentalstepsimage.png"
 import steps from "@/assets/img/steps.png"
+import { onMounted, ref } from "vue"
+
+
+const isMobile = ref(false)
+
+const checkIfMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+onMounted(() => {
+  checkIfMobile()
+  window.addEventListener('resize', checkIfMobile)
+  return () => {
+    window.removeEventListener('resize', checkIfMobile)
+  }
+})
 </script>
 
 <template>
@@ -37,10 +53,17 @@ import steps from "@/assets/img/steps.png"
         გაუსვლელად, სულ რამდენიმე წუთში, პირდაპირ დანიშნულების ადგილას იქირაო.
       </p>
 
-      <!-- Steps Image -->
-      <div class="w-full overflow-hidden md:overflow-visible">
+      <!-- Steps Image - Desktop -->
+      <div class="hidden md:block w-full overflow-hidden md:overflow-visible">
         <img :src="steps" alt="steps" class="w-full" />
       </div>
     </div>
+    
   </div>
+  
+  <!-- Steps Image - Mobile (Full Width) -->
+  <div v-if="isMobile" class="w-full">
+    <img :src="steps" alt="steps" class="w-full" />
+  </div>
+  
 </template>

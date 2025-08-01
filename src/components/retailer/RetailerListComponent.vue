@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {onBeforeMount, ref} from 'vue';
 import {getAllUsers} from '../../services/user';
-import {IUser} from '../../ts/models/user.types';
+import type { IUser } from "@/ts/models/user-types"
 import RetailerListItemComponent from './RetailerListItemComponent.vue';
 import BaseBreadcrumbs from '../base/BaseBreadcrumbs.vue';
 import {userSortingOptions} from '../../constants/userSortingOptions';
@@ -19,16 +19,39 @@ const sortByIsOpen = ref<boolean>(false)
 const retailers = ref<IUser[] | null>(null)
 
 onBeforeMount(async () => {
-
   retailersLoading.value = true
   try {
     const response = await getAllUsers();
     if (!response) return
 
-    users.value = response.users;
-    retailers.value = users.value.filter((item) => item.is_retailer === 1);
+    // Map the mock data to match IUser interface
+    users.value = response.users.map(user => ({
+      id: user.id,
+      first_name: user.name.split(' ')[0] || '',
+      last_name: user.name.split(' ')[1] || '',
+      email: user.email,
+      country_code: 'GE',
+      phone_number: '',
+      profile_picture: '',
+      rating_stats: {
+        average: 0,
+        total: 0,
+        rating_1: 0,
+        rating_2: 0,
+        rating_3: 0,
+        rating_4: 0,
+        rating_5: 0
+      },
+      products_amount: 0,
+      comments_amount: 0,
+      is_retailer: 1, // Mark all mock users as retailers for demo
+      is_admin: 0,
+      created_at: new Date().toISOString()
+    }));
+    
+    retailers.value = [...users.value]; // All mock users are retailers in this case
   } catch (e: any) {
-    console.log(e)
+    console.error('Error loading retailers:', e)
   } finally {
     retailersLoading.value = false
   }

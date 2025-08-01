@@ -1,4 +1,4 @@
-import { ICategory } from "../ts/models/category.types.ts"
+import type { ICategory } from "@/types/category"
 
 // Sample data for categories with multiple levels
 const categoriesData: ICategory[] = [

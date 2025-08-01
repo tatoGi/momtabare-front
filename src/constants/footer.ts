@@ -27,8 +27,4 @@ export const footerItems: IFooterItems = {
     title: "კონტაქტი",
     pages: ["+995 598 23 08 23", "vtvau2013@agruni.edu.ge"],
   },
-  social: {
-    title: "სოციალური ქსელები",
-    pages: ["Facebook", "Instagram", "YouTube", "TikTok"],
-  },
 }

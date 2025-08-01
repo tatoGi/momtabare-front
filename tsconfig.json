@@ -14,8 +14,6 @@
       "@/*": ["src/*"],
       "@ts/*": ["src/ts/*"]
     },
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "resolveJsonModule": true
   }

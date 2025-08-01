@@ -1,4 +1,4 @@
-import { ICart } from "../ts/models/cart.types"
+import type { ICart } from "@/ts/models/cart.types"
 
 export async function getCart(): Promise<ICart> {
   // This is a mock implementation

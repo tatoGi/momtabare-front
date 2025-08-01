@@ -1,4 +1,4 @@
-import { IOrder } from "../models/order.types.ts"
+import type { IOrder } from "../models/order.types"
 
 export interface IOrderState {
   orders: {

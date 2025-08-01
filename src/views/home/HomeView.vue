@@ -242,15 +242,7 @@ const checkIfMobile = () => {
   // Debug information
   if (import.meta.env.DEV) {
     const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
-    console.log('Mobile Detection:', { 
-      width,
-      isMobile: mobile,
-      isSmallScreen,
-      isMobileUserAgent,
-      isTouchDevice,
-      userAgent: navigator.userAgent,
-      viewport: viewportMeta?.content || 'not found'
-    });
+  
   }
   
   isMobile.value = mobile;
@@ -258,8 +250,6 @@ const checkIfMobile = () => {
 
 // Initial check on component mount
 onMounted(() => {
-  console.log('Component mounted, checking mobile state...');
-  
   // Force a small delay to ensure viewport is properly calculated
   const checkWithDelay = () => {
     checkIfMobile();

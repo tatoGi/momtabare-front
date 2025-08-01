@@ -1,5 +1,5 @@
-import { IProduct } from "./product.types"
-import { IUser } from "./user.types"
+import type { IProduct } from "./product.types"
+import type { IUser } from "./user-types"
 
 export interface ICart {
   items: ICartItem[]

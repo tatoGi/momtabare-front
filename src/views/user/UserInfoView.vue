@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { useUserStore } from "@/pinia/user.pinia.ts"
+import { useUserStore } from "@/pinia/user.pinia"
 import { computed } from "vue"
-import { IUser } from "@/ts/models/user.types.js"
+import type { IUser } from "@/ts/models/user-types"
 
 const userStore = useUserStore()
 

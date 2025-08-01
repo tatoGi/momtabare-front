@@ -1,3 +1,4 @@
+// User types definition
 export interface IUser {
     id: number
     first_name: string
@@ -14,7 +15,7 @@ export interface IUser {
     created_at: string
 }
 
-interface IUserRatingStats {
+export interface IUserRatingStats {
     average: number
     total: number
     rating_1: number
@@ -22,4 +23,11 @@ interface IUserRatingStats {
     rating_3: number
     rating_4: number
     rating_5: number
+}
+
+export interface IUserCard {
+  icon: string
+  title: string
+  name: string
+  description: string
 }

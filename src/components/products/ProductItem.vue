@@ -33,7 +33,7 @@ function navigateToProduct() {
 }
 
 async function favoriteProduct(): Promise<void> {
-  if(!userStore.getUser){
+  if (!userStore.getUser) {
     userStore.setAuthDialogState(true);
     return;
   }
@@ -44,25 +44,13 @@ async function favoriteProduct(): Promise<void> {
 
 <template>
   <div
-    class="flex flex-col border rounded-2xl border-transparent hover:cursor-pointer hover:border-customBlack/10 dark:hover:border-white/10"
-    @click.left="navigateToProduct"
-  >
-    <div class="relative flex h-52 justify-center pt-4">
-      <BaseIcon
-        ref="favoriteButtonRef"
-        :class="{ 'text-customRed': heart }"
-        :fill="heart"
-        :size="24"
+    class="flex flex-col border rounded-2xl border-transparent hover:cursor-pointer hover:border-customBlack/10 dark:hover:border-white/10 product-item"
+    @click.left="navigateToProduct">
+    <div class="relative flex h-52 justify-center pt-4 product-img-container">
+      <BaseIcon ref="favoriteButtonRef" :class="{ 'text-customRed': heart }" :fill="heart" :size="24"
         class="absolute left-6 top-6 z-10 cursor-pointer transition-all hover:text-customRed dark-white-text-hover"
-        name="favorite"
-        rounded
-        @click.left.stop="favoriteProduct"
-      />
-      <img
-        :src="computedImageUrl"
-        alt="Product Image"
-        class="h-full w-52 object-contain"
-      />
+        name="favorite" rounded @click.left.stop="favoriteProduct" />
+      <img :src="computedImageUrl" alt="Product Image" class="h-full w-52 object-contain product-img" />
     </div>
     <div class="flex flex-col p-4">
       <div class="flex flex-col gap-1.5">
@@ -70,16 +58,11 @@ async function favoriteProduct(): Promise<void> {
         <p class="truncate text-sm font-semibold dark:text-white">
           {{ props.item.name }}
         </p>
-        <CommentsStatusComponent
-          :comments_amount="props.item.comments_amount || 0"
-        />
+        <CommentsStatusComponent :comments_amount="props.item.comments_amount || 0" />
       </div>
 
       <div class="flex flex-col gap-1.5 pt-3">
-        <RatingStatusComponent
-          :rating="props.item.rating"
-          :ratings-amount="props.item.ratings_amount"
-        />
+        <RatingStatusComponent :rating="props.item.rating" :ratings-amount="props.item.ratings_amount" />
         <p class="text-xs font-medium text-customBlack/70 dark:text-white/70">
           15 თებ - 24 თებ
         </p>
@@ -89,15 +72,11 @@ async function favoriteProduct(): Promise<void> {
         <p class="text-lg font-extrabold text-customRed">
           {{ props.item.price }} ₾
         </p>
-        <p
-          class="pb-1 text-xs font-medium text-customBlack/70 dark:text-white/70"
-        >
+        <p class="pb-1 text-xs font-medium text-customBlack/70 dark:text-white/70">
           /
         </p>
-        <p
-          class="pb-1 text-xs font-medium text-customBlack/70 dark:text-white/70"
-        >
-          {{$t('daily')}}
+        <p class="pb-1 text-xs font-medium text-customBlack/70 dark:text-white/70">
+          {{ $t('daily') }}
         </p>
       </div>
     </div>

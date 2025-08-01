@@ -1,4 +1,4 @@
-import { ICartItem } from "../models/cart.types.ts"
+import type { ICartItem } from "@/ts/models/cart.types"
 
 export interface IGetCartResponse {
   items: ICartItem[]

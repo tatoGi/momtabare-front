@@ -2,7 +2,7 @@
 import BaseButton from "@/components/base/BaseButton.vue"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import type { ICategory, IProduct } from "@/ts/models/category.types"
+import type { ICategory, IProduct } from "@/types/category"
 import { useAppStore } from "@/pinia/app.pinia"
 import { useCategoryStore } from "@/pinia/category.pinia"
 import { computed, ref, onMounted } from "vue"

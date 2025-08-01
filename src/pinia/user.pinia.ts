@@ -1,6 +1,6 @@
 import { getUser } from "../services/user.ts"
-import { IUser } from "../ts/models/user.types.ts"
-import { IUserState } from "../ts/pinia/user.types.ts"
+import type { IUser } from "../ts/models/user-types"
+import type { IUserState } from "../ts/pinia/user.types"
 
 import { defineStore } from "pinia"
 
@@ -26,6 +26,7 @@ export const useUserStore = defineStore("user", {
     setAuthDialogState(payload : boolean): void{
       this.authDialogState = payload
     }
+    
   },
   getters: {
     getUser(state: IUserState): IUserState["user"] {
