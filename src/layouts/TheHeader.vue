@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { Switch } from "@/components/ui/switch";
 import { useAppStore } from "@/pinia/app.pinia.ts";
 
@@ -15,6 +16,7 @@ import categoriesData from "@/data/categories";
 const isMobileNavOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const appStore = useAppStore();
 
 
@@ -108,7 +110,7 @@ function toggleCategoryExpansion(categoryId: number): void {
       >
       <!-- Mobile Navigation Items -->
       <nav class="container py-4">
-        <h2 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">navigation</h2>
+        <h2 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{t('navigation')}}</h2>
         <ul class="grid grid-cols-1 gap-3">
           <li
             v-for="navItem in navItems"
@@ -133,7 +135,7 @@ function toggleCategoryExpansion(categoryId: number): void {
       <!-- Mobile Categories Section -->
       <div class="border-t border-gray-200 dark:border-gray-700">
         <nav class="container py-4">
-          <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Categories</h3>
+          <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{t('categories')}}</h3>
           <div class="grid grid-cols-1 gap-2">
             <div v-for="category in categories" :key="category.id" class="category-group">
               <button

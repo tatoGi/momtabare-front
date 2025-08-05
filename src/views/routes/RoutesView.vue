@@ -14,68 +14,51 @@
       <div class="w-full md:w-96 bg-gray-50 p-4 overflow-y-auto">
         <div class="space-y-4">
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">From</label>
+            <label class="block text-sm font-medium text-gray-700">Search Locations</label>
             <div class="flex">
               <input 
-                v-model="origin" 
-                @keyup.enter="() => searchLocation('origin')"
+                v-model="searchQuery" 
+                @input="filterLocations"
                 type="text" 
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter starting location"
+                placeholder="Enter location name..."
               >
               <button 
-                @click="() => searchLocation('origin')"
+                @click="clearSearch"
                 class="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 rounded-r-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           </div>
           
-          <div class="space-y-2">
-            <label class="block text-sm font-medium text-gray-700">To</label>
-            <div class="flex">
-              <input 
-                v-model="destination" 
-                @keyup.enter="() => searchLocation('destination')"
-                type="text" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter destination"
+          <div v-if="filteredLocations.length > 0" class="mt-4">
+            <h3 class="font-medium text-gray-900 mb-2">Found Locations ({{ filteredLocations.length }})</h3>
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              <div 
+                v-for="location in filteredLocations" 
+                :key="location.name"
+                @click="focusOnLocation(location)"
+                class="p-3 bg-white rounded-md shadow-sm cursor-pointer hover:bg-blue-50 hover:border-blue-200 border border-gray-200 transition-colors"
               >
-              <button 
-                @click="() => searchLocation('destination')"
-                class="px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 rounded-r-md"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
+                <div class="flex justify-between items-center">
+                  <div>
+                    <h4 class="font-medium text-gray-900">{{ location.name }}</h4>
+                    <p class="text-sm text-gray-500">{{ location.count }} routes</p>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
           
-          <div v-if="routeInfo" class="mt-4 p-4 bg-white rounded-md shadow">
-            <h3 class="font-medium text-gray-900">Route Information</h3>
-            <p class="text-sm text-gray-600 mt-1">Distance: {{ routeInfo.distance }} km</p>
-            <p class="text-sm text-gray-600">Duration: {{ routeInfo.time }} min</p>
-          </div>
-          
-          <div class="space-y-2">
-            <button 
-              @click="calculateRoute"
-              :disabled="!canCalculateRoute"
-              class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Get Directions
-            </button>
-            
-            <button 
-              @click="clearRoute"
-              class="w-full bg-white text-gray-700 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Clear Route
-            </button>
+          <div v-else-if="searchQuery" class="mt-4 p-4 bg-white rounded-md shadow">
+            <p class="text-gray-500 text-center">No locations found matching "{{ searchQuery }}"</p>
           </div>
         </div>
       </div>
@@ -84,7 +67,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -144,28 +127,17 @@ interface Location {
   count: number;
 }
 
-interface RouteConnection {
-  from: string;
-  to: string;
-  count: number;
-}
 
-interface RouteInfo {
-  distance: string;
-  time: string;
-}
 
 export default defineComponent({
   name: 'RoutesView',
   setup() {
     // Reactive variables
-    const origin = ref('');
-    const destination = ref('');
-    const routeInfo = ref<RouteInfo | null>(null);
+    const searchQuery = ref('');
     const map = ref<L.Map | null>(null);
     const markers = ref<L.Marker[]>([]);
-    const routeLayer = ref<L.Polyline | null>(null);
     const markerClusterGroup = ref<L.MarkerClusterGroup | null>(null);
+    const filteredLocations = ref<Location[]>([]);
 
     // Default coordinates for Tbilisi
     const defaultCoords: [number, number] = [41.7151, 44.8271];
@@ -185,11 +157,6 @@ export default defineComponent({
     ];
 
   
-
-    // Computed property
-    const canCalculateRoute = computed(() => {
-      return origin.value.trim() !== '' && destination.value.trim() !== '';
-    });
 
     // Create custom marker icon
     const createCustomIcon = (name: string, count: number) => {
@@ -232,8 +199,20 @@ export default defineComponent({
         }
       });
 
+      // Load all locations initially
+      loadLocations(georgiaRoutes);
+    };
+
+    // Load locations on map
+    const loadLocations = (locations: Location[]) => {
+      // Clear existing markers
+      if (markerClusterGroup.value) {
+        markerClusterGroup.value.clearLayers();
+      }
+      markers.value = [];
+
       // Add markers to the cluster group
-      georgiaRoutes.forEach(location => {
+      locations.forEach(location => {
         const marker = L.marker(
           [location.lat, location.lng],
           {
@@ -252,7 +231,6 @@ export default defineComponent({
             </div>
             <div class="popup-details">
               <p><strong>Routes:</strong> ${location.count}</p>
-              <button class="show-routes-btn" data-location="${location.name}">Show Routes</button>
             </div>
           </div>
         `;
@@ -264,139 +242,60 @@ export default defineComponent({
         markers.value.push(marker);
       });
 
-      // Add cluster group to map
-      if (markerClusterGroup.value) {
-        (map.value as any).addLayer(markerClusterGroup.value);
-      }
-      
-      // Add route connections
-      routeConnections.forEach(connection => {
-        const from = georgiaRoutes.find(loc => loc.name === connection.from);
-        const to = georgiaRoutes.find(loc => loc.name === connection.to);
-        
-        if (from && to && map.value) {
-          L.polyline(
-            [[from.lat, from.lng], [to.lat, to.lng]],
-            {
-              color: '#3b82f6',
-              weight: 2 + (connection.count / 5),
-              opacity: 0.7,
-              dashArray: '5, 5'
-            }
-          ).addTo(map.value);
+      // Add cluster group to map if not already added
+      if (markerClusterGroup.value && map.value) {
+        if (!map.value.hasLayer(markerClusterGroup.value)) {
+          map.value.addLayer(markerClusterGroup.value);
         }
-      });
+      }
     };
 
-    // Search for location
-    const searchLocation = async (type: 'origin' | 'destination') => {
-      const query = type === 'origin' ? origin.value : destination.value;
-      if (!query.trim()) return;
-
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+    // Filter locations based on search query
+    const filterLocations = () => {
+      const query = searchQuery.value.toLowerCase().trim();
+      
+      if (query === '') {
+        // Show all locations
+        filteredLocations.value = [];
+        loadLocations(georgiaRoutes);
+      } else {
+        // Filter locations
+        const filtered = georgiaRoutes.filter(location => 
+          location.name.toLowerCase().includes(query)
         );
-        const data = await response.json();
+        filteredLocations.value = filtered;
+        loadLocations(filtered);
+      }
+    };
+
+    // Focus on a specific location
+    const focusOnLocation = (location: Location) => {
+      if (map.value) {
+        map.value.setView([location.lat, location.lng], 10);
         
-        if (data && data.length > 0) {
-          const { lat, lon, display_name } = data[0];
-          const coords: [number, number] = [parseFloat(lat), parseFloat(lon)];
-          
-          // Remove existing marker for this type
-          const markerIndex = type === 'origin' ? 0 : 1;
-          if (markers.value[markerIndex]) {
-            map.value?.removeLayer(markers.value[markerIndex]);
-          }
-          
-          // Create custom icon
-          const icon = L.divIcon({
-            className: 'custom-marker',
-            html: `<div style="background-color: ${type === 'origin' ? '#10b981' : '#ef4444'}; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">
-                    ${type === 'origin' ? 'A' : 'B'}
-                  </div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
-          
-          // Add new marker
-          const marker = L.marker(coords, { icon })
-            .addTo(map.value!)
-            .bindPopup(`${type === 'origin' ? 'Origin' : 'Destination'}: ${display_name}`);
-          
-          // Store marker
-          if (!markers.value[markerIndex]) {
-            markers.value[markerIndex] = marker;
-          } else {
-            markers.value[markerIndex] = marker;
-          }
-          
-          // Update input with formatted address
-          const shortName = display_name.split(',')[0];
-          if (type === 'origin') {
-            origin.value = shortName;
-          } else {
-            destination.value = shortName;
-          }
-          
-          // Center map on location
-          map.value?.setView(coords, 13);
-        }
-      } catch (error) {
-        console.error('Error searching location:', error);
-      }
-    };
-
-    // Calculate route (simplified version without routing library)
-    const calculateRoute = () => {
-      if (markers.value.length < 2) return;
-      
-      // Clear existing route
-      if (routeLayer.value) {
-        map.value?.removeLayer(routeLayer.value);
-      }
-      
-      const coords = markers.value.map(marker => marker.getLatLng());
-      
-      // Create simple line between points
-      routeLayer.value = L.polyline(coords, {
-        color: '#3b82f6',
-        weight: 5,
-        opacity: 0.8
-      }).addTo(map.value!);
-      
-      // Calculate approximate distance and time
-      const distance = coords[0].distanceTo(coords[1]) / 1000; // Convert to km
-      const time = Math.ceil(distance * 1.5); // Rough estimate: 1.5 minutes per km
-      
-      routeInfo.value = {
-        distance: distance.toFixed(1),
-        time: time.toString()
-      };
-      
-      // Fit map to show route
-      map.value?.fitBounds(routeLayer.value.getBounds(), { padding: [20, 20] });
-    };
-
-    // Clear route
-    const clearRoute = () => {
-      if (routeLayer.value) {
-        map.value?.removeLayer(routeLayer.value);
-        routeLayer.value = null;
-      }
-      
-      // Clear markers
-      markers.value.forEach(marker => {
+        // Find and open the popup for this location
+        const marker = markers.value.find(m => {
+          const latLng = m.getLatLng();
+          return Math.abs(latLng.lat - location.lat) < 0.001 && 
+                 Math.abs(latLng.lng - location.lng) < 0.001;
+        });
+        
         if (marker) {
-          map.value?.removeLayer(marker);
+          marker.openPopup();
         }
-      });
-      markers.value = [];
+      }
+    };
+
+    // Clear search
+    const clearSearch = () => {
+      searchQuery.value = '';
+      filteredLocations.value = [];
+      loadLocations(georgiaRoutes);
       
-      // Clear form
-      origin.value = '';
-      destination.value = '';
-      routeInfo.value = null;
+      // Reset map view
+      if (map.value) {
+        map.value.setView(defaultCoords, 7);
+      }
     };
 
     // Lifecycle hooks
@@ -416,13 +315,11 @@ export default defineComponent({
     });
 
     return {
-      origin,
-      destination,
-      canCalculateRoute,
-      routeInfo,
-      searchLocation,
-      calculateRoute,
-      clearRoute
+      searchQuery,
+      filteredLocations,
+      filterLocations,
+      focusOnLocation,
+      clearSearch
     };
   },
 });

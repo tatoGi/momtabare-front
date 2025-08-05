@@ -11,8 +11,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { EAuthStep } from "@/ts/auth.types.js"
+import type { AuthStepPayload } from "@/ts/auth.types.js"
 import { useUserStore } from "../../pinia/user.pinia"
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { VisuallyHidden } from "radix-vue"
 
 const step = ref<string>(EAuthStep.SIGN_IN)
@@ -23,6 +24,17 @@ const computedIsOpen = computed(() => {
 })
 const userId = ref<number | null>(null)
 const emailOrPhone = ref<string>("")
+
+// Handle body scroll prevention for mobile
+watch(computedIsOpen, (isOpen) => {
+  if (typeof window !== 'undefined') {
+    if (isOpen) {
+      document.body.classList.add('mobile-nav-open')
+    } else {
+      document.body.classList.remove('mobile-nav-open')
+    }
+  }
+})
 
 const dialogStyleBySteps = computed<string>(() => {
   const width = step.value === EAuthStep.SIGN_IN ? "w-[809px]" : "w-[451px]"
@@ -54,7 +66,7 @@ function resetAuthSteps() {
   closeAuthDialog()
 }
 
-function moveToStep(payload): void {
+function moveToStep(payload: AuthStepPayload): void {
   if (payload.user_id) {
     userId.value = payload.user_id
   }
@@ -76,48 +88,111 @@ function closeAuthDialog(): void {
 </script>
 
 <template>
-  <Dialog v-model:open="computedIsOpen">
+  <!-- Mobile Dropdown Overlay -->
+  <div class="block lg:hidden">
     <div @click="userStore.setAuthDialogState(true)">
       <slot />
     </div>
 
-    <DialogContent
-      :class="dialogStyleBySteps"
-      class="overflow-hidden dark:bg-customBlack"
-      @reset-steps="resetAuthSteps"
+    <!-- Mobile Auth Overlay -->
+    <div 
+      v-if="computedIsOpen" 
+      class="fixed inset-0 z-50 bg-white dark:bg-customBlack"
+      :class="{
+        'animate-slide-down': computedIsOpen,
+        'animate-slide-up': !computedIsOpen
+      }"
     >
-      <VisuallyHidden>
-        <DialogTitle />
-        <DialogDescription />
-      </VisuallyHidden>
-
-      <SignInComponent
-        v-if="step === EAuthStep.SIGN_IN"
-        @close="closeAuthDialog"
-        @next-step="moveToStep"
-      />
-
-      <div v-else class="flex flex-col justify-between px-8 pb-9 pt-20">
-        <SignUpPhoneNumberComponent
-          v-if="step === EAuthStep.SIGN_UP_PHONE_NUMBER"
-          @next-step="moveToStep"
-        />
-        <SignUpEmailComponent
-          v-if="step === EAuthStep.SIGN_UP_EMAIL"
-          @next-step="moveToStep"
-        />
-        <VerifyCodeComponent
-          v-if="step === EAuthStep.VERIFY_CODE"
-          :email-or-phone="emailOrPhone"
-          :user-id="userId as number"
-          @next-step="moveToStep"
-        />
-        <SignUpUserInfoComponent
-          v-if="step === EAuthStep.SIGN_UP_USER_INFO"
-          :user-id="userId"
-          @close="closeAuthDialog"
-        />
+      <!-- Close Button -->
+      <div class="flex justify-end p-4">
+        <button 
+          @click="closeAuthDialog"
+          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <svg class="w-6 h-6 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
-    </DialogContent>
-  </Dialog>
+
+      <!-- Auth Content -->
+      <div class="px-4 pb-4">
+        <SignInComponent
+          v-if="step === EAuthStep.SIGN_IN"
+          @close="closeAuthDialog"
+          @next-step="moveToStep"
+        />
+
+        <div v-else class="flex flex-col justify-between px-4 pb-9 pt-8">
+          <SignUpPhoneNumberComponent
+            v-if="step === EAuthStep.SIGN_UP_PHONE_NUMBER"
+            @next-step="moveToStep"
+          />
+          <SignUpEmailComponent
+            v-if="step === EAuthStep.SIGN_UP_EMAIL"
+            @next-step="moveToStep"
+          />
+          <VerifyCodeComponent
+            v-if="step === EAuthStep.VERIFY_CODE"
+            :email-or-phone="emailOrPhone"
+            :user-id="userId as number"
+            @next-step="moveToStep"
+          />
+          <SignUpUserInfoComponent
+            v-if="step === EAuthStep.SIGN_UP_USER_INFO"
+            :user-id="userId"
+            @close="closeAuthDialog"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Desktop Modal -->
+  <div class="hidden lg:block">
+    <Dialog v-model:open="computedIsOpen">
+      <div @click="userStore.setAuthDialogState(true)">
+        <slot />
+      </div>
+
+      <DialogContent
+        :class="dialogStyleBySteps"
+        class="overflow-hidden dark:bg-customBlack"
+        @reset-steps="resetAuthSteps"
+      >
+        <VisuallyHidden>
+          <DialogTitle />
+          <DialogDescription />
+        </VisuallyHidden>
+
+        <SignInComponent
+          v-if="step === EAuthStep.SIGN_IN"
+          @close="closeAuthDialog"
+          @next-step="moveToStep"
+        />
+
+        <div v-else class="flex flex-col justify-between px-8 pb-9 pt-20">
+          <SignUpPhoneNumberComponent
+            v-if="step === EAuthStep.SIGN_UP_PHONE_NUMBER"
+            @next-step="moveToStep"
+          />
+          <SignUpEmailComponent
+            v-if="step === EAuthStep.SIGN_UP_EMAIL"
+            @next-step="moveToStep"
+          />
+          <VerifyCodeComponent
+            v-if="step === EAuthStep.VERIFY_CODE"
+            :email-or-phone="emailOrPhone"
+            :user-id="userId as number"
+            @next-step="moveToStep"
+          />
+          <SignUpUserInfoComponent
+            v-if="step === EAuthStep.SIGN_UP_USER_INFO"
+            :user-id="userId"
+            @close="closeAuthDialog"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  </div>
 </template>

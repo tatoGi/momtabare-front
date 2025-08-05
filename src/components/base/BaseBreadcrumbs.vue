@@ -39,7 +39,7 @@ function goToRoute(index: number): void {
 </script>
 
 <template>
-  <div class="flex h-10 items-center gap-2">
+  <div class="flex h-10 items-center gap-2  container mx-auto px-4">
     <BaseIcon
       :size="20"
       class="text-customBlack/70 dark:text-white/70 hover:cursor-pointer hover:text-customRed"

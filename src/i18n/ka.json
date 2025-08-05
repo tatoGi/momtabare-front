@@ -14,5 +14,10 @@
     "popularProduction": "პოპულარული პროდუქცია",
     "popularProducts": "პოპულარული პროდუქტები",
     "allBlog": "ყველა ბლოგი",
-    "routes": "მარშუტები"
+    "routes": "მარშუტები",
+    "navigation": "ნავიგაცია",
+    "blogs": "ბლოგები",
+    "blog": "ბლოგი",
+    "blogShow": "ბლოგის ნახვა",
+    "home": "მთავარი"
 }

@@ -4,7 +4,16 @@
     <nav class="mb-8 lg:w-2/3">
       <ol class="inline-flex items-center space-x-1 text-sm">
         <li class="inline-flex items-center">
-          <router-link to="/" class="text-gray-600 hover:text-[#F44000] transition-colors">მთავარი</router-link>
+          <a href="/"
+            class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-orange-500 dark:text-gray-400 dark:hover:text-white mr-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 16 18" fill="none">
+              <path
+                d="M1.33398 8.14457C1.33398 7.68464 1.33398 7.45469 1.38882 7.24292C1.43739 7.05534 1.51722 6.87891 1.62438 6.7223C1.74535 6.54551 1.91326 6.40433 2.24909 6.12197L7.27302 1.89808C7.53324 1.67929 7.66339 1.56988 7.8071 1.52783C7.93384 1.49072 8.06747 1.49072 8.19421 1.52783C8.33791 1.56988 8.46806 1.67929 8.72828 1.89808L13.7522 6.12198C14.0881 6.40433 14.256 6.54551 14.3769 6.7223C14.4841 6.87891 14.5639 7.05534 14.6125 7.24292C14.6673 7.45469 14.6673 7.68464 14.6673 8.14457V13.9377C14.6673 14.8346 14.6673 15.283 14.5058 15.6256C14.3638 15.9269 14.1372 16.1719 13.8584 16.3254C13.5415 16.5 13.1267 16.5 12.2969 16.5H3.70435C2.87464 16.5 2.45979 16.5 2.14289 16.3254C1.86413 16.1719 1.63749 15.9269 1.49546 15.6256C1.33398 15.283 1.33398 14.8346 1.33398 13.9377V8.14457Z"
+                stroke="#141414" stroke-opacity="0.7" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+           
+          </a>
         </li>
         <li class="flex items-center">
           <span class="mx-2">/</span>
@@ -12,7 +21,7 @@
         </li>
         <li class="flex items-center">
           <span class="mx-2">/</span>
-          <span class="text-gray-400">{{ post?.title }}</span>
+          <span class="text-gray-400 blog-post-breadcrumb-title">{{ post?.title }}</span>
         </li>
       </ol>
     </nav>
@@ -23,7 +32,7 @@
         <article v-if="post" class="bg-white rounded-lg">
           <!-- Post Header -->
           <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ post.title }}</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-4 blog-post-title">{{ post.title }}</h1>
             <div class="flex flex-col sm:flex-row sm:items-center gap-4 text-sm text-gray-600 mb-4">
               <span class="blog-date">{{ formatDate(post.date) }}</span>
               <span class="blog-category">{{ getCategoryName(post.category) }}</span>
@@ -31,7 +40,17 @@
           </div>
 
           <!-- Post Image -->
-          <div class="mb-8 rounded-lg overflow-hidden blog-image">
+          <!-- Mobile: Full width image breaking out of container -->
+          <div class="md:hidden mb-8 -mx-4">
+            <img 
+              :src="post.image" 
+              :alt="post.title" 
+              class="w-full h-auto object-cover"
+            >
+          </div>
+          
+          <!-- Desktop: Contained image with border radius -->
+          <div class="hidden md:block mb-8 rounded-lg overflow-hidden blog-image">
             <img 
               :src="post.image" 
               :alt="post.title" 
@@ -85,9 +104,41 @@
       <!-- Sidebar -->
       <div class="w-full lg:w-1/3">
         <!-- Related Posts -->
-        <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg  top-4">
-          <h2 class="text-xl font-bold text-gray-900 mb-6 pb-3 ">ასევე დაგაინტერესებს</h2>
-          <div class="space-y-4">
+        <div v-if="relatedPosts.length > 0" class="bg-white rounded-lg top-4">
+          <h2 class="text-xl font-bold text-gray-900 mb-6 pb-3">ასევე დაგაინტერესებს</h2>
+          
+          <!-- Mobile: Horizontal Slider -->
+          <div class="lg:hidden">
+            <div class="flex overflow-x-auto scrollbar-hide space-x-4 pb-2">
+              <div 
+                v-for="related in relatedPosts" 
+                :key="related.id" 
+                class="flex-shrink-0 cursor-pointer"
+                style="width: 255px; height: 270px; gap: 12px;"
+                @click="$router.push({ name: 'blog-show', params: { id: related.id } })"
+              >
+                <div class="flex flex-col" style="gap: 12px;">
+                  <div class="overflow-hidden" style="width: 255px; height: 204px; border-radius: 12px; opacity: 1;">
+                    <img 
+                      :src="related.image" 
+                      :alt="related.title" 
+                      class="w-full h-full object-cover"
+                    >
+                  </div>
+                  <div class="flex flex-col" style="gap: 4px;">
+                    <div class="text-xs text-gray-500">{{ formatDate(related.date) }}</div>
+                    <h3 class="font-medium text-gray-900 line-clamp-2 text-sm">{{ related.title }}</h3>
+                    <span class="text-xs font-medium text-[#F44000] hover:underline">
+                      ვრცლად
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Desktop: Vertical List -->
+          <div class="hidden lg:block space-y-4">
             <div v-for="related in relatedPosts" :key="related.id" class="gap-4 pb-4 related-item">
               <div class="w-full">
                 <img :src="related.image" :alt="related.title" class="w-full h-full object-cover rounded">

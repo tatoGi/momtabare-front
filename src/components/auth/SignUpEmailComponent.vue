@@ -111,7 +111,7 @@ const onSubmit = handleSubmit(async (values) => {
     </form>
   </div>
 
-  <div class="relative h-[1px] bg-customBlack/10 dark:bg-white/10">
+  <div class="relative h-[1px] bg-customBlack/10 dark:bg-white/10 mb-16">
     <div
         class="flex-center absolute-center absolute h-7 w-12 rounded-full bg-customGrey dark:bg-customDarkGrey"
     >

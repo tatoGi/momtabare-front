@@ -15,5 +15,11 @@
   "popularProduction": "Popular Production",
   "popularProducts": "Popular Products",
   "allBlog": "All Blog",
-  "routes": "Routes"
+  "routes": "Routes",
+  "navigation": "Navigation",
+  "blogs": "Blogs",
+  "blog": "Blog",
+  "blogShow": "Blog Show",
+  "home": "Home"
+
 }

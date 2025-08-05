@@ -34,18 +34,18 @@ onUnmounted(() => {
         </h2>
     <div class="order-2 md:order-1 flex flex-col relative md:left-10 z-10 mt-8 md:mt-0 px-4 md:px-0 content">
       <div class="flex flex-col">
-        <!-- Mobile: Show blue title first -->
-        <h2 v-if="!isMobile" class="text-3xl font-extrabold font-uppercase text-customBlue bottom-title">
-          შემოსავალი მარტივად
-        </h2>
-        
-        <h2 class="text-3xl font-extrabold font-uppercase dark:text-white top-title">
+        <!-- Desktop: Show top title first, then blue title -->
+        <h2 v-if="!isMobile" class="text-3xl font-extrabold font-uppercase dark:text-white top-title">
           გამოიმუშავე დამატებითი
         </h2>
-
-        <!-- Desktop: Show blue title second -->
+        
         <h2 v-if="!isMobile" class="text-3xl font-extrabold font-uppercase text-customBlue bottom-title">
           შემოსავალი მარტივად
+        </h2>
+
+        <!-- Mobile: Show blue title first, then top title -->
+        <h2 v-if="isMobile" class="text-3xl font-extrabold font-uppercase dark:text-white top-title">
+          გამოიმუშავე დამატებითი
         </h2>
       </div>
 
