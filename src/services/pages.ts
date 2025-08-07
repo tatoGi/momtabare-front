@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { getLocalizedApiUrl } from '@/utils/config/env'
+import { ENV } from '@/utils/config/env'
 import type { IPage, INavigationItem, IPageTranslation, IBanner, IBannerTranslation } from '@/ts/models/page.types'
 
-// Create axios instance for pages (without /api prefix)
+// Create axios instance for pages API
 const PagesAxios = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000',
+  baseURL: ENV.BACKEND_URL,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',

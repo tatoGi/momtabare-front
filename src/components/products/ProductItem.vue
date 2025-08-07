@@ -3,11 +3,12 @@ import BaseIcon from "@/components/base/BaseIcon.vue"
 import CommentsStatusComponent from "@/components/products/product-stats/CommentsStatusComponent.vue"
 import LocationStatusComponent from "@/components/products/product-stats/LocationStatusComponent.vue"
 import RatingStatusComponent from "@/components/products/product-stats/RatingStatusComponent.vue"
-import { IProductListItem } from "../../ts/models/product.types"
+import type { IProductListItem } from "../../ts/models/product.types"
 import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { toggleFavoriteProduct } from "../../services/products"
 import { useUserStore } from "../../pinia/user.pinia"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   item: IProductListItem
@@ -24,7 +25,7 @@ const computedImageUrl = computed<string>(() => {
     return imageUrl
   }
   // Otherwise, prepend the backend URL
-  return `${import.meta.env.VITE_BACKEND_URL}/${imageUrl}`
+  return `${ENV.BACKEND_URL}/${imageUrl}`
 })
 const router = useRouter()
 

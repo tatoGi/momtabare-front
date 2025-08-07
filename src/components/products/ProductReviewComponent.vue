@@ -7,18 +7,19 @@ import {
 } from "@/components/ui/dialog"
 import { commentOnProduct } from "../../services/comments"
 import { rateProduct } from "../../services/ratings"
-import { IProduct } from "../../ts/models/product.types"
+import type { IProduct } from "../../ts/models/product.types"
 import BaseButton from "../base/BaseButton.vue"
 import BaseIcon from "../base/BaseIcon.vue"
 import { computed, ref } from "vue"
 import { VisuallyHidden } from "radix-vue"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct | null
 }>()
 const dialogOpen = defineModel<boolean>()
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL
+const backendUrl = ENV.BACKEND_URL
 
 const hoveredRating = ref<number>(0)
 const chosenRating = ref<number>(0)

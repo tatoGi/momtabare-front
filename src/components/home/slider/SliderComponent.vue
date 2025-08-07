@@ -12,6 +12,7 @@ import type { IBanner } from '@/ts/models/page.types'
 import { getBannerTranslation } from '@/services/pages'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
+import { ENV } from '@/utils/config/env'
 
 // Props
 const props = defineProps<{
@@ -88,7 +89,7 @@ const processedBanners = computed((): BannerDisplay[] => {
     if (banner.images && banner.images.length > 0) {
       // Create a slide for each banner image
       banner.images.forEach((bannerImage, index) => {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+        const backendUrl = ENV.BACKEND_URL
         const imageUrl = `${backendUrl}/storage/${bannerImage.image_name}`
         
         slides.push({
@@ -100,7 +101,7 @@ const processedBanners = computed((): BannerDisplay[] => {
       })
     } else {
       // Fallback to thumb or default image if no banner images
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+      const backendUrl = ENV.BACKEND_URL
       const imageUrl = banner.thumb 
         ? `${backendUrl}/storage/${banner.thumb}`
         : new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href

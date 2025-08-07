@@ -11,6 +11,7 @@ import { rateRetailer } from "../../services/ratings";
 import { commentOnRetailer } from "../../services/comments";
 import type { IUser } from "@/ts/models/user-types"
 import { useRouter } from "vue-router";
+import { ENV } from "@/utils/config/env";
 
 const props = defineProps<{
   retailer: IUser | null;
@@ -18,7 +19,7 @@ const props = defineProps<{
 const dialogOpen = defineModel<boolean>();
 
 const router = useRouter()
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = ENV.BACKEND_URL;
 
 
 const hoveredRating = ref<number>(0); 

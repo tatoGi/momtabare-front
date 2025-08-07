@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import { IProduct } from "@/ts/models/product.types.ts"
+import type { IProduct } from "@/ts/models/product.types.ts"
 import { computed, ref, watch } from "vue"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct | null
 }>()
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL
+const backendUrl = ENV.BACKEND_URL
 const selectedImageIndex = ref<number>(0)
 
 const computedChosenImage = computed<string | null>(() => {

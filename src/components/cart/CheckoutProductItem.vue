@@ -1,13 +1,14 @@
 <script lang="ts" setup>
-import { IProduct } from "@/ts/models/product.types.ts"
+import type { IProduct } from "@/ts/models/product.types.ts"
 import { computed } from "vue"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct
 }>()
 
 const computedImageUrl = computed<string>(() => {
-  return `${import.meta.env.VITE_BACKEND_URL}/${props.product.images[0].url}`
+  return `${ENV.BACKEND_URL}/${props.product.images[0].url}`
 })
 </script>
 

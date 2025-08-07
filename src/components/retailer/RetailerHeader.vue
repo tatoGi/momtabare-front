@@ -3,7 +3,8 @@ import ownerTemp from "@/assets/img/OwnerTemp1.png"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import {ERetailerTab} from "@/ts/components/retailer.types.ts"
 import type { IUser } from "@/ts/models/user-types"
-import {computed, Ref, ref} from "vue"
+import {computed, type Ref, ref} from "vue"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   retailer: IUser
@@ -20,7 +21,7 @@ const selectedTab = defineModel<ERetailerTab>({
   default: ERetailerTab.ALL_PRODUCTS,
 }) as Ref<ERetailerTab>
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL
+const backendUrl = ENV.BACKEND_URL
 
 const computedUserInitials = computed(() => {
   const firstInitial = props.retailer.first_name?.[0] ?? '';

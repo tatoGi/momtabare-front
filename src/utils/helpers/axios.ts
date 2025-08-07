@@ -1,7 +1,8 @@
-import axios from "axios"
+import axios from 'axios'
+import { ENV } from '../config/env'
 
 const AxiosJSON = axios.create({
-  baseURL: `${import.meta.env.VITE_BACKEND_URL}`,
+  baseURL: ENV.BACKEND_URL,
   headers: {
     Accept: "application/json",
     ContentType: "application/json",

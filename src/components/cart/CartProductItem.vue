@@ -7,10 +7,11 @@ import NumberFieldContent from "@/components/ui/number-field/NumberFieldContent.
 import NumberFieldDecrement from "@/components/ui/number-field/NumberFieldDecrement.vue"
 import NumberFieldIncrement from "@/components/ui/number-field/NumberFieldIncrement.vue"
 import NumberFieldInput from "@/components/ui/number-field/NumberFieldInput.vue"
-import { IProduct } from "@/ts/models/product.types.ts"
+import type { IProduct } from "@/ts/models/product.types.ts"
 import { removeFromCart, updateCartItem } from "@/services/cart.ts"
 import { useCartStore } from "@/pinia/cart.pinia.ts"
 import { computed, watch } from "vue"
+import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct
@@ -24,7 +25,7 @@ const cartStore = useCartStore()
 const quantity = defineModel<number>({ default: 1 })
 
 const computedImageUrl = computed<string>(() => {
-  return `${import.meta.env.VITE_BACKEND_URL}/${props.product.images[0].url}`
+  return `${ENV.BACKEND_URL}/${props.product.images[0].url}`
 })
 
 async function removeFromCartTrigger(id: number) {
