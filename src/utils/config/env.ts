@@ -1,11 +1,45 @@
+// Environment detection
+const isProduction = import.meta.env.PROD
+const isDevelopment = import.meta.env.DEV
+const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+
 // Get the appropriate backend URL based on environment
 const getBackendUrl = (): string => {
-  // In production, use production URL if available, otherwise fallback to regular URL
-  if (import.meta.env.PROD && import.meta.env.VITE_BACKEND_URL_PRODUCTION) {
-    return import.meta.env.VITE_BACKEND_URL_PRODUCTION
+  // Production environment (Vercel)
+  if (isProduction) {
+    const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'http://system.momtabare.com'
+    console.log('🌐 Production Mode - Using backend URL:', prodUrl)
+    console.log('🔍 Environment variables:', {
+      VITE_BACKEND_URL_PRODUCTION: import.meta.env.VITE_BACKEND_URL_PRODUCTION,
+      PROD: import.meta.env.PROD,
+      MODE: import.meta.env.MODE
+    })
+    return prodUrl
   }
   
-  // For development or if production URL is not set, use regular URL
+  // Development environment (localhost)
+  const devUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
+  console.log('🔧 Development Mode - Using backend URL:', devUrl)
+  return devUrl
+}
+
+// Environment info for debugging
+export const getEnvironmentInfo = () => {
+  return {
+    isProduction,
+    isDevelopment,
+    isVercel,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+    backendUrl: getBackendUrl()
+  }
+}
+
+// Helper function to get backend URL with protocol fallback
+export const getBackendUrlWithFallback = (preferHttps: boolean = true): string => {
+  if (import.meta.env.PROD) {
+    const domain = 'system.momtabare.com'
+    return preferHttps ? `https://${domain}` : `http://${domain}`
+  }
   return import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
 }
 
