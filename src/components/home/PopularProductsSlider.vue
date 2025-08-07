@@ -38,7 +38,7 @@ onMounted(() => {
       }"
       class="w-full"
     >
-      <CarouselContent class="-ml-1"> 
+      <CarouselContent> 
         <CarouselItem 
           v-for="(product, index) in props.products"
           :key="index"

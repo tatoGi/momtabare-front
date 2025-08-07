@@ -206,61 +206,64 @@ function selectCity(city: string) {
     </div>
     
     <!-- Mobile Header -->
-    <div class="md:hidden flex">
+    <div class="md:hidden flex items-center justify-between w-full">
       <!-- Burger Menu -->
-      <button @click="$emit('toggleMobileNav')" class="burger-menu">
+      <button @click="$emit('toggleMobileNav')" class="burger-menu flex items-center justify-center">
         <BaseIcon name="menu" :size="24" /> 
       </button>
-      <!-- Icons -->
-      <div class="flex items-center">
-        <button @click="toggleMobileSearch" class="p-2  search-button">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17 17L13.889 13.8889M16.1111 8.55556C16.1111 12.7284 12.7284 16.1111 8.55556 16.1111C4.38274 16.1111 1 12.7284 1 8.55556C1 4.38274 4.38274 1 8.55556 1C12.7284 1 16.1111 4.38274 16.1111 8.55556Z" stroke="#141414" stroke-opacity="0.7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+      
+      <!-- Search Button -->
+      <button @click="toggleMobileSearch" class="search-button flex items-center justify-center">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 17L13.889 13.8889M16.1111 8.55556C16.1111 12.7284 12.7284 16.1111 8.55556 16.1111C4.38274 16.1111 1 12.7284 1 8.55556C1 4.38274 4.38274 1 8.55556 1C12.7284 1 16.1111 4.38274 16.1111 8.55556Z" stroke="#141414" stroke-opacity="0.7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      
+      <!-- Favorite Button -->
+      <button class="favorite-button flex items-center justify-center" @click="routeToFavorites">
+        <img :src="heartsvg" alt="favorites" class="w-5 h-5" />
+      </button>
+      
+      <!-- Cart Button -->
+      <button class="relative cart-button flex items-center justify-center" @click="routeToCart">
+        <img :src="cartsvg" alt="cart" class="w-5 h-5" />
+        <span 
+          v-if="cartItems"
+          class="absolute -top-1 -right-1 bg-customRed text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center"
+        >
+          {{ cartItems }}
+        </span>
+      </button>
+      
+      <!-- User Button -->
+      <div class="user-button flex items-center justify-center">
+        <BaseButton
+          v-if="user"
+          :height="40"
+          :width="40"
+          class="rounded-full bg-customRed"
+          @click.left="router.push('/user')"
+        >
+          <img :src="usersvg" alt="user" class="w-5 h-5" />
+        </BaseButton>
         
-        <button class="relative p-2 favorite-button" @click="routeToFavorites">
-          <img :src="heartsvg" alt="favorites" class="w-5 h-5" />
-        </button>
+        <!-- Mobile: Use overlay -->
+        <BaseButton 
+          v-else-if="!user"
+          :height="40" 
+          :width="40" 
+          class="rounded-full bg-customRed md:hidden"
+          @click="toggleMobileAuth"
+        >
+          <img :src="usersvg" alt="user" class="w-5 h-5" />
+        </BaseButton>
         
-        <button class="relative p-2 cart-button" @click="routeToCart">
-          <img :src="cartsvg" alt="cart" class="w-5 h-5" />
-          <span 
-            v-if="cartItems"
-            class="absolute -top-1 right-8 bg-customRed text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center"
-          >
-            {{ cartItems }}
-          </span>
-        </button>
-        <div class="flex items-center user-button">
-          <BaseButton
-            v-if="user"
-            :height="40"
-            :width="40"
-            class="rounded-full bg-customRed"
-            @click.left="router.push('/user')"
-          >
+        <!-- Desktop: Use dialog -->
+        <AuthDialog v-else-if="!user" class="hidden md:block">
+          <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
             <img :src="usersvg" alt="user" class="w-5 h-5" />
           </BaseButton>
-          
-          <!-- Mobile: Use overlay -->
-          <BaseButton 
-            v-else-if="!user"
-            :height="40" 
-            :width="40" 
-            class="rounded-full bg-customRed md:hidden"
-            @click="toggleMobileAuth"
-          >
-            <img :src="usersvg" alt="user" class="w-5 h-5" />
-          </BaseButton>
-          
-          <!-- Desktop: Use dialog -->
-          <AuthDialog v-else-if="!user" class="hidden md:block">
-            <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
-              <img :src="usersvg" alt="user" class="w-5 h-5" />
-            </BaseButton>
-          </AuthDialog>
-        </div>
+        </AuthDialog>
       </div>
       
     </div>

@@ -16,29 +16,43 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: "/", redirect: "/home" },
+    
+    // Backend page routes - both Georgian and English slugs
     {
       path: "/home",
       name: "home",
       component: HomeView,
-    },
-
-    {
-      path: "/faq",
-      name: "faq",
-      component: FAQView,
-    },
-    {
-      path: "/favorite",
-      name: "favorite",
-      component: FavoriteProductsView,
+      alias: ["/მთავარი"] // Georgian alias
     },
     {
       path: "/blog",
       name: "blog",
       component: BlogView,
+      alias: ["/ბლოგი"], // Georgian alias
       meta: {
         title: 'ბლოგი'
       }
+    },
+    {
+      path: "/routes",
+      name: "routes",
+      component: RoutesView,
+      alias: ["/მარშუტები"], // Georgian alias
+      meta: {
+        title: 'მარშუტები'
+      }
+    },
+    {
+      path: "/faq",
+      name: "faq",
+      component: FAQView,
+    },
+    
+    // Static routes
+    {
+      path: "/favorite",
+      name: "favorite",
+      component: FavoriteProductsView,
     },
     {
       path: "/blog/:id",
@@ -46,14 +60,6 @@ const router = createRouter({
       component: () => import('@/views/blog/BlogShow.vue'),
       meta: {
         title: 'ბლოგის დეტალები'
-      }
-    },
-    {
-      path: "/routes",
-      name: "routes",
-      component: RoutesView,
-      meta: {
-        title: 'მარშუტები'
       }
     },
     

@@ -71,9 +71,7 @@
     align-items: flex-start;
   }
 
-  footer>div:last-child img {
-    align-self: flex-start;
-  }
+
 
   .header-text-style {
     display: none;
@@ -280,9 +278,9 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
-  .bg-customRed {
+  /* .bg-customRed {
     background-color: #ffff;
-  }
+  } */
 
   .main-banner :deep(.carousel__viewport) {
     overflow: hidden;
@@ -576,8 +574,8 @@
   }
 
   .blog-swiper .swiper-slide {
-    width: 302px !important;
-    height: 242px !important;
+    width: 255px !important;
+    height: 204px !important;
     margin-right: 8px !important;
   }
 
@@ -628,5 +626,9 @@ font-size: 12px;
 line-height: 160%;
 letter-spacing: 0%;
 color: rgba(20, 20, 20, 0.7);
+}
+.blue-content{
+  bottom: 0 !important;
+  transform: translateY(0) !important;
 }
 }

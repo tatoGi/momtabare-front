@@ -9,75 +9,71 @@ import { Navigation } from 'swiper/modules';
 
 // Install Swiper modules
 SwiperCore.use([Navigation]);
-import CategoryItem from '@/components/home/categories/CategoryItem.vue';
-import type { ICategory } from '@/types/category';
-import { ref } from 'vue'
+import CategoryItem from '@/components/home/categories/CategoryItem.vue'
+import type { ICategoryDisplay } from '@/ts/models/category.types'
+import { ref, onMounted, watch } from 'vue'
+import { useAppStore } from '@/pinia/app.pinia'
+import { getBackendCategories, processCategories } from '@/services/categories'
+import { ELanguages } from '@/ts/pinia/app.types'
+import { getAssetUrl } from '@/utils/config/env'
 import tentImg from '@/assets/img/tent.png'
 import Bicycle from '@/assets/img/Bicycle.png'
 import fishing from '@/assets/img/fishing.png'
-import Mountain from '@/assets/img/mountain.png';
+import Mountain from '@/assets/img/mountain.png'
 import boat from '@/assets/img/boat.png'
 import urban from '@/assets/img/urban.png'
 import leftArrow from '@/assets/svg/arrowleft.svg'
 import rightArrow from '@/assets/svg/arrowright.svg'
 
-// Create a local array of 8 mock categories
-const categories = ref<ICategory[]>([
-  {
-    id: 1,
-    name: { en: 'Category 1', ka: 'ლაშქრობა' },
-    slug: 'category-1',
-    icon: 'equipment',
-    image: tentImg,
-    parent: null,
-    children: []
-  },
-  {
-    id: 3,
-    name: { en: 'Category 3', ka: 'ველოსპორტი' },
-    slug: 'category-3',
-    icon: 'equipment',
-    image: Bicycle,
-    parent: null,
-    children: []
-  },
-  {
-    id: 4,
-    name: { en: 'Category 4', ka: 'თევზაობა' },
-    slug: 'category-4',
-    icon: 'equipment',
-    image: fishing,
-    parent: null,
-    children: []
-  },
-  {
-    id: 5,
-    name: { en: 'Category 5', ka: 'თხილამურები & სნოუბორდი' },
-    slug: 'category-5',
-    icon: 'equipment',
-    image: Mountain,
-    parent: null,
-    children: []
-  },
-  {
-    id: 6,
-    name: { en: 'Category 6', ka: 'სანაოსნო სპორტი' },
-    slug: 'category-6',
-    icon: 'equipment',
-    image: boat,
-    parent: null,
-    children: []
-  },
-  {
-    id: 7,
-    name: { en: 'Category 7', ka: 'ურბანული სპორტი' },
-    slug: 'category-7',
-    icon: 'equipment',
-    image: urban,
-    parent: null,
-    children: []
-  },
-])
+const appStore = useAppStore()
+
+// Backend categories
+const categories = ref<ICategoryDisplay[]>([])
+// Fallback images for categories
+const fallbackImages = [tentImg, Bicycle, fishing, Mountain, boat, urban]
+
+// Function to fetch categories
+async function fetchCategories() {
+  const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+  try {
+    // Get all categories (flat list) instead of hierarchical tree
+    const backendCategories = await getBackendCategories(currentLocale)
+    const processedCategories = processCategories(backendCategories, currentLocale)
+    
+    if (processedCategories.length > 0) {
+      // Map all categories to display format with fallback images
+      categories.value = processedCategories.map((category, index) => {
+        return {
+          ...category,
+          // Use backend icon if available, otherwise fallback image
+          image: category.icon 
+            ? getAssetUrl(`storage/${category.icon}`)
+            : fallbackImages[index % fallbackImages.length]
+        }
+      })
+      console.log('Home categories loaded (all categories) for locale:', currentLocale, processedCategories.length)
+    } else {
+      console.log('No backend categories found, component will show empty state')
+      categories.value = []
+    }
+  } catch (error) {
+    console.error('Error fetching home categories:', error)
+    categories.value = []
+  }
+}
+
+onMounted(async () => {
+  await fetchCategories()
+})
+
+// Watch for language changes and re-fetch categories
+watch(
+  () => appStore.language,
+  async () => {
+    console.log('Language changed, re-fetching home categories...')
+    await fetchCategories()
+  }
+)
 </script>
 
 <template>

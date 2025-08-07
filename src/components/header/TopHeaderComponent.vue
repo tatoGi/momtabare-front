@@ -3,13 +3,13 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Switch } from "@/components/ui/switch";
-import { INavItem } from "@/ts/layout.types.ts";
 import { useAppStore } from "@/pinia/app.pinia.ts";
 import { ELanguages } from "@/ts/pinia/app.types.ts";
 import momtabareLogoWithTextDark from "@/assets/svg/momtabare-logo-with-text-dark.svg";
 import momtabareLogoWithTextLight from "@/assets/svg/momtabare-logo-with-text.svg";
 import ukFlagIcon from '@/assets/img/uk-flag.svg';
 import globeIcon from '@/assets/img/Vector.svg';
+import { useNavigation } from '@/composables/useNavigation';
 
 // Simple confirmation dialog using browser's native confirm
 async function showConfirmationDialog(options: {
@@ -47,18 +47,16 @@ watch(() => props.isMobileNavOpen, (newVal) => {
   document.body.style.overflow = newVal ? 'hidden' : ''
 })
 
-const navItems: INavItem[] = [
-  { title: "მთავარი", route: "/home" },
-  { title: "ბლოგი", route: "/blog" },
-  { title: "მარშუტები", route: "/routes" },
-  { title: "FAQ", route: "/faq" },
-]
+// Use dynamic navigation from backend
+const { rootNavigationItems } = useNavigation();
 
 const languages = [
   { code: 'GEO', label: 'GEO', icon: globeIcon },
   { code: 'ENG', label: 'ENG', icon: ukFlagIcon },
 ]
-const chosenLanguage = ref('GEO')
+
+// Initialize language from app store
+const chosenLanguage = ref(appStore.language === ELanguages.KA ? 'GEO' : 'ENG')
 const showLangDropdown = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 
@@ -75,6 +73,11 @@ function selectLanguage(lang: string) {
 // Track if we're in the process of navigation
 const isNavigating = ref(false);
 
+// Get dynamic home path based on current language
+function getHomePath(): string {
+  return appStore.language === ELanguages.KA ? '/მთავარი' : '/home'
+}
+
 // Handle click outside to close dropdown
 const handleClickOutside = (event: MouseEvent) => {
   if (showLangDropdown.value && dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
@@ -84,6 +87,9 @@ const handleClickOutside = (event: MouseEvent) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // Initialize i18n locale from app store
+  locale.value = appStore.language === ELanguages.KA ? 'ka' : 'en'
 });
 
 onBeforeUnmount(() => {
@@ -147,15 +153,55 @@ async function moveToPage(routePath: string): Promise<void> {
   }
 }
 
-watch(chosenLanguage, () => {
-  if (chosenLanguage.value == 'GEO') {
-    locale.value = 'ge'
-    appStore.setLanguage(ELanguages.KA)
-    return
+// Handle language route updates for pages
+async function handleLanguageRouteUpdate(newLocale: string) {
+  // Map of paths to their localized versions
+  const pathMapping: Record<string, { ka: string; en: string }> = {
+    // Home page mappings
+    '/home': { ka: '/მთავარი', en: '/home' },
+    '/მთავარი': { ka: '/მთავარი', en: '/home' },
+    
+    // Blog page mappings
+    '/blog': { ka: '/ბლოგი', en: '/blog' },
+    '/ბლოგი': { ka: '/ბლოგი', en: '/blog' },
+    
+    // Routes page mappings
+    '/routes': { ka: '/მარშუტები', en: '/routes' },
+    '/მარშუტები': { ka: '/მარშუტები', en: '/routes' }
   }
+  
+  // Get current path
+  const currentPath = route.path
+  
+  // If we have a mapping for this path, navigate to the localized version
+  if (pathMapping[currentPath]) {
+    const targetPath = pathMapping[currentPath][newLocale as 'ka' | 'en']
+    if (targetPath && currentPath !== targetPath) {
+      console.log(`Language switch: ${currentPath} → ${targetPath}`)
+      await router.push(targetPath)
+    }
+  }
+}
 
-  appStore.setLanguage(ELanguages.EN)
-  locale.value = 'en';
+// Watch for app store language changes to keep UI in sync
+watch(() => appStore.language, (newLanguage) => {
+  chosenLanguage.value = newLanguage === ELanguages.KA ? 'GEO' : 'ENG'
+  locale.value = newLanguage === ELanguages.KA ? 'ka' : 'en'
+})
+
+watch(chosenLanguage, async () => {
+  const newLocale = chosenLanguage.value === 'GEO' ? 'ka' : 'en'
+  
+  // Update app store and i18n locale
+  if (chosenLanguage.value === 'GEO') {
+    appStore.setLanguage(ELanguages.KA)
+  } else {
+    appStore.setLanguage(ELanguages.EN)
+  }
+  locale.value = newLocale
+  
+  // Handle route update for pages
+  await handleLanguageRouteUpdate(newLocale)
 })
 
 </script>
@@ -170,28 +216,28 @@ watch(chosenLanguage, () => {
       "
         alt="Momtabare"
         class="cursor-pointer h-8 md:h-auto"
-        @click.left="moveToPage('/home')"
+        @click.left="moveToPage(getHomePath())"
     />
 
     <!-- Desktop Navigation -->
     <nav class="hidden md:flex justify-center md:justify-start md:col-span-2">
       <ul class="flex items-center gap-4 md:gap-10">
         <li
-            v-for="navItem in navItems"
-            :key="navItem.title + 1"
+            v-for="navItem in rootNavigationItems"
+            :key="navItem.id"
             :class="
-            route.path === navItem.route || 
-            (navItem.route === '/home' && route.path === '/')
+            route.path === navItem.path || 
+            (navItem.path === '/home' && route.path === '/')
               ? 'bg-customRed/10'
               : 'hover:bg-customGrey dark:hover:bg-white/10'
           "
             class="flex-center h-9 cursor-pointer rounded-3xl px-6 transition-all"
-            @click="moveToPage(navItem.route)"
+            @click="moveToPage(navItem.path)"
         >
           <p
               :class="
-              route.path === navItem.route || 
-              (navItem.route === '/home' && route.path === '/')
+              route.path === navItem.path || 
+              (navItem.path === '/home' && route.path === '/')
                 ? 'text-customRed dark:text-customRed'
                 : 'dark:text-white'
             "

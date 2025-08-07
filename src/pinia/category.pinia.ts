@@ -1,18 +1,56 @@
 import { defineStore } from "pinia"
-import { getCategories } from "../services/categories.ts"
+import { getCategoriesForLocale } from "../services/categories.ts"
 import type { ICategoriesState } from "../ts/pinia/categories.types.ts"
 import type { ICategory } from "@/types/category"
+import type { ICategoryDisplay } from "@/ts/models/category.types"
+import { useAppStore } from "@/pinia/app.pinia"
+import { ELanguages } from "@/ts/pinia/app.types"
+import { getAssetUrl } from "@/utils/config/env"
 
 export const useCategoryStore = defineStore("category", {
   state: (): ICategoriesState => ({
     categories: null,
   }),
   actions: {
-    async fetchCategories(): Promise<void> {
+    async fetchCategories(locale?: string): Promise<void> {
       try {
-        this.categories = await getCategories()
+        // Get current locale if not provided
+        if (!locale) {
+          const appStore = useAppStore()
+          locale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+        }
+        
+        const backendCategories = await getCategoriesForLocale(locale)
+        
+        // Convert ICategoryDisplay[] to ICategory[] for compatibility
+        this.categories = backendCategories.map(category => ({
+          id: category.id,
+          name: {
+            en: category.title, // Use title for both languages for now
+            ka: category.title
+          },
+          slug: category.slug,
+          icon: category.icon || undefined,
+          image: category.icon ? getAssetUrl(`storage/${category.icon}`) : undefined,
+          parent: category.parent_id,
+          children: category.children ? category.children.map(child => ({
+            id: child.id,
+            name: {
+              en: child.title,
+              ka: child.title
+            },
+            slug: child.slug,
+            icon: child.icon || undefined,
+            image: child.icon ? getAssetUrl(`storage/${child.icon}`) : undefined,
+            parent: child.parent_id,
+            children: []
+          })) : []
+        }))
+        
+        console.log('Pinia categories loaded for locale:', locale, this.categories.length)
       } catch (error) {
-        console.log(error)
+        console.error('Error fetching categories in Pinia store:', error)
+        this.categories = []
       }
     },
   },

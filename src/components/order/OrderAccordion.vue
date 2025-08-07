@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/accordion"
 import { IOrderState } from "@/ts/pinia/order.types.ts"
 import { useOrderStore } from "@/pinia/order.pinia.ts"
+import { getAssetUrl } from "@/utils/config/env"
 import { computed } from "vue"
 
 const orderStore = useOrderStore()
@@ -120,7 +121,7 @@ function formatIsoDateToHumanReadable(isoDate: string): string {
           <div v-if="orders" class="flex items-center justify-between py-4">
             <div class="flex items-center gap-4">
               <img
-                :src="`http://127.0.0.1:8000/${order.product.images[0].url}`"
+                :src="getAssetUrl(order.product.images[0].url)"
                 alt="Product Image"
                 class="h-20 w-20"
               />

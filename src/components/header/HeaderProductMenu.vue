@@ -3,56 +3,64 @@ import BaseButton from "@/components/base/BaseButton.vue"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { ICategory, IProduct } from "@/types/category"
+import type { ICategoryDisplay } from "@/ts/models/category.types"
 import { useAppStore } from "@/pinia/app.pinia"
 import { useCategoryStore } from "@/pinia/category.pinia"
-import { computed, ref, onMounted } from "vue"
+import { computed, ref, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
-import categoriesData from "@/data/categories";
+import categoriesData from "@/data/categories"
+import { getCategoriesForLocale } from "@/services/categories"
+import { ELanguages } from "@/ts/pinia/app.types"
 
 const router = useRouter()
 const appStore = useAppStore()
 const categoryStore = useCategoryStore()
 
 const isDropdownOpen = ref<boolean>(false)
-const categories = ref<ICategory[]>(categoriesData);
-const hoveredCategory = ref<ICategory | null>(null);
-const hoveredSubcategory = ref<ICategory | null>(null);
+const categories = ref<ICategoryDisplay[]>([])
+const hoveredCategory = ref<ICategoryDisplay | null>(null)
+const hoveredSubcategory = ref<ICategoryDisplay | null>(null)
 const computedLanguage = computed(() => appStore.getLanguage)
 
-// Mock products for demonstration
-const getMockProducts = (subcategoryId: number): IProduct[] => {
-  const products: Record<number, IProduct[]> = {
-    1001: [
-      { id: 1, name: { en: 'Osprey Talon 22', ka: 'Osprey Talon 22' }, price: 120, slug: 'osprey-talon-22' },
-      { id: 2, name: { en: 'Deuter Speed Lite 24', ka: 'Deuter Speed Lite 24' }, price: 110, slug: 'deuter-speed-lite-24' }
-    ],
-    1002: [
-      { id: 3, name: { en: 'Osprey Atmos AG 65', ka: 'Osprey Atmos AG 65' }, price: 270, slug: 'osprey-atmos-ag-65' },
-      { id: 4, name: { en: 'Gregory Baltoro 75', ka: 'Gregory Baltoro 75' }, price: 350, slug: 'gregory-baltoro-75' }
-    ],
-    5001: [
-      { id: 5, name: { en: 'Rossignol Experience 80', ka: 'Rossignol Experience 80' }, price: 450, slug: 'rossignol-experience-80' },
-      { id: 6, name: { en: 'Atomic Vantage 90', ka: 'Atomic Vantage 90' }, price: 600, slug: 'atomic-vantage-90' }
-    ],
-    5004: [
-      { id: 7, name: { en: 'Burton Custom Flying V', ka: 'Burton Custom Flying V' }, price: 700, slug: 'burton-custom-flying-v' },
-      { id: 8, name: { en: 'Lib Tech Orca', ka: 'Lib Tech Orca' }, price: 750, slug: 'lib-tech-orca' }
-    ]
+
+
+// Function to fetch categories
+async function fetchCategories() {
+  const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+  try {
+    const backendCategories = await getCategoriesForLocale(currentLocale)
+    if (backendCategories.length > 0) {
+      categories.value = backendCategories
+      console.log('Header categories loaded for locale:', currentLocale, backendCategories.length)
+    } else {
+      // Fallback to store or local data if backend fails
+      if (categoryStore.getCategories?.length) {
+        categories.value = categoryStore.getCategories
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching header categories:', error)
+    // Fallback to store or local data
+    if (categoryStore.getCategories?.length) {
+      categories.value = categoryStore.getCategories
+    }
   }
-  return products[subcategoryId] || []
 }
 
-onMounted(() => {
-  // Use store categories if available, otherwise use the imported categoriesData
-  if (categoryStore.getCategories?.length) {
-    categories.value = categoryStore.getCategories;
-  } else {
-    // Fallback to local categories data if store is empty
-    categories.value = categoriesData;
-  }
+onMounted(async () => {
+  await fetchCategories()
 })
 
-function moveToCategory(category: ICategory): void {
+// Watch for language changes and re-fetch categories
+watch(
+  () => appStore.language,
+  async () => {
+    console.log('Language changed, re-fetching header categories...')
+    await fetchCategories()
+  }
+)
+
+function moveToCategory(category: ICategoryDisplay): void {
   if (category.children?.length) return // Don't navigate if category has children
   router.push(`/products?category=${category.slug}`)
   isDropdownOpen.value = false
@@ -116,7 +124,7 @@ const getProducts = (subcategoryId: number) => {
               @mouseenter="hoveredCategory = category; hoveredSubcategory = null"
               @click="moveToCategory(category)"
             >
-              <span class="font-medium">{{ category.name[computedLanguage] }}</span>
+              <span class="font-medium">{{ category.title }}</span>
              
             </div>
           </div>
@@ -128,7 +136,7 @@ const getProducts = (subcategoryId: number) => {
           class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
         >
           <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title">
-            {{ hoveredCategory?.name[computedLanguage] }}
+            {{ hoveredCategory?.title }}
           </h2>
           <div class="py-2">
             <div 
@@ -142,7 +150,7 @@ const getProducts = (subcategoryId: number) => {
               @mouseenter="hoveredSubcategory = subcategory"
               @click="moveToCategory(subcategory)"
             >
-              <span class="font-medium">{{ subcategory.name[computedLanguage] }}</span>
+              <span class="font-medium">{{ subcategory.title }}</span>
             </div>
           </div>
         </div>
@@ -153,7 +161,7 @@ const getProducts = (subcategoryId: number) => {
           class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
         >
           <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 cateogries-title">
-            {{ hoveredSubcategory?.name[computedLanguage] }}
+            {{ hoveredSubcategory?.title }}
           </h2>
           <div class="py-2">
             <div 
@@ -162,7 +170,7 @@ const getProducts = (subcategoryId: number) => {
               class="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               @click="moveToCategory(product)"
             >
-              <div class="font-medium">{{ product.name[computedLanguage] }}</div>
+              <div class="font-medium">{{ product.title }}</div>
             </div>
           </div>
         </div>

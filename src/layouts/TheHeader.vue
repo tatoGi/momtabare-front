@@ -2,16 +2,13 @@
 import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { Switch } from "@/components/ui/switch";
 import { useAppStore } from "@/pinia/app.pinia.ts";
 
 import TopHeaderComponent from "@/components/header/TopHeaderComponent.vue";
 import BottomHeaderComponent from "@/components/header/BottomHeaderComponent.vue";
-import ukFlagIcon from '@/assets/img/uk-flag.svg';
-import globeIcon from '@/assets/img/Vector.svg';
-import type { INavItem } from "@/ts/layout.types.ts";
 import type { ICategory } from "@/types/category";
 import categoriesData from "@/data/categories";
+import { useNavigation } from '@/composables/useNavigation';
 
 const isMobileNavOpen = ref(false);
 const route = useRoute();
@@ -19,24 +16,12 @@ const router = useRouter();
 const { t } = useI18n();
 const appStore = useAppStore();
 
+// Use navigation composable for pages
+const { rootNavigationItems, isLoading: navLoading } = useNavigation();
 
 const categories = ref<ICategory[]>(categoriesData);
 const computedLanguage = computed(() => appStore.getLanguage);
 const expandedCategories = ref<Set<number>>(new Set());
-
-const navItems: INavItem[] = [
-  { title: "მთავარი", route: "/home" },
-  { title: "ბლოგი", route: "/blog" },
-  { title: "მარშუტები", route: "/routes" },
-  { title: "FAQ", route: "/faq" },
-];
-
-const languages = [
-  { code: 'GEO', label: 'GEO', icon: globeIcon },
-  { code: 'ENG', label: 'ENG', icon: ukFlagIcon },
-];
-const chosenLanguage = ref('GEO');
-const showLangDropdown = ref(false);
 
 const toggleMobileNav = () => {
   isMobileNavOpen.value = !isMobileNavOpen.value;
@@ -46,22 +31,12 @@ const toggleMobileNav = () => {
   }
 };
 
-function toggleLangDropdown(event: MouseEvent) {
-  event.stopPropagation();
-  showLangDropdown.value = !showLangDropdown.value;
-}
 
-function selectLanguage(lang: string) {
-  chosenLanguage.value = lang;
-  showLangDropdown.value = false;
-}
 
 async function moveToPage(routePath: string): Promise<void> {
   let targetPath = routePath.startsWith('/') ? routePath : `/${routePath}`;
   
   try {
-    showLangDropdown.value = false;
-    
     const currentPath = route.path.endsWith('/') ? route.path.slice(0, -1) : route.path;
     const normalizedTargetPath = targetPath.endsWith('/') ? targetPath.slice(0, -1) : targetPath;
     
@@ -111,25 +86,37 @@ function toggleCategoryExpansion(categoryId: number): void {
       <!-- Mobile Navigation Items -->
       <nav class="container py-4">
         <h2 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{t('navigation')}}</h2>
-        <ul class="grid grid-cols-1 gap-3">
+        <!-- Loading state -->
+        <div v-if="navLoading" class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+          <span class="ml-3 text-gray-600 dark:text-gray-400">Loading navigation...</span>
+        </div>
+        
+        <!-- Navigation items -->
+        <ul v-else-if="rootNavigationItems && rootNavigationItems.length > 0" class="grid grid-cols-1 gap-3">
           <li
-            v-for="navItem in navItems"
-            :key="navItem.title"
+            v-for="navItem in rootNavigationItems"
+            :key="navItem.id"
             class="w-full"
           >
             <button
               :class="[
                 'w-full text-center p-4 rounded-xl transition-all font-medium',
-                route.path === navItem.route || (navItem.route === '/home' && route.path === '/')
+                route.path === navItem.path || (navItem.path === '/home' && route.path === '/')
                   ? 'mobile-nav-active text-white shadow-md'
                   : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               ]"
-              @click="moveToPage(navItem.route); toggleMobileNav()"
+              @click="moveToPage(navItem.path); toggleMobileNav()"
             >
               {{ navItem.title }}
             </button>
           </li>
         </ul>
+        
+        <!-- Fallback when no navigation items -->
+        <div v-else class="text-center py-4 text-gray-500 dark:text-gray-400">
+          No navigation items available
+        </div>
       </nav>
 
       <!-- Mobile Categories Section -->

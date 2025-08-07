@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import img from "@/assets/img/rentalstepsimage.png"
-import steps from "@/assets/img/steps.png"
 import { onMounted, ref } from "vue"
 
 
@@ -53,17 +52,71 @@ onMounted(() => {
         გაუსვლელად, სულ რამდენიმე წუთში, პირდაპირ დანიშნულების ადგილას იქირაო.
       </p>
 
-      <!-- Steps Image - Desktop -->
-      <div class="hidden md:block w-full overflow-hidden md:overflow-visible">
-        <img :src="steps" alt="steps" class="w-full" />
+      <!-- Steps Section - Desktop -->
+      <div class="hidden md:block bg-customRed rounded-2xl p-10" style="width: 792px; height: 343px;">
+        <div class="flex flex-col gap-6 h-full justify-center">
+          <!-- Step 1 -->
+          <div class="flex items-start gap-4">
+            <div class="text-white text-4xl font-bold leading-none">1</div>
+            <div class="flex flex-col gap-1">
+              <h3 class="text-white text-xl font-bold">შემოვიდი ანგარიში</h3>
+              <p class="text-white text-sm opacity-90">შევაღე პირადი ინფორმაცია ბმული და გახდი მომხმარებელი.</p>
+            </div>
+          </div>
+          
+          <!-- Step 2 -->
+          <div class="flex items-start gap-4">
+            <div class="text-white text-4xl font-bold leading-none">2</div>
+            <div class="flex flex-col gap-1">
+              <h3 class="text-white text-xl font-bold">შეარჩიე სასურველი პროდუქტი</h3>
+              <p class="text-white text-sm opacity-90">შეარჩიე შენთვის სასურველი აღჭურვილობა ვებგვერდიდან კატალოგიდან.</p>
+            </div>
+          </div>
+          
+          <!-- Step 3 -->
+          <div class="flex items-start gap-4">
+            <div class="text-white text-4xl font-bold leading-none">3</div>
+            <div class="flex flex-col gap-1">
+              <h3 class="text-white text-xl font-bold">გადახდისა ოფლაინ</h3>
+              <p class="text-white text-sm opacity-90">იქირავე ნივთი ნებისმიერი ტიპის საბანკო ბარათით და დარწმუნდი ახალი თავგადასავლისთვის მზადებაში.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
   </div>
   
-  <!-- Steps Image - Mobile (Full Width) -->
-  <div v-if="isMobile" class="w-full">
-    <img :src="steps" alt="steps" class="w-full" />
+  <!-- Steps Section - Mobile (Full Width) -->
+  <div class="md:hidden w-full bg-customRed rounded-2xl p-6 mt-6">
+    <div class="flex flex-col gap-6">
+      <!-- Step 1 -->
+      <div class="flex items-start gap-4">
+        <div class="text-white text-3xl font-bold leading-none">1</div>
+        <div class="flex flex-col gap-1">
+          <h3 class="text-white text-lg font-bold">შემოვიდი ანგარიში</h3>
+          <p class="text-white text-sm opacity-90">შევაღე პირადი ინფორმაცია ბმული და გახდი მომხმარებელი.</p>
+        </div>
+      </div>
+      
+      <!-- Step 2 -->
+      <div class="flex items-start gap-4">
+        <div class="text-white text-3xl font-bold leading-none">2</div>
+        <div class="flex flex-col gap-1">
+          <h3 class="text-white text-lg font-bold">შეარჩიე სასურველი პროდუქტი</h3>
+          <p class="text-white text-sm opacity-90">შეარჩიე შენთვის სასურველი აღჭურვილობა ვებგვერდიდან კატალოგიდან.</p>
+        </div>
+      </div>
+      
+      <!-- Step 3 -->
+      <div class="flex items-start gap-4">
+        <div class="text-white text-3xl font-bold leading-none">3</div>
+        <div class="flex flex-col gap-1">
+          <h3 class="text-white text-lg font-bold">გადახდისა ოფლაინ</h3>
+          <p class="text-white text-sm opacity-90">იქირავე ნივთი ნებისმიერი ტიპის საბანკო ბარათით და დარწმუნდი ახალი თავგადასავლისთვის მზადებაში.</p>
+        </div>
+      </div>
+    </div>
   </div>
   
 </template>

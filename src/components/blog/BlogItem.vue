@@ -18,7 +18,7 @@ export default defineComponent({
 <template>
   <!-- Mobile Layout -->
   <div class="md:hidden group cursor-pointer flex flex-col items-center">
-    <div class="relative overflow-hidden" style="width: 343px; height: 200px; border-radius: 16px; opacity: 1;">
+    <div class="relative overflow-hidden" style="width: 255px; height: 204px; border-radius: 16px; opacity: 1;">
       <img 
         v-if="post && post.image"
         :src="post.image || '/path/to/default-image.jpg'" 
@@ -32,7 +32,7 @@ export default defineComponent({
     </div>
     
     <!-- Content below image -->
-    <div class="mt-3" style="width: 343px;">
+    <div class="mt-3" style="width: 255px;">
       <p v-if="post && post.date" class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-2">
         {{ post.date }}
       </p>

@@ -18,7 +18,7 @@ export const useAppStore = defineStore("app", {
 
             localStorage.removeItem("theme")
         },
-        setLanguage(language: ELanguages.KA) {
+        setLanguage(language: ELanguages) {
             this.language = language
         },
     },

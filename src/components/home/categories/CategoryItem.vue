@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import type { ICategory } from "@/types/category"
+import type { ICategoryDisplay } from "@/ts/models/category.types"
 import { computed } from 'vue'
 import { useAppStore } from '@/pinia/app.pinia'
 import type { ELanguages } from '@/ts/pinia/app.types'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{
-  category: ICategory
+  category: ICategory | ICategoryDisplay
 }>()
 
 const appStore = useAppStore()
@@ -16,11 +17,24 @@ const computedLanguage = computed<ELanguages>(() => appStore.getLanguage)
 
 const computedImage = computed<string | null>(() => {
   if (!props?.category) return null
-  return props.category.image
+  // Handle both ICategory and ICategoryDisplay interfaces
+  return (props.category as any).image || null
 })
+
 const computedCategoryName = computed<string>(() => {
-  if (!props?.category && computedLanguage.value) return null
-  return props.category.name[computedLanguage.value]
+  if (!props?.category) return ''
+  
+  // Handle ICategoryDisplay interface (has title property)
+  if ('title' in props.category) {
+    return (props.category as ICategoryDisplay).title
+  }
+  
+  // Handle ICategory interface (has name property with locales)
+  if ('name' in props.category && computedLanguage.value) {
+    return (props.category as ICategory).name[computedLanguage.value]
+  }
+  
+  return ''
 })
 
 function routeToCategory() {
@@ -37,13 +51,13 @@ function routeToCategory() {
    
     <img
       v-if="computedImage"
-      :alt="category.name"
+      :alt="computedCategoryName"
       :src="computedImage"
       class="duration-250 w-full"
     />
     <h4
       class="font-uppercase absolute bottom-3 left-3 z-10 text-sm font-extrabold text-white"
-      :data-count="category.product_count || '70' + ' პროდუქტი'"
+      :data-count="(category as any).product_count || '70' + ' პროდუქტი'"
     >
       {{ computedCategoryName }}
     </h4>

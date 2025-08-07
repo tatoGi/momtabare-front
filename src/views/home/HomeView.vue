@@ -9,9 +9,13 @@ import ProductList from "@/components/products/ProductList.vue"
 import {IProductListItem} from "@/ts/models/product.types.js"
 import {IGetProductsResponse} from "@/ts/services/products.types.ts"
 import {getProducts} from "@/services/products.js"
-import { onMounted, onUnmounted, ref } from "vue"
+import { onMounted, onUnmounted, ref, watch } from "vue"
 import itemPlaceholder from "@/assets/img/itemplaceholder.png"
 import BlogList from "@/components/blog/BlogList.vue"
+import { getHomePageData } from "@/services/pages"
+import type { IBanner } from "@/ts/models/page.types"
+import { useAppStore } from "@/pinia/app.pinia"
+import { ELanguages } from "@/ts/pinia/app.types"
 
 // Static popular products data
 const popularProducts = ref<IProductListItem[]>([
@@ -203,11 +207,37 @@ const popularProducts = ref<IProductListItem[]>([
 ])
 
 const products = ref<IProductListItem[] | null>(null)
+const homeBanners = ref<IBanner[]>([])
+const appStore = useAppStore()
+
+// Function to fetch banner data
+async function fetchBannerData() {
+  const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+  const homePageData = await getHomePageData(currentLocale)
+  
+  if (homePageData && homePageData.banners) {
+    homeBanners.value = homePageData.banners
+    console.log('Home page banners loaded for locale:', currentLocale, homeBanners.value.length)
+  }
+}
 
 onMounted(async () => {
+  // Fetch products
   const allProducts: IGetProductsResponse | null = await getProducts()
   products.value = allProducts?.products.slice(0, 8) ?? []
+  
+  // Fetch initial banner data
+  await fetchBannerData()
 })
+
+// Watch for language changes and re-fetch banner data
+watch(
+  () => appStore.language,
+  async () => {
+    console.log('Language changed, re-fetching banner data...')
+    await fetchBannerData()
+  }
+)
 
 const isMobile = ref(false);
 const windowWidth = ref(0);
@@ -285,7 +315,7 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col py-11 dark:bg-customBlack main-div">
-    <SliderComponent/>
+    <SliderComponent :banners="homeBanners" />
     <CategoriesComponent/>
    
     
