@@ -90,9 +90,17 @@
         </div>
 
         <!-- Pagination -->
-        <div class="mt-8 flex justify-center">
+        <div v-if="totalPages > 1" class="mt-8 flex justify-center">
           <nav class="flex items-center space-x-1">
-            <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <!-- Previous Button -->
+            <button 
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="p-2 rounded-full transition-colors"
+              :class="{
+                'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300': currentPage > 1,
+                'text-gray-400 dark:text-gray-600 cursor-not-allowed': currentPage === 1
+              }">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
@@ -100,15 +108,34 @@
               </svg>
             </button>
 
-            <button v-for="page in 6" :key="page" class="w-10 h-10 flex items-center justify-center rounded-full"
-              :class="{
-                'bg-orange-500 text-white': currentPage === page,
-                'hover:bg-gray-100 dark:hover:bg-gray-700': currentPage !== page
-              }">
-              {{ page }}
-            </button>
+            <!-- Page Numbers -->
+            <template v-for="page in pageNumbers" :key="page">
+              <button 
+                v-if="typeof page === 'number'"
+                @click="goToPage(page)"
+                class="w-10 h-10 flex items-center justify-center rounded-full transition-colors"
+                :class="{
+                  'bg-[#F44000] text-white': currentPage === page,
+                  'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300': currentPage !== page
+                }">
+                {{ page }}
+              </button>
+              <span 
+                v-else
+                class="w-10 h-10 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                {{ page }}
+              </span>
+            </template>
 
-            <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+            <!-- Next Button -->
+            <button 
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+              class="p-2 rounded-full transition-colors"
+              :class="{
+                'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300': currentPage < totalPages,
+                'text-gray-400 dark:text-gray-600 cursor-not-allowed': currentPage === totalPages
+              }">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -117,16 +144,26 @@
             </button>
           </nav>
         </div>
+
+        <!-- Pagination Info -->
+        <div v-if="totalPages > 1" class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          {{ $t('showing') }} {{ (currentPage - 1) * postsPerPage + 1 }} - 
+          {{ Math.min(currentPage * postsPerPage, filteredPosts.length) }} 
+          {{ $t('of') }} {{ filteredPosts.length }} {{ $t('posts') }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import BlogItem from '@/components/blog/BlogItem.vue';
 import blogImage from '@/assets/img/blogItem.png';
+import { usePageData } from '@/composables/usePageData';
+import { useAppStore } from '@/pinia/app.pinia';
+import { getAssetUrl } from '@/utils/config/env';
 
 interface BlogPost {
   id: number;
@@ -135,6 +172,10 @@ interface BlogPost {
   date: string;
   category: string | number;
   image: string;
+  slug: string;
+  author?: string;
+  meta_title?: string;
+  meta_description?: string;
 }
 
 export default defineComponent({
@@ -144,94 +185,258 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
+    const appStore = useAppStore();
     const activeCategory = ref('all');
     const currentPage = ref(1);
+    const postsPerPage = ref(6); // Number of posts per page
+    
+    // Get page data from router
+    const { currentPageData, pageTitle, pageContent, pageKeywords } = usePageData();
+
+    // Get current locale
+    const currentLocale = computed(() => appStore.getLanguage);
+
+    // Helper function to get attribute value by key and locale
+    const getPostAttribute = (post: any, key: string, locale?: string) => {
+      if (!post.attributes) return '';
+
+      // Try to find attribute with specific locale first
+      if (locale) {
+        const localeAttr = post.attributes.find((attr: any) => 
+          attr.attribute_key === key && attr.locale === locale
+        );
+        if (localeAttr) return localeAttr.attribute_value;
+      }
+
+      // Fallback to attribute without locale or first match
+      const attr = post.attributes.find((attr: any) => 
+        attr.attribute_key === key && (!attr.locale || attr.locale === 'en')
+      );
+      return attr ? attr.attribute_value : '';
+    };
+
+    // Process backend blog posts
+    const processedBlogPosts = computed(() => {
+      if (!currentPageData.value?.posts) return [];
+
+      return currentPageData.value.posts.map((post: any) => {
+        const locale = currentLocale.value;
+
+        return {
+          id: post.id,
+          title: getPostAttribute(post, 'title', locale) || getPostAttribute(post, 'title', 'en'),
+          content: getPostAttribute(post, 'content', locale) || getPostAttribute(post, 'content', 'en'),
+          date: getPostAttribute(post, 'published_at') || post.published_at || post.created_at,
+          image: getPostAttribute(post, 'featured_image') ? 
+            getAssetUrl(`storage/${getPostAttribute(post, 'featured_image')}`) : 
+            blogImage,
+          category: post.category?.slug || 'general',
+          slug: getPostAttribute(post, 'slug', locale) || getPostAttribute(post, 'slug', 'en'),
+          author: getPostAttribute(post, 'author') || 'Unknown',
+          meta_title: getPostAttribute(post, 'meta_title', locale) || getPostAttribute(post, 'meta_title', 'en'),
+          meta_description: getPostAttribute(post, 'meta_description', locale) || getPostAttribute(post, 'meta_description', 'en')
+        };
+      });
+    });
 
     const goToPost = (post: BlogPost) => {
+      const slug = post.slug || post.id.toString();
       router.push({
         name: 'blog-show',
-        params: { id: post.id },
-        query: {
-          title: post.title,
-          content: post.content,
-          date: post.date,
-          category: String(Number(post.category) || 0), // Ensure category is a number string
-          image: post.image
-        }
+        params: { slug: slug }
       });
     };
 
-    const categories = [
-      { id: 'all', name: 'ყველა სიახლე', count: 254 },
-      { id: 'hiking', name: 'ლაშქრობა', count: 40 },
-      { id: 'places', name: 'საინტერესო ადგილები', count: 66 },
-      { id: 'culinary', name: 'კულინარია', count: 2 },
-      { id: 'infographics', name: 'ინფოგრაფია', count: 7 },
-      { id: 'shopping', name: 'შოპინგი', count: 9 },
-      { id: 'tours', name: 'ვირტუალური ტურები', count: 4 },
-      { id: 'culture', name: 'კულტურა', count: 17 },
-      { id: 'history', name: 'ისტორია', count: 40 },
-      { id: 'sports', name: 'ექსტრემალური სპორტი', count: 29 },
-    ];
-
-    // Mock blog posts data - in a real app, this would come from an API
-    const blogPosts: BlogPost[] = [
-      {
-        id: 1,
-        title: 'სათხილამურო კურორტები საქართველოში',
-        date: '2025-07-15',
-        image: blogImage,
-        category: 'sports',
-        content: 'სათხილამურო კურორტების შესახებ სრული ინფორმაცია...'
-      },
-      {
-        id: 2,
-        title: 'ულამაზესი ბუნებრივი ტბები საქართველოში',
-        date: '2025-07-14',
-        image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'places',
-        content: 'საქართველოს ყველაზე ლამაზი ტბების შესახებ სრული ინფორმაცია...'
-      },
-      {
-        id: 3,
-        title: 'ისტორიული ღირსშესანიშნაობები საქართველოში',
-        date: '2025-07-13',
-        image: 'https://images.unsplash.com/photo-1582972236019-e413f40cbfc3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'history',
-        content: 'საქართველოს ისტორიული ღირსშესანიშნაობების შესახებ სრული ინფორმაცია...'
-      },
-      {
-        id: 4,
-        title: 'საუკეთესო რესტორნები თბილისში',
-        date: '2025-07-12',
-        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'food',
-        content: 'თბილისის საუკეთესო რესტორნების შესახებ სრული ინფორმაცია...'
-      },
-      {
-        id: 5,
-        title: 'პიკნიკისთვის იდეალური ადგილები',
-        date: '2025-07-11',
-        image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'places',
-        content: 'პიკნიკისთვის იდეალური ადგილების შესახებ სრული ინფორმაცია...'
-      },
-      {
-        id: 6,
-        title: 'ზაფხულის არდადეგები საქართველოში',
-        date: '2025-07-10',
-        image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-        category: 'places',
-        content: 'ზაფხულის არდადეგებისთვის რეკომენდებული ადგილების შესახებ სრული ინფორმაცია...'
+    // Generate categories dynamically from backend blog posts
+    const categories = computed(() => {
+      if (!processedBlogPosts.value.length) {
+        return [{ id: 'all', name: 'ყველა სიახლე', count: 0 }];
       }
-    ];
+
+      // Count posts by category
+      const categoryCount: Record<string, number> = {};
+      const categoryNames: Record<string, string> = {};
+      
+      processedBlogPosts.value.forEach(post => {
+        const categorySlug = post.category || 'general';
+        categoryCount[categorySlug] = (categoryCount[categorySlug] || 0) + 1;
+        
+        // Try to get category name from the post's category object if available
+        if (currentPageData.value?.posts) {
+          const originalPost = currentPageData.value.posts.find(p => p.id === post.id);
+          if (originalPost?.category) {
+            // Get localized category name
+            const locale = currentLocale.value;
+            const categoryTranslation = originalPost.category.translations?.find(
+              (t: any) => t.locale === locale
+            ) || originalPost.category.translations?.[0];
+            
+            if (categoryTranslation) {
+              categoryNames[categorySlug] = categoryTranslation.name || categoryTranslation.title;
+            } else {
+              // Fallback to slug with first letter capitalized
+              categoryNames[categorySlug] = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
+            }
+          }
+        }
+        
+        // Fallback category name if not found
+        if (!categoryNames[categorySlug]) {
+          categoryNames[categorySlug] = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
+        }
+      });
+
+      // Create categories array
+      const dynamicCategories = [
+        { 
+          id: 'all', 
+          name: 'ყველა სიახლე', 
+          count: processedBlogPosts.value.length 
+        }
+      ];
+
+      // Add categories from posts
+      Object.entries(categoryCount).forEach(([slug, count]) => {
+        dynamicCategories.push({
+          id: slug,
+          name: categoryNames[slug],
+          count
+        });
+      });
+
+      return dynamicCategories;
+    });
+
+    // Filter posts by category
+    const filteredPosts = computed(() => {
+      if (activeCategory.value === 'all') {
+        return processedBlogPosts.value;
+      }
+      return processedBlogPosts.value.filter(post => post.category === activeCategory.value);
+    });
+
+    // Calculate total pages
+    const totalPages = computed(() => {
+      return Math.ceil(filteredPosts.value.length / postsPerPage.value);
+    });
+
+    // Get paginated posts for current page
+    const paginatedPosts = computed(() => {
+      const start = (currentPage.value - 1) * postsPerPage.value;
+      const end = start + postsPerPage.value;
+      return filteredPosts.value.slice(start, end);
+    });
+
+    // Use paginated posts for display
+    const blogPosts = paginatedPosts;
+
+    // Pagination functions
+    const goToPage = (page: number) => {
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+        // Scroll to top of blog posts section
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        goToPage(currentPage.value + 1);
+      }
+    };
+
+    const prevPage = () => {
+      if (currentPage.value > 1) {
+        goToPage(currentPage.value - 1);
+      }
+    };
+
+    // Reset to first page when category changes
+    watch(activeCategory, () => {
+      currentPage.value = 1;
+    });
+
+    // Generate page numbers for pagination display
+    const pageNumbers = computed(() => {
+      const pages = [];
+      const total = totalPages.value;
+      const current = currentPage.value;
+      
+      if (total <= 7) {
+        // Show all pages if total is 7 or less
+        for (let i = 1; i <= total; i++) {
+          pages.push(i);
+        }
+      } else {
+        // Show smart pagination
+        if (current <= 4) {
+          // Show first 5 pages + ... + last page
+          for (let i = 1; i <= 5; i++) {
+            pages.push(i);
+          }
+          if (total > 6) {
+            pages.push('...');
+            pages.push(total);
+          }
+        } else if (current >= total - 3) {
+          // Show first page + ... + last 5 pages
+          pages.push(1);
+          if (total > 6) {
+            pages.push('...');
+          }
+          for (let i = total - 4; i <= total; i++) {
+            pages.push(i);
+          }
+        } else {
+          // Show first + ... + current-1, current, current+1 + ... + last
+          pages.push(1);
+          pages.push('...');
+          for (let i = current - 1; i <= current + 1; i++) {
+            pages.push(i);
+          }
+          pages.push('...');
+          pages.push(total);
+        }
+      }
+      
+      return pages;
+    });
+
+    // Log page data when component mounts
+    onMounted(() => {
+      if (currentPageData.value) {
+        console.log('📄 Blog page data loaded:', {
+          title: pageTitle.value,
+          content: pageContent.value,
+          keywords: pageKeywords.value,
+          postsCount: currentPageData.value.posts?.length || 0,
+          fullData: currentPageData.value
+        });
+        
+        console.log('🔄 Processed blog posts:', processedBlogPosts.value);
+      }
+    });
 
     return {
       activeCategory,
       currentPage,
       categories,
       blogPosts,
-      goToPost
+      goToPost,
+      // Pagination
+      totalPages,
+      pageNumbers,
+      goToPage,
+      nextPage,
+      prevPage,
+      filteredPosts,
+      postsPerPage,
+      // Expose page data for template usage
+      currentPageData,
+      pageTitle,
+      pageContent,
+      pageKeywords,
+      processedBlogPosts
     };
   },
 });

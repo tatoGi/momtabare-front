@@ -2,13 +2,11 @@
 import BaseButton from "@/components/base/BaseButton.vue"
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import type { ICategory, IProduct } from "@/types/category"
 import type { ICategoryDisplay } from "@/ts/models/category.types"
 import { useAppStore } from "@/pinia/app.pinia"
 import { useCategoryStore } from "@/pinia/category.pinia"
 import { computed, ref, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
-import categoriesData from "@/data/categories"
 import { getCategoriesForLocale } from "@/services/categories"
 import { ELanguages } from "@/ts/pinia/app.types"
 
@@ -31,7 +29,7 @@ async function fetchCategories() {
     const backendCategories = await getCategoriesForLocale(currentLocale)
     if (backendCategories.length > 0) {
       categories.value = backendCategories
-      console.log('Header categories loaded for locale:', currentLocale, backendCategories.length)
+     
     } else {
       // Fallback to store or local data if backend fails
       if (categoryStore.getCategories?.length) {
@@ -39,7 +37,6 @@ async function fetchCategories() {
       }
     }
   } catch (error) {
-    console.error('Error fetching header categories:', error)
     // Fallback to store or local data
     if (categoryStore.getCategories?.length) {
       categories.value = categoryStore.getCategories
@@ -55,7 +52,6 @@ onMounted(async () => {
 watch(
   () => appStore.language,
   async () => {
-    console.log('Language changed, re-fetching header categories...')
     await fetchCategories()
   }
 )
@@ -74,9 +70,6 @@ function closeDropdown(): void {
   }, 200)
 }
 
-const getProducts = (subcategoryId: number) => {
-  return getMockProducts(subcategoryId)
-}
 </script>
 
 <template>

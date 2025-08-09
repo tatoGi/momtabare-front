@@ -5,229 +5,219 @@ import RentalStepsComponent from "@/components/home/RentalStepsComponent.vue"
 import CategoriesComponent from "@/components/home/categories/CategoriesComponent.vue"
 import SliderComponent from "@/components/home/slider/SliderComponent.vue"
 import PopularProductsSlider from "@/components/home/PopularProductsSlider.vue"
-import ProductList from "@/components/products/ProductList.vue"
-import {IProductListItem} from "@/ts/models/product.types.js"
-import {IGetProductsResponse} from "@/ts/services/products.types.ts"
-import {getProducts} from "@/services/products.js"
-import { onMounted, onUnmounted, ref, watch } from "vue"
-import itemPlaceholder from "@/assets/img/itemplaceholder.png"
+import type { IProductListItem } from "@/ts/models/product.types.js"
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import BlogList from "@/components/blog/BlogList.vue"
-import { getHomePageData } from "@/services/pages"
+import { getHomePageData, getBlogPosts } from "@/services/pages"
+import { getProducts } from "@/services/products"
 import type { IBanner } from "@/ts/models/page.types"
 import { useAppStore } from "@/pinia/app.pinia"
 import { ELanguages } from "@/ts/pinia/app.types"
+import { getAssetUrl } from "@/utils/config/env"
 
 // Static popular products data
-const popularProducts = ref<IProductListItem[]>([
-  {
-    id: 1,
-    sku: 'stroller-001',
-    name: 'Premium Baby Stroller',
-    price: 29.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.8,
-    reviews_count: 124,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'New York, NY'
-  },
-  {
-    id: 2,
-    sku: 'carseat-001',
-    name: 'Convertible Car Seat',
-    price: 24.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.9,
-    reviews_count: 98,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'Los Angeles, CA'
-  },
-  {
-    id: 3,
-    sku: 'highchair-001',
-    name: 'Baby High Chair',
-    price: 19.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.7,
-    reviews_count: 87,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'Chicago, IL'
-  },
-  {
-    id: 4,
-    sku: 'swing-001',
-    name: 'Baby Swing',
-    price: 22.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.6,
-    reviews_count: 112,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'Houston, TX'
-  },
-  {
-    id: 5,
-    sku: 'stroller-001',
-    name: 'Premium Baby Stroller',
-    price: 29.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.8,
-    reviews_count: 124,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'New York, NY'
-  },
-  {
-    id: 6,
-    sku: 'carseat-001',
-    name: 'Convertible Car Seat',
-    price: 24.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.8,
-    reviews_count: 124,
-    is_favorited: false,  
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'New York, NY'
-  },
-  {
-    id: 7,
-    sku: 'carseat-001',
-    name: 'Convertible Car Seat',
-    price: 24.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.9,
-    reviews_count: 98,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'Los Angeles, CA'
-  },
-  {
-    id: 8,
-    sku: 'highchair-001',
-    name: 'Baby High Chair',
-    price: 19.99,
-    images: [
-      {
-        id: 1,
-        url: itemPlaceholder,
-        is_primary: true
-      }
-    ],
-    rating: 4.7,
-    reviews_count: 87,
-    is_favorited: false,
-    is_popular: true,
-    product_owner: {
-      id: 1,
-      name: 'Momtabare',
-      avatar: 'https://via.placeholder.com/50'
-    },
-    location: 'Chicago, IL'
-  },
-
-])
 
 const products = ref<IProductListItem[] | null>(null)
 const homeBanners = ref<IBanner[]>([])
+const blogPosts = ref<any[]>([])
+// Dynamic section data from posts
+type JoinUsData = {
+  titleTop?: string
+  titleBottom?: string
+  descriptions?: string[]
+  buttonLabel?: string
+  buttonLink?: string
+  imageMain?: string
+  helmetImage?: string
+  snowboardImage?: string
+}
+type RentalData = {
+  titleLine1?: string
+  titleLine2?: string
+  description?: string
+  steps?: { title: string; text: string }[]
+  imageMain?: string
+}
+const joinUsData = ref<JoinUsData | null>(null)
+const rentalData = ref<RentalData | null>(null)
 const appStore = useAppStore()
 
-// Function to fetch banner data
-async function fetchBannerData() {
-  const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
-  const homePageData = await getHomePageData(currentLocale)
+// Function to fetch home page dynamic data (banners + posts)
+async function fetchHomePageDynamic() {
+  try {
+    const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+    const fallbackLocale = currentLocale === 'ka' ? 'en' : 'ka'
+    const homePageData = await getHomePageData(currentLocale)
+   
+  // Banners
+  homeBanners.value = homePageData?.banners ?? []
   
-  if (homePageData && homePageData.banners) {
-    homeBanners.value = homePageData.banners
-    console.log('Home page banners loaded for locale:', currentLocale, homeBanners.value.length)
+  // Fetch popular products
+  try {
+    const productsData = await getProducts()
+    console.log('Products data received:', productsData)
+    
+    // Handle different possible response structures
+    if (productsData?.products && Array.isArray(productsData.products)) {
+      products.value = productsData.products
+    } else if (productsData?.data && Array.isArray(productsData.data)) {
+      products.value = productsData.data
+    } else if (Array.isArray(productsData)) {
+      products.value = productsData
+    } else {
+      console.warn('No products found in response:', productsData)
+      products.value = []
+    }
+    
+    console.log('Products loaded:', products.value?.length || 0, 'items')
+  } catch (error) {
+    console.error('Error fetching products:', error)
+    products.value = []
+  }
+  
+  // Fetch blog posts from dedicated API
+  const blogPostsData = await getBlogPosts()
+  // Blog Posts
+  if (blogPostsData?.posts && Array.isArray(blogPostsData.posts)) {
+    blogPosts.value = blogPostsData.posts.map((post: any) => {
+      
+      // Extract localized attributes
+      const getPostAttribute = (key: string) => {
+        const attr = post.attributes?.find((a: any) => 
+          a.attribute_key === key && (a.locale === currentLocale || a.locale === null)
+        )
+        if (attr) return attr.attribute_value
+        
+        // Fallback to other locale
+        const fallbackAttr = post.attributes?.find((a: any) => 
+          a.attribute_key === key && a.locale === fallbackLocale
+        )
+        return fallbackAttr?.attribute_value || ''
+      }
+
+      return {
+        id: post.id,
+        title: getPostAttribute('title'),
+        date: post.published_at ? new Date(post.published_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        image: getPostAttribute('featured_image') ? getAssetUrl(`storage/${getPostAttribute('featured_image')}`) : null,
+        slug: getPostAttribute('slug'),
+        content: getPostAttribute('content'),
+        author: getPostAttribute('author')
+      }
+    })
+  } else {
+    blogPosts.value = []
+  }
+
+  // Products from home page response
+  if (homePageData?.products && Array.isArray(homePageData.products)) {
+    // Transform backend products to match IProductListItem interface
+    products.value = homePageData.products.slice(0, 8).map((backendProduct: any) => ({
+      id: backendProduct.id,
+      sku: backendProduct.product_identify_id || `product-${backendProduct.id}`,
+      slug: backendProduct.slug,
+      name: backendProduct.title,
+      price: parseFloat(backendProduct.price?.replace(/[^\d.]/g, '') || '0'),
+      images: [
+        {
+          id: backendProduct.images?.[0]?.id || 1,
+          url: backendProduct.images?.[0]?.image_name ? getAssetUrl(`storage/${backendProduct.images[0].image_name}`) : getAssetUrl('storage/placeholder-image.jpg'),
+          is_primary: true
+        }
+      ],
+      rating: 4.5, // Default rating since backend doesn't provide this
+      reviews_count: 0, // Default since backend doesn't provide this
+      is_favorited: false, // Default since backend doesn't provide this
+      is_popular: true,
+      product_owner: {
+        id: 1,
+        name: 'Momtabare',
+        avatar: 'https://via.placeholder.com/50'
+      },
+      location: backendProduct.location || 'Tbilisi, Georgia'
+    }))
+  } else {
+    products.value = null
+  }
+
+  // Posts -> extract join_us / rental
+  joinUsData.value = null
+  rentalData.value = null
+
+  const posts = homePageData?.posts ?? []
+  // Helper to get localized attribute map for a post
+  const getAttrMap = (post: any) => {
+    const map: Record<string, string> = {}
+    if (!post?.attributes) return map
+    // select preferred locale first, then fallback if missing
+    for (const attr of post.attributes as any[]) {
+      if (!map[attr.attribute_key] && (attr.locale === currentLocale || attr.locale == null)) {
+        map[attr.attribute_key] = String(attr.attribute_value)
+      }
+    }
+    for (const attr of post.attributes as any[]) {
+      if (!map[attr.attribute_key] && (attr.locale === fallbackLocale)) {
+        map[attr.attribute_key] = String(attr.attribute_value)
+      }
+    }
+    return map
+  }
+
+  posts.forEach((post: any) => {
+    const attrs = getAttrMap(post)
+    
+    const postType = attrs['post_type'] || attrs['type']
+    if (!postType) {
+      return
+    }
+
+    if (postType === 'join_us' && !joinUsData.value) {
+      const descriptions: string[] = []
+      ;['join_description_1', 'join_description_2', 'join_description_3'].forEach(k => {
+        if (attrs[k]) descriptions.push(attrs[k])
+      })
+      const mainImageUrl = attrs['main_image'] ? getAssetUrl(`storage/${attrs['main_image']}`) : undefined
+      const helmetImageUrl = attrs['helmet_image'] ? getAssetUrl(`storage/${attrs['helmet_image']}`) : undefined
+      const snowboardImageUrl = attrs['snowboard_image'] ? getAssetUrl(`storage/${attrs['snowboard_image']}`) : undefined
+      
+      joinUsData.value = {
+        titleTop: attrs['join_title_line_1'],
+        titleBottom: attrs['join_title_line_2'],
+        descriptions: descriptions.length ? descriptions : undefined,
+        buttonLabel: attrs['join_button_text'],
+        buttonLink: attrs['button_url'],
+        imageMain: mainImageUrl,
+        helmetImage: helmetImageUrl,
+        snowboardImage: snowboardImageUrl,
+      }
+    }
+   
+    if (postType === 'rental_steps' && !rentalData.value) {
+     
+      const steps: { title: string; text: string }[] = []
+      for (let i = 1; i <= 6; i++) {
+        const t = attrs[`step_${i}_title`]
+        const d = attrs[`step_${i}_text`] || attrs[`step_${i}_desc`]
+        if (t && d) steps.push({ title: t, text: d })
+      }
+      rentalData.value = {
+        titleLine1: attrs['title_line_1'] || attrs['title1'] || attrs['title_line1'],
+        titleLine2: attrs['title_line_2'] || attrs['title2'] || attrs['title_line2'],
+        description: attrs['description'] || attrs['desc'],
+        steps: steps.length ? steps : undefined,
+        imageMain: attrs['image_main'] ? getAssetUrl(`storage/${attrs['image_main']}`) : undefined,
+      }
+    }
+  })
+
+  } catch (error) {
+    console.error('Error fetching home page data:', error)
   }
 }
 
 onMounted(async () => {
-  // Fetch products
-  const allProducts: IGetProductsResponse | null = await getProducts()
-  products.value = allProducts?.products.slice(0, 8) ?? []
-  
-  // Fetch initial banner data
-  await fetchBannerData()
+  // Fetch all home page data (banners, posts, products)
+  await fetchHomePageDynamic()
 })
 
 // Watch for language changes and re-fetch banner data
@@ -235,7 +225,7 @@ watch(
   () => appStore.language,
   async () => {
     console.log('Language changed, re-fetching banner data...')
-    await fetchBannerData()
+    await fetchHomePageDynamic()
   }
 )
 
@@ -301,6 +291,9 @@ onMounted(() => {
   } else {
     window.addEventListener('load', checkWithDelay);
   }
+  
+  // Fetch home page data
+  fetchHomePageDynamic();
 });
 
 // Clean up event listeners
@@ -322,21 +315,27 @@ onUnmounted(() => {
     <!-- Static Popular Products Section -->
    
     
-    <JoinUsComponent/>
-    <div class="container mx-auto px-4 mt-8">
+    <JoinUsComponent
+      v-if="joinUsData"
+      :title-top="joinUsData.titleTop"
+      :title-bottom="joinUsData.titleBottom"
+      :descriptions="joinUsData.descriptions"
+      :button-label="joinUsData.buttonLabel"
+      :image-main="joinUsData.imageMain"
+      :helmet-image="joinUsData.helmetImage"
+      :snowboard-image="joinUsData.snowboardImage"
+    />
+    <div v-if="products && products.length > 0" class="container mx-auto px-4 mt-8">
      
       <!-- Mobile View -->
       <div v-if="isMobile" class="mobile-view">
-        <PopularProductsSlider :products="popularProducts" />
+        <PopularProductsSlider :products="products" />
       </div>
       
       <!-- Desktop View -->
       <div v-else class="desktop-view">
-        <ProductList
-          :products="popularProducts"
-          :title="$t('popularProducts')"
-          class="w-full"
-          route-to-name="products"
+        <PopularProductsSlider
+          :products="products"
         />
       </div>
     </div>
@@ -348,8 +347,15 @@ onUnmounted(() => {
         class="w-full"
         route-to-name="products"
     /> -->
-    <RentalStepsComponent/>
-    <BlogList />
+    <RentalStepsComponent
+      v-if="rentalData"
+      :title-line1="rentalData.titleLine1"
+      :title-line2="rentalData.titleLine2"
+      :description="rentalData.description"
+      :steps="rentalData.steps"
+      :image-main="rentalData.imageMain"
+    />
+    <BlogList :blog-posts="blogPosts" />
     <FAQComponent/>
   </div>
 </template>

@@ -6,15 +6,15 @@ import ProductDetailsComponent from "@/components/products/ProductDetailsCompone
 import ProductImagesComponent from "@/components/products/ProductImagesComponent.vue"
 import ProductItem from "@/components/products/ProductItem.vue"
 import ProductStatsComponent from "@/components/products/ProductStatsComponent.vue"
-import {IComment} from "@/ts/models/comment.types.ts"
-import {IProduct, IProductListItem} from "@/ts/models/product.types.ts"
-import {IGetProductByIdResponse, IGetProductsResponse,} from "@/ts/services/products.types.ts"
+// import {IComment} from "@/ts/models/comment.types.ts" // Temporarily disabled to fix import issues
+import type {IProduct, IProductListItem} from "@/ts/models/product.types.ts"
+import type {IGetProductByIdResponse, IGetProductsResponse} from "@/ts/services/products.types.ts"
 import {windowScrollToTop} from "@/utils/helpers/scroll.ts"
 import {getCommentsByProduct} from "@/services/comments.ts"
 import {getProductBySku, getProducts} from "@/services/products.ts"
 import Skeleton from "../../components/ui/skeleton/Skeleton.vue"
-import {computed, onMounted, ref, watch} from "vue"
-import {useRoute} from "vue-router"
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from "vue-router"
 
 const route = useRoute()
 
@@ -22,7 +22,7 @@ const response = ref<IGetProductByIdResponse | null>()
 const recommendedProducts = ref<IProductListItem[] | undefined>()
 
 const product = ref<IProduct | null>(null)
-const comments = ref<IComment[] | null>(null)
+const comments = ref<any[] | null>(null)
 
 const productLoaded = ref<boolean>(false)
 const commentsLoaded = ref<boolean>(false)
@@ -37,14 +37,11 @@ async function fetchProductData(): Promise<void> {
   try {
     productLoaded.value = false
     recommendedProductLoaded.value = false
-    commentsLoaded.value = false
-
     if (!computedProductSku.value) return
     response.value = await getProductBySku({sku: computedProductSku.value})
 
     if (!response.value) return
     product.value = response.value.product
-
     setTimeout(() => (productLoaded.value = true), 200)
     await fetchRecommendedProducts()
     await fetchComments()

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseIcon from "@/components/base/BaseIcon.vue";
 import AuthDialog from "@/components/dialogs/AuthDialog.vue";
@@ -13,6 +13,7 @@ import HeaderProductMenu from "@/components/header/HeaderProductMenu.vue";
 import HeaderSearchComponent from "@/components/header/HeaderSearchComponent.vue";
 import { useUserStore } from "@/pinia/user.pinia";
 import { useCartStore } from "@/pinia/cart.pinia";
+import { useNavigation } from "@/composables/useNavigation";
 import { cities } from "@/constants/cities.ts";
 import { EAuthStep } from "@/ts/auth.types.js";
 import type { AuthStepPayload } from "@/ts/auth.types.js";
@@ -20,22 +21,12 @@ import cartsvg from "@/assets/svg/cart.svg";
 import heartsvg from "@/assets/svg/heart.svg";
 import usersvg from "@/assets/img/usersvg.svg";
 
-interface INavItem {
-  title: string;
-  route: string;
-}
-
 const router = useRouter();
-const route = useRoute();
 const userStore = useUserStore();
 const cartStore = useCartStore();
 
-const navItems: INavItem[] = [
-  { title: "მთავარი", route: "/home" },
-  { title: "ბლოგი", route: "/blog" },
-  { title: "მარშუტები", route: "/routes" },
-  { title: "FAQ", route: "/faq" },
-];
+// Use dynamic navigation from backend
+const { rootNavigationItems } = useNavigation();
 
 const showMobileSearch = ref(false);
 const showCityModal = ref(false);
@@ -52,8 +43,6 @@ const cartItems = ref(cartStore.getCartLength);
 const mobileSearchName = ref<string>('');
 const mobileSearchCity = ref<string>('');
 const mobileSearchDate = ref<string>('');
-
-console.log(user);
 function routeToCart(): void {
   if (!userStore.getUser) {
     userStore.setAuthDialogState(true);

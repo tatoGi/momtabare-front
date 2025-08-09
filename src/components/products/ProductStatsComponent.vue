@@ -131,9 +131,12 @@ watch(selectedDate, (newDate) => {
 })
 
 const computedUserInitials = computed(() => {
+  if (!computedRetailer.value) {
+    return 'N/A';
+  }
   const firstInitial = computedRetailer.value.first_name?.[0] ?? '';
   const lastInitial = computedRetailer.value.last_name?.[0] ?? '';
-  return (firstInitial + lastInitial).toUpperCase();
+  return (firstInitial + lastInitial).toUpperCase() || 'N/A';
 });
 
 
@@ -180,7 +183,7 @@ function triggerAddToCart(product: IProduct | null): void {
         <div>
           <div class="flex items-center gap-1">
             <h2 class="text-sm font-semibold dark:text-white">
-              {{ computedRetailer.first_name }}
+              {{ computedRetailer?.first_name || 'Unknown' }}
             </h2>
             <BaseIcon
                 :size="20"
@@ -199,7 +202,7 @@ function triggerAddToCart(product: IProduct | null): void {
       <h2
           class="h-6 w-10 rounded-full bg-customRed text-center text-sm text-white"
       >
-        {{ computedRetailer.rating_stats.average ?? 0 }}
+        {{ computedRetailer?.rating_stats?.average ?? 0 }}
       </h2>
     </div>
 

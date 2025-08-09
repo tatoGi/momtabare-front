@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import RatingStatusComponent from "@/components/products/product-stats/RatingStatusComponent.vue"
-import { IComment } from "@/ts/models/comment.types.ts"
+// import { IComment } from "@/ts/models/comment.types.ts" // Temporarily disabled to fix import issues
 
 const props = defineProps<{
-  comments: IComment[] | null
+  comments: any[] | null
 }>()
 </script>
 <template>

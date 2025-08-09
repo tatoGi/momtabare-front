@@ -10,6 +10,7 @@ export interface IProduct {
   id: number
   name: string
   sku: string
+  slug?: string
   location: string
   size: string
   price: string
@@ -43,6 +44,7 @@ export interface IProductListItem {
   id: number
   name: string
   sku: string
+  slug?: string
   location: string
   rating: number | null
   ratings_amount: number

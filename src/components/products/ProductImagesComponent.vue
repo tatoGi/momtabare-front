@@ -11,8 +11,12 @@ const backendUrl = ENV.BACKEND_URL
 const selectedImageIndex = ref<number>(0)
 
 const computedChosenImage = computed<string | null>(() => {
-  if (!props?.product) return null
-  return `${backendUrl}/${props.product?.images[selectedImageIndex.value].url}`
+  if (!props?.product || !props.product.images || props.product.images.length === 0) {
+    return null
+  }
+  const image = props.product.images[selectedImageIndex.value]
+  if (!image?.url) return null
+  return `${backendUrl}/${image.url}`
 })
 
 function productImageStyles(index: number): string {
@@ -35,17 +39,21 @@ function selectImage(index: number) {
 </script>
 <template>
   <div class="flex flex-col gap-8">
-    <div class="w-[464px] h-[314px] flex-center">
+    <div class="w-[464px] h-[314px] flex-center bg-gray-100 rounded-lg">
       <img
         v-if="computedChosenImage"
         :src="computedChosenImage"
         alt="selected_image"
-        class="h-72 w-72"
+        class="h-72 w-72 object-contain"
       />
+      <div v-else class="flex flex-col items-center justify-center text-gray-500">
+        <div class="w-24 h-24 bg-gray-300 rounded-lg mb-4"></div>
+        <p>No image available</p>
+      </div>
     </div>
-    <div class="grid grid-cols-4 gap-4">
+    <div v-if="product?.images && product.images.length > 0" class="grid grid-cols-4 gap-4">
       <div
-        v-for="(img, index) in product!.images"
+        v-for="(img, index) in product.images"
         :key="index"
         :class="productImageStyles(index)"
         class="w-24 h-24 border rounded-2xl cursor-pointer flex-center"
@@ -57,6 +65,9 @@ function selectImage(index: number) {
           class="w-16 h-16 transition-all group-hover:w-[70px] group-hover:h-[70px]"
         />
       </div>
+    </div>
+    <div v-else class="flex items-center justify-center h-24 text-gray-500">
+      No images available
     </div>
   </div>
 </template>

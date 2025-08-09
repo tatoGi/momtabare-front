@@ -17,32 +17,65 @@ import { EAuthStep } from "@/ts/auth.types.js"
 import { countriesPrefix } from "@/constants/countriesPrefix.ts"
 import { register } from "@/services/auth.ts"
 import { computed, ref } from "vue"
+import { useField, useForm } from "vee-validate"
+import * as yup from "yup"
 
 const emit = defineEmits(["nextStep"])
 
+const isLoading = ref<boolean>(false)
 const countryPrefix = ref<string>("+995")
-const phoneNumber = ref<string>("")
+
+const { handleSubmit } = useForm({
+  validationSchema: yup.object({
+    phoneNumber: yup
+      .string()
+      .required("ტელეფონის ნომერი სავალდებულოა")
+      .min(9, "ტელეფონის ნომერი უნდა იყოს მინიმუმ 9 ციფრი"),
+    termsAndConditions: yup
+      .boolean()
+      .default(false)
+      .oneOf([true], "დაეთანხმეთ"),
+  }),
+})
+
+const { value: phoneNumber, errorMessage: phoneError } = useField("phoneNumber")
+const {
+  value: termsAndConditions,
+  handleChange,
+  errorMessage: termsError,
+} = useField("termsAndConditions")
 
 const fullPhoneNumber = computed<string>(() => {
   return countryPrefix.value + phoneNumber.value
 })
 
 async function sendVerificationCode(): Promise<void> {
-  const response = await register({
-    phone_number: phoneNumber.value.trim(),
-    country_code: countryPrefix.value.trim(),
-  })
+  isLoading.value = true
+  try {
+    const response = await register({
+      phone_number: phoneNumber.value.trim(),
+      country_code: countryPrefix.value.trim(),
+    })
 
-  if (response) {
-    const payload = {
-      nextStep: EAuthStep.VERIFY_CODE,
-      user_id: response.user_id,
-      phone_number: fullPhoneNumber.value,
+    if (response && response.user_id) {
+      // Emit the user_id and phone number to parent component for verification step
+      emit("nextStep", {
+        nextStep: EAuthStep.VERIFY_CODE,
+        userId: response.user_id,
+        emailOrPhone: fullPhoneNumber.value
+      })
     }
-
-    emit("nextStep", payload)
+  } catch (error) {
+    console.error("Error sending verification code:", error)
+  } finally {
+    isLoading.value = false
   }
 }
+
+const onSubmit = handleSubmit(async (values) => {
+  if (!values) return
+  await sendVerificationCode()
+})
 </script>
 
 <template>
@@ -93,22 +126,36 @@ async function sendVerificationCode(): Promise<void> {
         <!--        </p>-->
       </div>
 
-      <div class="flex items-center gap-2">
-        <Checkbox id="terms" />
-        <Label class="text-sm font-medium dark:text-white" for="terms">
-          ვეთანხმები
-          <span class="cursor-pointer text-customBlue underline">
-            წესებს და პირობებს
-          </span>
-        </Label>
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2">
+          <Checkbox 
+            id="terms" 
+            :checked="termsAndConditions"
+            @update:checked="handleChange"
+          />
+          <Label class="text-sm font-medium dark:text-white" for="terms">
+            ვეთანხმები
+            <span class="cursor-pointer text-customBlue underline">
+              წესებს და პირობებს
+            </span>
+          </Label>
+        </div>
+        <p v-if="termsError" class="text-xs text-red-500">{{ termsError }}</p>
+      </div>
+
+      <div v-if="phoneError" class="flex flex-col gap-1">
+        <p class="text-xs text-red-500">{{ phoneError }}</p>
       </div>
     </div>
     <BaseButton
       :height="48"
-      class="mt-1 rounded-full bg-customRed"
-      @click.left="sendVerificationCode"
+      :disabled="isLoading"
+      class="mt-1 rounded-full bg-customRed disabled:opacity-50"
+      @click.left="onSubmit"
     >
-      <p class="font-uppercase text-sm font-bold text-white">განაგრძე</p>
+      <p class="font-uppercase text-sm font-bold text-white">
+        {{ isLoading ? 'იტვირთება...' : 'განაგრძე' }}
+      </p>
     </BaseButton>
   </div>
 

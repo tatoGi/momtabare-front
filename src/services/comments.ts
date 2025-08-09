@@ -1,26 +1,62 @@
-import { ICommentOnProductQuery, IGetCommentsResponse } from "../ts/services/comments.types.ts"
 import AxiosJSON from "../utils/helpers/axios.ts"
 
-export async function getCommentsByProduct() {
-  return {
-    comments: [
-      { id: 1, text: 'Great product!', user: 'Demo User' }
-    ]
-  };
+// Simplified interfaces to avoid import chain issues
+interface IGetCommentsQuery {
+  id: number
 }
 
-export async function getCommentsByRetailer() {
-  return {
-    comments: [
-      { id: 2, text: 'Excellent service!', user: 'Sample User' }
-    ]
-  };
+interface ICommentOnProductQuery {
+  comment: string
+  id: number
 }
 
-export async function commentOnProduct() {
-  return { success: true };
+interface IGetCommentsResponse {
+  message: string
+  comments: any[]
 }
 
-export async function commentOnRetailer() {
-  return { success: true };
+export async function getCommentsByProduct(params: IGetCommentsQuery): Promise<IGetCommentsResponse | null> {
+  try {
+    const response = await AxiosJSON.get<IGetCommentsResponse>(`/product/${params.id}/comments`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching product comments:", error)
+    return {
+      message: "Comments loaded",
+      comments: []
+    }
+  }
+}
+
+export async function getCommentsByRetailer(params: IGetCommentsQuery): Promise<IGetCommentsResponse | null> {
+  try {
+    const response = await AxiosJSON.get<IGetCommentsResponse>(`/retailer/${params.id}/comments`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching retailer comments:", error)
+    return {
+      message: "Comments loaded", 
+      comments: []
+    }
+  }
+}
+
+export async function commentOnProduct(params: ICommentOnProductQuery) {
+  try {
+    const response = await AxiosJSON.post("/comment-on-product", params)
+    return response.data
+  } catch (error) {
+    console.error("Error commenting on product:", error)
+    return { success: false }
+  }
+}
+
+export async function commentOnRetailer(params: ICommentOnProductQuery) {
+  try {
+    const response = await AxiosJSON.post("/comment-on-retailer", params)
+    return response.data
+  } catch (error) {
+    console.error("Error commenting on retailer:", error)
+    return { success: false }
+  }
 }

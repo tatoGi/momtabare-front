@@ -6,7 +6,7 @@ import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
 import {EAuthStep} from "@/ts/auth.types.js"
 import {register} from "@/services/auth.ts"
-import {ref} from "vue"
+import { ref } from "vue"
 import {useField, useForm} from "vee-validate"
 import * as yup from "yup"
 
@@ -41,14 +41,13 @@ async function sendVerificationCode(): Promise<void> {
       email: email.value.trim(),
     })
 
-    if (response) {
-      const payload = {
+    if (response && response.user_id) {
+      // Emit the user_id and email to parent component for verification step
+      emit("nextStep", {
         nextStep: EAuthStep.VERIFY_CODE,
-        user_id: response.user_id,
-        email: email.value.trim(),
-      }
-
-      emit("nextStep", payload)
+        userId: response.user_id,
+        emailOrPhone: email.value.trim()
+      })
     }
   } catch (error) {
     console.error("Error sending verification code:", error)

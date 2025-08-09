@@ -10,7 +10,7 @@ const PagesAxios = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second timeout (increased from 10s)
 })
 
 // Cache for pages data to avoid multiple API calls
@@ -27,26 +27,49 @@ export async function getAllPages(): Promise<IPage[] | null> {
     return cachedPages
   }
 
-  try {
-    // Fetch from either /en/pages or /ka/pages - both should return same data with all translations
-    const endpoint = '/en/pages' // Use English endpoint as default
+  // Retry logic for network issues
+  const maxRetries = 3
+  let lastError: any = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+     
+      
+      // Fetch from either /en/pages or /ka/pages - both should return same data with all translations
+      const endpoint = '/en/pages' // Use English endpoint as default
+      
+      const response = await PagesAxios.get(endpoint)
+      
+      // Handle different response structures
+      const data = response.data
+      const pages = data.data || data.pages || (Array.isArray(data) ? data : [])
     
-    const response = await PagesAxios.get(endpoint)
-    
-    // Handle different response structures
-    const data = response.data
-    const pages = data.data || data.pages || (Array.isArray(data) ? data : [])
-    console.log('✅ Pages loaded successfully:', pages.length, 'items')
-    
-    // Cache the results
-    cachedPages = pages
-    cacheTimestamp = now
-    
-    return pages
-  } catch (error) {
-    console.error('❌ Error fetching pages:', error instanceof Error ? error.message : error)
-    return null
+      cachedPages = pages
+      cacheTimestamp = now
+      
+      return pages
+    } catch (error) {
+      lastError = error
+      const errorMessage = error instanceof Error ? error.message : String(error)
+     
+      
+      // If this isn't the last attempt, wait before retrying
+      if (attempt < maxRetries) {
+        const waitTime = attempt * 2000 // 2s, 4s, 6s
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+      }
+    }
   }
+
+  // All attempts failed
+  
+  
+  // Return cached data if available, even if expired
+  if (cachedPages) {
+    return cachedPages
+  }
+  
+  return null
 }
 
 // Get pages data with locale support (now processes translations client-side)
@@ -94,21 +117,21 @@ function getFallbackNavigation(locale: string): INavigationItem[] {
       id: 1,
       title: isGeorgian ? 'მთავარი' : 'Home',
       slug: isGeorgian ? 'მთავარი' : 'home',
-      path: isGeorgian ? '/მთავარი' : '/home',
+      path: '/home', // Always use English path for routing
       active: true
     },
     {
       id: 2,
       title: isGeorgian ? 'ბლოგი' : 'Blog',
       slug: isGeorgian ? 'ბლოგი' : 'blog',
-      path: isGeorgian ? '/ბლოგი' : '/blog',
+      path: '/blog', // Always use English path for routing
       active: true
     },
     {
       id: 3,
       title: isGeorgian ? 'მარშუტები' : 'Routes',
       slug: isGeorgian ? 'მარშუტები' : 'routes',
-      path: isGeorgian ? '/მარშუტები' : '/routes',
+      path: '/routes', // Always use English path for routing
       active: true
     }
     // Removed FAQ from fallback navigation
@@ -153,12 +176,13 @@ export function convertPagesToNavigation(pages: IPage[], locale: string = 'ka'):
 // Create navigation item from page
 function createNavigationItem(page: IPage, locale: string): INavigationItem {
   const translation = getPageTranslation(page, locale)
+  const englishTranslation = getPageTranslation(page, 'en') // Always get English for routing
   
   return {
     id: page.id,
     title: translation.title, // Use localized title for display
     slug: translation.slug,   // Keep localized slug for reference
-    path: `/${translation.slug}`, // Use current locale slug for routing
+    path: `/${englishTranslation.slug}`, // Always use English slug for routing
     active: page.active === 1,
     icon: translation.icon || undefined,
     parent_id: page.parent_id
@@ -167,6 +191,7 @@ function createNavigationItem(page: IPage, locale: string): INavigationItem {
 
 // Get page translation for specific locale
 export function getPageTranslation(page: IPage, locale: string): IPageTranslation {
+  
   // Try to find translation for requested locale
   const translation = page.translations.find(t => t.locale === locale)
   
@@ -199,6 +224,23 @@ export async function getPageBySlug(slug: string, locale: string = 'ka'): Promis
 // Get localized content by slug
 export async function getContent(slug: string, locale: string = 'ka') {
   return getPageBySlug(slug, locale)
+}
+// Get blog posts for homepage
+export async function getBlogPosts(): Promise<any> {
+  try {
+    const url = getLocalizedApiUrl('blog-posts')
+    
+    const response = await PagesAxios.get(url)
+    
+    if (response.data) {
+      return response.data
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error fetching blog posts:', error)
+    return null
+  }
 }
 
 // Get home page data with banners

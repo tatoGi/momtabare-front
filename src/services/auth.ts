@@ -13,16 +13,49 @@ import type {
 } from "../ts/services/auth.types"
 import AxiosJSON from "../utils/helpers/axios.ts"
 
-export async function register() {
-  return { success: true, user: { id: 1, name: 'Demo User' } };
+// Register with email or phone number
+export async function register(
+  params: IRegisterParams,
+): Promise<IRegisterResponse | null> {
+  try {
+    const response = await AxiosJSON.post<IRegisterResponse>(
+      "/send-registration-email",
+      params,
+    )
+    return response.data
+  } catch (error: any) {
+    throw error.response?.data?.message || "Registration failed"
+  }
 }
 
-export async function verifyPhone() {
-  return { success: true };
+// Verify phone number with code
+export async function verifyPhone(
+  params: IVerifyCodeParams,
+): Promise<IVerifyCodeResponse | null> {
+  try {
+    const response = await AxiosJSON.post<IVerifyCodeResponse>(
+      "/verify-phone",
+      params,
+    )
+    return response.data
+  } catch (error: any) {
+    throw error.response?.data?.message || "Phone verification failed"
+  }
 }
 
-export async function resendPhoneVerificationCode() {
-  return { success: true };
+// Resend phone verification code
+export async function resendPhoneVerificationCode(
+  params: IResendVerificationCodeParams,
+): Promise<IResendVerificationCodeResponse | null> {
+  try {
+    const response = await AxiosJSON.post<IResendVerificationCodeResponse>(
+      "/resend-phone-verification-code",
+      params,
+    )
+    return response.data
+  } catch (error: any) {
+    throw error.response?.data?.message || "Failed to resend phone verification code"
+  }
 }
 
 export async function verifyEmail(
@@ -72,10 +105,33 @@ export async function completeRegistration(
   }
 }
 
-export async function signIn() {
-  return { success: true, token: 'demo-token', user: { id: 1, name: 'Demo User' } };
+// Sign in with email/phone and password
+export async function signIn(
+  params: ISignInParams,
+): Promise<ISignInResponse | null> {
+  try {
+    const response = await AxiosJSON.post<ISignInResponse>(
+      "/login",
+      params,
+    )
+    const data = response.data
+    if (data.token) {
+      localStorage.setItem("user_auth_token", data.token)
+    }
+    return data
+  } catch (error: any) {
+    throw error.response?.data?.message || "Sign in failed"
+  }
 }
 
-export async function signOut() {
-  return { success: true };
+// Sign out user
+export async function signOut(): Promise<ISignOutResponse | null> {
+  try {
+    const response = await AxiosJSON.post<ISignOutResponse>("/logout")
+    localStorage.removeItem("user_auth_token")
+    return response.data
+  } catch (error: any) {
+    localStorage.removeItem("user_auth_token")
+    throw error.response?.data?.message || "Sign out failed"
+  }
 }

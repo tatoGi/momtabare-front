@@ -148,7 +148,7 @@
                 <h3 class="font-medium text-gray-900 line-clamp-2 mb-1">{{ related.title }}</h3>
                 
                 <router-link 
-                  :to="{ name: 'blog-show', params: { id: related.id } }" 
+                  :to="{ name: 'blog-show', params: { slug: related.slug } }" 
                   class="text-xs font-medium text-[#F44000] hover:underline mt-1 inline-block"
                 >
                   ვრცლად
@@ -163,95 +163,131 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { usePageData } from '@/composables/usePageData';
+import { useAppStore } from '@/pinia/app.pinia';
+import { getAssetUrl } from '@/utils/config/env';
+import blogImage from '@/assets/img/blogItem.png';
 
 interface BlogPost {
   id: number;
   title: string;
   content: string;
   date: string;
-  category: number;
+  category: string;
   image: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
+  slug: string;
+  author?: string;
+  meta_title?: string;
+  meta_description?: string;
 }
 
 const route = useRoute();
+const appStore = useAppStore();
+const { currentPageData } = usePageData();
 const post = ref<BlogPost | null>(null);
 const relatedPosts = ref<BlogPost[]>([]);
 
-// Mock blog data
-const blogPosts: BlogPost[] = [
-  {
-    id: 1,
-    title: "სიახლე 1",
-    content: "სიახლის კონტენტი 1",
-    date: "2025-07-15",
-    category: 1,
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
-  },
-  {
-    id: 2,
-    title: "სიახლე 2",
-    content: "სიახლის კონტენტი 2",
-    date: "2025-07-14",
-    category: 1,
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
-  },
-  {
-    id: 3,
-    title: "სიახლე 3",
-    content: "სიახლის კონტენტი 3",
-    date: "2025-07-13",
-    category: 2,
-    image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
+// Get current locale
+const currentLocale = computed(() => appStore.getLanguage);
+
+// Helper function to get attribute value by key and locale
+const getPostAttribute = (post: any, key: string, locale?: string) => {
+  if (!post.attributes) return '';
+
+  // Try to find attribute with specific locale first
+  if (locale) {
+    const localeAttr = post.attributes.find((attr: any) => 
+      attr.attribute_key === key && attr.locale === locale
+    );
+    if (localeAttr) return localeAttr.attribute_value;
   }
-];
 
-// Mock categories
-const categories: Category[] = [
-  { id: 1, name: "კატეგორია 1" },
-  { id: 2, name: "კატეგორია 2" }
-];
+  // Fallback to attribute without locale or first match
+  const attr = post.attributes.find((attr: any) => 
+    attr.attribute_key === key && (!attr.locale || attr.locale === 'en')
+  );
+  return attr ? attr.attribute_value : '';
+};
 
-const getCategoryName = (categoryId: number) => {
-  const category = categories.find(c => c.id === categoryId);
-  return category?.name || 'უცნობი კატეგორია';
+// Process a single blog post from backend data
+const processPost = (post: any) => {
+  const locale = currentLocale.value;
+  
+  return {
+    id: post.id,
+    title: getPostAttribute(post, 'title', locale) || getPostAttribute(post, 'title', 'en'),
+    content: getPostAttribute(post, 'content', locale) || getPostAttribute(post, 'content', 'en'),
+    date: getPostAttribute(post, 'published_at') || post.published_at || post.created_at,
+    image: getPostAttribute(post, 'featured_image') ? 
+      getAssetUrl(`storage/${getPostAttribute(post, 'featured_image')}`) : 
+      blogImage,
+    category: post.category?.slug || 'general',
+    slug: getPostAttribute(post, 'slug', locale) || getPostAttribute(post, 'slug', 'en'),
+    author: getPostAttribute(post, 'author') || 'Unknown',
+    meta_title: getPostAttribute(post, 'meta_title', locale) || getPostAttribute(post, 'meta_title', 'en'),
+    meta_description: getPostAttribute(post, 'meta_description', locale) || getPostAttribute(post, 'meta_description', 'en')
+  };
+};
+
+const getCategoryName = (categorySlug: string) => {
+  // You can implement category name mapping here if needed
+  return categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
 };
 
 const formatDate = (dateString: string) => {
   const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('en-US', options);
+  return new Date(dateString).toLocaleDateString('ka-GE', options);
 };
 
 // Load post data when component is mounted
 onMounted(() => {
-  if (route.query.title) {
-    // Create post object from route query parameters
-    post.value = {
-      id: route.params.id ? Number(route.params.id) : 0,
-      title: String(route.query.title || ''),
-      content: String(route.query.content || ''),
-      date: String(route.query.date || ''),
-      category: Number(route.query.category) || 0,
-      image: String(route.query.image || '')
-    };
+  const slug = route.params.slug as string;
+  
+  if (currentPageData.value?.posts) {
+    // Find the post by slug from backend data
+    const foundPost = currentPageData.value.posts.find((p: any) => {
+      const locale = currentLocale.value;
+      const postSlug = getPostAttribute(p, 'slug', locale) || getPostAttribute(p, 'slug', 'en');
+      return postSlug === slug;
+    });
     
-    // Set related posts (filter out current post)
-    relatedPosts.value = blogPosts.filter(p => p.id !== post.value?.id).slice(0, 3);
-  } else if (route.params.id) {
-    // Fallback: If no query params, try to find post by ID from mock data
-    const postId = Number(route.params.id);
-    const foundPost = blogPosts.find(p => p.id === postId);
     if (foundPost) {
-      post.value = foundPost;
-      // Set related posts (filter out current post)
-      relatedPosts.value = blogPosts.filter(p => p.id !== postId).slice(0, 3);
+      post.value = processPost(foundPost);
+      
+      // Get current post's category
+      const currentPostCategory = foundPost.category?.slug || 'general';
+      
+      // Set related posts (filter by same category, exclude current post, take first 3)
+      const allProcessedPosts = currentPageData.value.posts
+        .filter((p: any) => {
+          // Exclude current post
+          if (p.id === foundPost.id) return false;
+          
+          // Only include posts with same category
+          const postCategory = p.category?.slug || 'general';
+          return postCategory === currentPostCategory;
+        })
+        .map(processPost)
+        .slice(0, 3);
+      
+      relatedPosts.value = allProcessedPosts;
+      
+      // If no posts in same category, fallback to any other posts (excluding current)
+      if (relatedPosts.value.length === 0) {
+        const fallbackPosts = currentPageData.value.posts
+          .filter((p: any) => p.id !== foundPost.id)
+          .map(processPost)
+          .slice(0, 3);
+        
+        relatedPosts.value = fallbackPosts;
+      }
+    } else {
+      console.error('Post not found with slug:', slug);
     }
+  } else {
+    console.error('No posts data available in currentPageData');
   }
 });
 </script>

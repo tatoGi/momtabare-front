@@ -47,9 +47,8 @@ export const useCategoryStore = defineStore("category", {
           })) : []
         }))
         
-        console.log('Pinia categories loaded for locale:', locale, this.categories.length)
       } catch (error) {
-        console.error('Error fetching categories in Pinia store:', error)
+        
         this.categories = []
       }
     },

@@ -10,6 +10,7 @@ import momtabareLogoWithTextLight from "@/assets/svg/momtabare-logo-with-text.sv
 import ukFlagIcon from '@/assets/img/uk-flag.svg';
 import globeIcon from '@/assets/img/Vector.svg';
 import { useNavigation } from '@/composables/useNavigation';
+import { getOppositeSlug, isGeorgianSlug } from '@/services/slugs';
 
 // Simple confirmation dialog using browser's native confirm
 async function showConfirmationDialog(options: {
@@ -75,7 +76,7 @@ const isNavigating = ref(false);
 
 // Get dynamic home path based on current language
 function getHomePath(): string {
-  return appStore.language === ELanguages.KA ? '/მთავარი' : '/home'
+  return '/home' // Always use English path for routing
 }
 
 // Handle click outside to close dropdown
@@ -155,31 +156,33 @@ async function moveToPage(routePath: string): Promise<void> {
 
 // Handle language route updates for pages
 async function handleLanguageRouteUpdate(newLocale: string) {
-  // Map of paths to their localized versions
-  const pathMapping: Record<string, { ka: string; en: string }> = {
-    // Home page mappings
-    '/home': { ka: '/მთავარი', en: '/home' },
-    '/მთავარი': { ka: '/მთავარი', en: '/home' },
-    
-    // Blog page mappings
-    '/blog': { ka: '/ბლოგი', en: '/blog' },
-    '/ბლოგი': { ka: '/ბლოგი', en: '/blog' },
-    
-    // Routes page mappings
-    '/routes': { ka: '/მარშუტები', en: '/routes' },
-    '/მარშუტები': { ka: '/მარშუტები', en: '/routes' }
+  // Get current path without leading slash
+  const currentPath = route.path
+  const currentSlug = currentPath.startsWith('/') ? currentPath.slice(1) : currentPath
+  
+  // Skip if we're on root path or empty slug
+  if (!currentSlug || currentSlug === '') {
+    return
   }
   
-  // Get current path
-  const currentPath = route.path
-  
-  // If we have a mapping for this path, navigate to the localized version
-  if (pathMapping[currentPath]) {
-    const targetPath = pathMapping[currentPath][newLocale as 'ka' | 'en']
-    if (targetPath && currentPath !== targetPath) {
+  try {
+    // For language switching, we always navigate to English paths
+    // The router will handle Georgian URLs via the navigation guard
+    let targetPath = currentPath
+    
+    // If current path is Georgian, convert to English
+    if (isGeorgianSlug(currentSlug)) {
+      const englishSlug = await getOppositeSlug(currentSlug)
+      targetPath = `/${englishSlug}`
+    }
+    
+    // Navigate to the English path (router aliases will handle display)
+    if (targetPath !== currentPath) {
       console.log(`Language switch: ${currentPath} → ${targetPath}`)
       await router.push(targetPath)
     }
+  } catch (error) {
+    console.error('Error handling language route update:', error)
   }
 }
 

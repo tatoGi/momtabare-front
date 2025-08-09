@@ -19,7 +19,14 @@ const props = defineProps<{
 const userStore = useUserStore()
 const heart = ref<boolean>(props.item.is_favorited)
 const computedImageUrl = computed<string>(() => {
-  const imageUrl = props.item.images[0]?.url || ''
+  // Safely access images array with null checks
+  const imageUrl = props.item.images?.[0]?.url || props.item.image || ''
+  
+  // If no image URL, return a default placeholder
+  if (!imageUrl) {
+    return '/images/placeholder-product.jpg'
+  }
+  
   // If the URL already starts with http or /, use it as is
   if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
     return imageUrl
@@ -30,7 +37,15 @@ const computedImageUrl = computed<string>(() => {
 const router = useRouter()
 
 function navigateToProduct() {
-  router.push({ path: `/product/${props.item.sku}` })
+  // Use slug if available, otherwise fallback to SKU or ID
+  const identifier = props.item.slug || props.item.sku || props.item.id
+  
+  // Only navigate if we have a valid identifier
+  if (identifier) {
+    router.push({ path: `/product/${identifier}` })
+  } else {
+    console.warn('Product navigation failed: no valid identifier found', props.item)
+  }
 }
 
 async function favoriteProduct(): Promise<void> {

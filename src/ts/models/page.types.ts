@@ -54,6 +54,44 @@ export interface IPageTranslation {
   updated_at: string
 }
 
+// Blog post attribute interface
+export interface IPostAttribute {
+  id: number
+  post_id: number
+  attribute_key: string
+  attribute_value: string
+  locale: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Blog post category interface
+export interface IPostCategory {
+  id: number
+  parent_id: number | null
+  active: number
+  icon: string
+  slug: string
+  created_at: string
+  updated_at: string
+  translations: any[]
+}
+
+// Blog post interface
+export interface IPost {
+  id: number
+  page_id: number
+  category_id: number
+  sort_order: number
+  active: boolean
+  created_at: string
+  updated_at: string
+  published_at: string
+  attributes: IPostAttribute[]
+  category: IPostCategory
+  translations: any[]
+}
+
 // Main page interface
 export interface IPage {
   id: number
@@ -71,6 +109,22 @@ export interface IPage {
   translations: IPageTranslation[]
   products: any[] // You can define product types later
   banners: IBanner[]
+  posts?: IPost[] // Blog posts for blog pages
+  blogPosts?: {
+    current_page: number
+    data: IPost[]
+    first_page_url: string
+    from: number
+    last_page: number
+    last_page_url: string
+    links: any[]
+    next_page_url: string | null
+    path: string
+    per_page: number
+    prev_page_url: string | null
+    to: number
+    total: number
+  }
 }
 
 // Navigation menu item interface (processed from pages)

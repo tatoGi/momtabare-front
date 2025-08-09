@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { useRouter } from 'vue-router';
 
 export default defineComponent({
   name: 'BlogItem',
@@ -9,15 +10,25 @@ export default defineComponent({
       required: true
     }
   },
-  setup() {
-    return {};
+  setup(props) {
+    const router = useRouter();
+    
+    const navigateToBlog = () => {
+      if (props.post && props.post.slug) {
+        router.push({ path: `/blog/${props.post.slug}` });
+      }
+    };
+    
+    return {
+      navigateToBlog
+    };
   },
 });
 </script>
 
 <template>
   <!-- Mobile Layout -->
-  <div class="md:hidden group cursor-pointer flex flex-col items-center">
+  <div class="md:hidden group cursor-pointer flex flex-col items-center" @click="navigateToBlog">
     <div class="relative overflow-hidden" style="width: 255px; height: 204px; border-radius: 16px; opacity: 1;">
       <img 
         v-if="post && post.image"
@@ -46,7 +57,7 @@ export default defineComponent({
   </div>
 
   <!-- Desktop Layout -->
-  <div class="hidden md:flex flex-col items-start group cursor-pointer">
+  <div class="hidden md:flex flex-col items-start group cursor-pointer" @click="navigateToBlog">
     <div class="relative overflow-hidden mb-3 w-full" style="aspect-ratio: 302/242; border-radius: 16px;">
       <div class="relative w-full h-full">
         <img 

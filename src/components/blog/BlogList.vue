@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -15,10 +15,9 @@ SwiperCore.use([Navigation, Pagination]);
 // Import components and assets
 import BlogItem from "@/components/blog/BlogItem.vue";
 import BaseButton from "../base/BaseButton.vue";
-import blogimage from "@/assets/img/blogItem.png";
 
 // Props
-defineProps({
+const props = defineProps({
   routeToName: {
     type: String,
     default: ''
@@ -26,32 +25,28 @@ defineProps({
   routeToPath: {
     type: String,
     default: ''
+  },
+  blogPosts: {
+    type: Array,
+    default: () => []
   }
 });
 
-// Sample blog posts data - replace this with actual data from your API
-const blogPosts = [
-  {
-    title: "სიახლე 1",
-    date: "2025-07-15",
-    image: blogimage
-  },
-  {
-    title: "სიახლე 2",
-    date: "2025-07-14",
-    image: blogimage
-  },
-  {
-    title: "სიახლე 3",
-    date: "2025-07-13",
-    image: blogimage
-  },
-  {
-    title: "სიახლე 4",
-    date: "2025-07-12",
-    image: blogimage
+// Use dynamic blog posts from props, fallback to static data
+const displayBlogPosts = computed(() => {
+  if (props.blogPosts && props.blogPosts.length > 0) {
+    return props.blogPosts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      date: post.date,
+      image: post.image || blogimage,
+      slug: post.slug,
+      content: post.content,
+      author: post.author
+    }))
   }
-];
+ 
+})
 
 const modules = [Navigation, Pagination];
 
@@ -83,7 +78,7 @@ const swiperOptions = ref({
         ბლოგი
       </h2>
       <RouterLink 
-         
+          :to="routeToPath || '/blog'"
           class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity"
       >
         {{ $t('allBlog') }}
@@ -101,7 +96,7 @@ const swiperOptions = ref({
         :navigation="false"
         class="blog-swiper"
       >
-        <SwiperSlide v-for="post in blogPosts" :key="post.title">
+        <SwiperSlide v-for="post in displayBlogPosts" :key="post.id || post.title">
           <BlogItem :post="post" />
         </SwiperSlide>
       </Swiper>
@@ -110,8 +105,8 @@ const swiperOptions = ref({
     <!-- Desktop Grid -->
     <div class="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
       <BlogItem 
-        v-for="post in blogPosts" 
-        :key="post.title"
+        v-for="post in displayBlogPosts" 
+        :key="post.id || post.title"
         :post="post"
       />
     </div>

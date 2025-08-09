@@ -45,7 +45,9 @@ watch(
   <div class="py-6">
     <main class="max-w-[1360px] mx-auto flex-col">
       <TheHeader />
+      
       <RouterView :key="$route.fullPath" />
+      
       <TheFooter />
     </main>
   </div>

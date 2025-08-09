@@ -95,8 +95,8 @@ watch(
       :modules="[Navigation]"
       :slides-per-view="'auto'"
       :space-between="40"
-      :loop="true"
-      :loop-additional-slides="4"
+      :loop="categories.length >= 6"
+      :loop-additional-slides="categories.length >= 6 ? 4 : 0"
       :loop-fill-group-with-blank="false"
       :speed="500"
       :navigation="{

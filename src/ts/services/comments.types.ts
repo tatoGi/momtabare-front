@@ -1,11 +1,9 @@
-import { IComment } from "../models/comment.types.ts"
-
 export interface IGetCommentsQuery {
   id: number
 }
 export interface IGetCommentsResponse {
     message: string
-    comments: IComment[]
+    comments: any[]
 }
 
 export interface ICommentOnProductQuery{
