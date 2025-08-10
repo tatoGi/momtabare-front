@@ -23,7 +23,6 @@ export async function getAllPages(): Promise<IPage[] | null> {
   // Check if we have valid cached data
   const now = Date.now()
   if (cachedPages && (now - cacheTimestamp) < CACHE_DURATION) {
-    console.log('📋 Using cached pages data')
     return cachedPages
   }
 

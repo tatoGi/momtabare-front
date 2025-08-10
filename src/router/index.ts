@@ -9,6 +9,18 @@ import FavoriteProductsView from '../views/product/FavoriteProductsView.vue'
 import BlogView from '../views/blog/BlogView.vue'
 import RoutesView from '../views/routes/RoutesView.vue'
 import { getEnglishRoutePath, isGeorgianSlug } from '@/services/slugs'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+import '@/assets/css/nprogress-custom.css'
+
+// Configure NProgress
+NProgress.configure({
+  easing: 'ease',
+  speed: 500,
+  showSpinner: false,
+  trickleSpeed: 200,
+  minimum: 0.3
+})
 
 // Helper function to load page data before entering route
 async function loadPageDataBeforeEnter(to: any, _from: any, next: any) {
@@ -164,8 +176,11 @@ const router = createRouter({
   ],
 })
 
-// Navigation guard to handle Georgian URLs
+// Navigation guard to handle Georgian URLs and loading progress
 router.beforeEach(async (to, _from, next) => {
+  // Start NProgress loading bar
+  NProgress.start()
+  
   // Get the path without leading slash
   const slug = to.path.startsWith('/') ? to.path.slice(1) : to.path
   
@@ -188,6 +203,11 @@ router.beforeEach(async (to, _from, next) => {
   }
   
   next()
+})
+
+// Finish loading progress after navigation
+router.afterEach(() => {
+  NProgress.done()
 })
 
 export default router

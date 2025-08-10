@@ -1,0 +1,82 @@
+/* Custom NProgress styles for momtabare brand */
+
+/* Progress bar */
+#nprogress .bar {
+  background: linear-gradient(90deg, #F44000, #FF6B35) !important;
+  height: 3px !important;
+  box-shadow: 0 0 10px rgba(244, 64, 0, 0.5) !important;
+}
+
+/* Spinner (if enabled) */
+#nprogress .spinner {
+  display: block !important;
+  position: fixed !important;
+  z-index: 1031 !important;
+  top: 15px !important;
+  right: 15px !important;
+}
+
+#nprogress .spinner-icon {
+  width: 18px !important;
+  height: 18px !important;
+  box-sizing: border-box !important;
+  border: solid 2px transparent !important;
+  border-top-color: #F44000 !important;
+  border-left-color: #F44000 !important;
+  border-radius: 50% !important;
+  animation: nprogress-spinner 400ms linear infinite !important;
+}
+
+.nprogress-custom {
+  pointer-events: none !important;
+}
+
+.nprogress-custom .bar {
+  background: linear-gradient(90deg, #F44000, #FF6B35) !important;
+  position: fixed !important;
+  z-index: 1031 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 3px !important;
+  box-shadow: 0 0 10px rgba(244, 64, 0, 0.5) !important;
+}
+
+/* Peg */
+.nprogress-custom .peg {
+  display: block !important;
+  position: absolute !important;
+  right: 0px !important;
+  width: 100px !important;
+  height: 100% !important;
+  box-shadow: 0 0 10px #F44000, 0 0 5px #F44000 !important;
+  opacity: 1.0 !important;
+  transform: rotate(3deg) translate(0px, -4px) !important;
+}
+
+/* Animation for spinner */
+@keyframes nprogress-spinner {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Dark mode support */
+.dark #nprogress .bar {
+  background: linear-gradient(90deg, #F44000, #FF6B35) !important;
+  box-shadow: 0 0 10px rgba(244, 64, 0, 0.7) !important;
+}
+
+.dark #nprogress .spinner-icon {
+  border-top-color: #FF6B35 !important;
+  border-left-color: #FF6B35 !important;
+}
+
+/* Smooth transitions */
+#nprogress .bar {
+  transition: all 0.3s ease !important;
+}
+
+/* Remove default spinner if we don't want it */
+.nprogress-no-spinner #nprogress .spinner {
+  display: none !important;
+}

@@ -51,9 +51,8 @@ async function fetchCategories() {
             : fallbackImages[index % fallbackImages.length]
         }
       })
-      console.log('Home categories loaded (all categories) for locale:', currentLocale, processedCategories.length)
+     
     } else {
-      console.log('No backend categories found, component will show empty state')
       categories.value = []
     }
   } catch (error) {

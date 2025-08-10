@@ -6,7 +6,8 @@ import CategoriesComponent from "@/components/home/categories/CategoriesComponen
 import SliderComponent from "@/components/home/slider/SliderComponent.vue"
 import PopularProductsSlider from "@/components/home/PopularProductsSlider.vue"
 import type { IProductListItem } from "@/ts/models/product.types.js"
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+// @ts-ignore - TypeScript language server issue with Vue imports
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import BlogList from "@/components/blog/BlogList.vue"
 import { getHomePageData, getBlogPosts } from "@/services/pages"
 import { getProducts } from "@/services/products"
@@ -55,13 +56,10 @@ async function fetchHomePageDynamic() {
   // Fetch popular products
   try {
     const productsData = await getProducts()
-    console.log('Products data received:', productsData)
     
-    // Handle different possible response structures
+    // Handle response structure
     if (productsData?.products && Array.isArray(productsData.products)) {
       products.value = productsData.products
-    } else if (productsData?.data && Array.isArray(productsData.data)) {
-      products.value = productsData.data
     } else if (Array.isArray(productsData)) {
       products.value = productsData
     } else {
@@ -69,7 +67,6 @@ async function fetchHomePageDynamic() {
       products.value = []
     }
     
-    console.log('Products loaded:', products.value?.length || 0, 'items')
   } catch (error) {
     console.error('Error fetching products:', error)
     products.value = []

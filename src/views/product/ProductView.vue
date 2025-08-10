@@ -15,7 +15,6 @@ import {getProductBySku, getProducts} from "@/services/products.ts"
 import Skeleton from "../../components/ui/skeleton/Skeleton.vue"
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from "vue-router"
-
 const route = useRoute()
 
 const response = ref<IGetProductByIdResponse | null>()
@@ -34,10 +33,12 @@ const computedProductSku = computed<string | null>(() => {
 })
 
 async function fetchProductData(): Promise<void> {
+  if (!computedProductSku.value) return
+  
   try {
     productLoaded.value = false
     recommendedProductLoaded.value = false
-    if (!computedProductSku.value) return
+    
     response.value = await getProductBySku({sku: computedProductSku.value})
 
     if (!response.value) return

@@ -4,6 +4,7 @@ import type { IGetProductsResponse, IGetProductsQuery } from '@/ts/services/prod
 import type { IProductListItem } from '@/ts/models/product.types'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
+import NProgress from 'nprogress'
 
 const API_BASE_URL = ENV.BACKEND_URL
 
@@ -19,12 +20,10 @@ function getCurrentLocale(): string {
 
 export async function getProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
+    NProgress.start()
     const locale = getCurrentLocale()
     const apiUrl = `${API_BASE_URL}/${locale}/products`
     
-    console.log('🔗 Calling backend API:', apiUrl)
-    console.log('🌐 Using locale:', locale)
-    console.log('📊 Request params:', params)
     
     // Use localized API endpoint: /en/products or /ka/products
     const response = await axios.get(apiUrl, { 
@@ -35,7 +34,6 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       }
     })
     
-    console.log('✅ Backend response:', response.data)
     
     // Map backend data to frontend format
     const products: IProductListItem[] = response.data.data.map((product: any) => ({
@@ -60,6 +58,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       is_favorited: false // Not provided by backend yet
     }))
 
+    NProgress.done()
     return {
       message: 'Products fetched successfully',
       products,
@@ -71,6 +70,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       }
     }
   } catch (error) {
+    NProgress.done()
     console.error('Error fetching products:', error)
     return {
       message: 'Failed to fetch products',
@@ -87,6 +87,8 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
 
 export async function getProductBySku({ sku }: { sku: string }): Promise<{ product: any } | null> {
   try {
+    NProgress.start()
+    
     // First get all products and find by slug (sku parameter is actually the slug from URL)
     const productsResponse = await getProducts()
     const product = productsResponse.products.find((p: IProductListItem) => 
@@ -94,6 +96,7 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ produ
     )
     
     if (!product) {
+      NProgress.done()
       console.error('Product not found with slug/SKU:', sku)
       console.log('Available products:', productsResponse.products.map(p => ({ slug: p.slug, sku: p.sku })))
       return null
@@ -144,10 +147,12 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ produ
       booked_dates: []
     }
 
+    NProgress.done()
     return {
       product: mappedProduct
     }
   } catch (error) {
+    NProgress.done()
     console.error('Error fetching product by SKU:', error)
     return null
   }

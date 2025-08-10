@@ -33,6 +33,7 @@
     "leaflet-routing-machine": "^3.2.12",
     "leaflet.markercluster": "^1.5.3",
     "lucide-vue-next": "^0.446.0",
+    "nprogress": "^0.2.0",
     "pinia": "^2.3.1",
     "radix-vue": "^1.9.6",
     "slick-carousel": "^1.8.1",
