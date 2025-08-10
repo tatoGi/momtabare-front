@@ -3,7 +3,6 @@ import type { ICategory } from "@/types/category"
 import type { ICategoryDisplay } from "@/ts/models/category.types"
 import { computed } from 'vue'
 import { useAppStore } from '@/pinia/app.pinia'
-import type { ELanguages } from '@/ts/pinia/app.types'
 import { useRouter } from 'vue-router'
 
 const props = defineProps<{
@@ -12,15 +11,18 @@ const props = defineProps<{
 
 const appStore = useAppStore()
 const router = useRouter()
-
-const computedLanguage = computed<ELanguages>(() => appStore.getLanguage)
-
+  
+// Ensure we index localized objects with a strict key type
+type LocaleKey = 'en' | 'ka'
+const localeKey = computed<LocaleKey>(() => (
+  String(appStore.getLanguage) === 'ka' ? 'ka' : 'en'
+))
+ 
 const computedImage = computed<string | null>(() => {
   if (!props?.category) return null
   // Handle both ICategory and ICategoryDisplay interfaces
   return (props.category as any).image || null
 })
-
 const computedCategoryName = computed<string>(() => {
   if (!props?.category) return ''
   
@@ -28,10 +30,10 @@ const computedCategoryName = computed<string>(() => {
   if ('title' in props.category) {
     return (props.category as ICategoryDisplay).title
   }
-  
+   
   // Handle ICategory interface (has name property with locales)
-  if ('name' in props.category && computedLanguage.value) {
-    return (props.category as ICategory).name[computedLanguage.value]
+  if ('name' in props.category) {
+    return (props.category as ICategory).name[localeKey.value as LocaleKey]
   }
   
   return ''
@@ -57,7 +59,7 @@ function routeToCategory() {
     />
     <h4
       class="font-uppercase absolute bottom-3 left-3 z-10 text-sm font-extrabold text-white"
-      :data-count="(category as any).product_count || '70' + ' პროდუქტი'"
+      :data-count="(category as any).product_count"
     >
       {{ computedCategoryName }}
     </h4>

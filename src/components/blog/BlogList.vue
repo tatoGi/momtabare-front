@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/css';
@@ -14,7 +14,9 @@ SwiperCore.use([Navigation, Pagination]);
 
 // Import components and assets
 import BlogItem from "@/components/blog/BlogItem.vue";
-import BaseButton from "../base/BaseButton.vue";
+// import BaseButton from "../base/BaseButton.vue";
+import blogImage from '@/assets/img/blogItem.png';
+import { getAssetUrl } from '@/utils/config/env';
 
 // Props
 const props = defineProps({
@@ -31,21 +33,32 @@ const props = defineProps({
     default: () => []
   }
 });
-
 // Use dynamic blog posts from props, fallback to static data
+// Normalize backend image URLs to absolute URLs
+function toImageUrl(img?: string): string {
+  if (!img) return blogImage as unknown as string
+  // If already absolute, return as-is
+  if (/^https?:\/\//i.test(img)) return img
+  // Ensure path starts with 'storage/'
+  const path = img.startsWith('storage/') ? img : `storage/${img}`
+  return getAssetUrl(path)
+}
+
 const displayBlogPosts = computed(() => {
   if (props.blogPosts && props.blogPosts.length > 0) {
-    return props.blogPosts.map((post) => ({
+    return props.blogPosts.map((post: any) => ({
+      
+     
       id: post.id,
       title: post.title,
       date: post.date,
-      image: post.image || blogimage,
+      image: toImageUrl(post.image),
       slug: post.slug,
       content: post.content,
       author: post.author
     }))
   }
- 
+  return []
 })
 
 const modules = [Navigation, Pagination];

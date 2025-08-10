@@ -19,6 +19,8 @@ export interface IBackendCategory {
   title: string
   slug: string
   description: string
+  // Optional products array returned by backend for counts
+  products?: any[]
   translations: ICategoryTranslation[]
 }
 
@@ -31,5 +33,7 @@ export interface ICategoryDisplay {
   icon: string | null
   parent_id: number | null
   active: boolean
+  // Optional derived count of products in this category
+  product_count?: number
   children?: ICategoryDisplay[]
 }

@@ -6,6 +6,7 @@ import { getLocalizedApiUrl } from '@/utils/config/env'
 export async function getBackendCategories(locale: string = 'en'): Promise<IBackendCategory[]> {
   try {
     const response = await axios.get(getLocalizedApiUrl('categories', locale))
+   
     return response.data || []
   } catch (error) {
     console.error('Error fetching categories:', error)
@@ -41,6 +42,8 @@ export function processCategories(categories: IBackendCategory[], locale: string
       icon: category.icon,
       parent_id: category.parent_id,
       active: category.active === 1,
+      // Pass through product count if backend provided products array
+      product_count: Array.isArray((category as any).products) ? (category as any).products.length : 0,
       children: []
     }
   })

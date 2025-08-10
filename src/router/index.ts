@@ -94,7 +94,6 @@ async function loadPageDataBeforeEnter(to: any, _from: any, next: any) {
     
     if (targetPage) {
       to.meta.pageData = targetPage
-      console.log('✅ Page data loaded for route:', routeName, targetPage)
     } else {
       console.warn('⚠️ No page data found for route:', routeName)
       console.log('📋 Available pages:', allPages.map(p => p.translations.map(t => t.slug)).flat())

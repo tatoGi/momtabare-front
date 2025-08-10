@@ -39,10 +39,10 @@ async function fetchCategories() {
     // Get all categories (flat list) instead of hierarchical tree
     const backendCategories = await getBackendCategories(currentLocale)
     const processedCategories = processCategories(backendCategories, currentLocale)
-    
     if (processedCategories.length > 0) {
       // Map all categories to display format with fallback images
       categories.value = processedCategories.map((category, index) => {
+       
         return {
           ...category,
           // Use backend icon if available, otherwise fallback image
