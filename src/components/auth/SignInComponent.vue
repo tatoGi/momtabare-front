@@ -2,11 +2,12 @@
 import BaseButton from "@/components/base/BaseButton.vue"
 import {Input, PasswordInput} from "@/components/ui/input"
 import {EAuthStep} from "@/ts/auth.types.js"
-import {ISignInParams} from "@/ts/services/auth.types.ts"
+import type { ISignInParams } from "@/ts/services/auth.types.ts"
 import {signIn} from "@/services/auth.ts"
-import {getUser} from "@/services/user.ts"
+import { getUser } from "@/services/user"
 import {useUserStore} from "@/pinia/user.pinia.ts"
 import {ref} from "vue"
+import { useI18n } from 'vue-i18n'
 
 const userStore = useUserStore()
 
@@ -16,6 +17,7 @@ const isLoading = ref<boolean>(false)
 
 const emailOrPhone = ref<string>("")
 const password = ref<string>("")
+const { locale } = useI18n()
 
 async function handleSignIn(): Promise<void> {
   try {
@@ -30,15 +32,24 @@ async function handleSignIn(): Promise<void> {
       payload.phone_number = emailOrPhone.value
     }
 
-    await signIn(payload)
-
+    const data = await signIn(payload, locale.value)
+    // If backend returns success: false, surface the message
+    if (!data || data.success === false) {
+      const msg = data?.message || 'Sign in failed'
+      throw new Error(msg)
+    }
+    // Some backends don't return user in login response; fetch it
     const user = await getUser()
-    if (!user) return
-
+    if (!user) {
+      throw new Error('Login succeeded but fetching profile failed')
+    }
     userStore.setUser(user)
     emit("close")
   } catch (err) {
     console.error(err)
+    const message = typeof err === 'string' ? err : (err as any)?.message || 'Invalid email or password. Please try again.'
+    // Display alert as requested
+    alert(message)
   } finally {
     isLoading.value = false
   }

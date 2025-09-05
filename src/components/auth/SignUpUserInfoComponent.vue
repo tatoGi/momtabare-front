@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import BaseButton from "@/components/base/BaseButton.vue"
 import { Input, PasswordInput } from "@/components/ui/input"
-import { completeRegistration } from "@/services/auth.ts"
-import { getUser } from "@/services/user.ts"
-import { useUserStore } from "@/pinia/user.pinia.ts"
+import { completeRegistration } from "@/services/auth"
+import { getUser } from "@/services/user"
+import { useUserStore } from "@/pinia/user.pinia"
 import { ref } from "vue"
 import { useField, useForm } from "vee-validate"
 import * as yup from "yup"
@@ -14,6 +14,7 @@ const emit = defineEmits(["nextStep", "close"])
 
 const props = defineProps<{
   userId: number | null
+  verificationCode?: string
 }>()
 
 const isLoading = ref<boolean>(false)
@@ -28,7 +29,7 @@ const isLoading = ref<boolean>(false)
 const { handleSubmit } = useForm({
   validationSchema: yup.object({
     firstName: yup.string().required("სახელი სავალდებულოა"),
-    lastName: yup.string().required("გვარი სავალდებულოა"),
+    surname: yup.string().nullable().max(255),
     password: yup
       .string()
       .required("პაროლი სავალდებულოა")
@@ -41,7 +42,7 @@ const { handleSubmit } = useForm({
 })
 
 const { value: firstName, errorMessage: firstNameError } = useField("firstName")
-const { value: lastName, errorMessage: lastNameError } = useField("lastName")
+const { value: surname, errorMessage: surnameError } = useField("surname")
 const { value: password, errorMessage: passwordError } = useField("password")
 const { value: confirmedPassword, errorMessage: confirmedPasswordError } =
   useField("confirmedPassword")
@@ -52,9 +53,10 @@ async function completeSignUp(): Promise<void> {
     const response = await completeRegistration({
       user_id: props.userId as number,
       first_name: firstName.value.trim(),
-      last_name: lastName.value.trim(),
+      surname: surname.value.trim(),
       password: password.value.trim(),
       password_confirmation: confirmedPassword.value.trim(),
+      verification_code: props.verificationCode || "",
     })
 
     if (response) {
@@ -93,9 +95,9 @@ const onSubmit = handleSubmit(async (values) => {
           </p>
         </div>
         <div class="flex flex-col">
-          <Input v-model="lastName" placeholder="გვარი" />
+          <Input v-model="surname" placeholder="გვარი" />
           <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-            {{ lastNameError }}
+            {{ surnameError }}
           </p>
         </div>
       </div>

@@ -6,7 +6,7 @@ import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
 import {EAuthStep} from "@/ts/auth.types.js"
 import {register} from "@/services/auth.ts"
-import { ref } from "vue"
+import { ref } from 'vue'
 import {useField, useForm} from "vee-validate"
 import * as yup from "yup"
 
@@ -27,30 +27,35 @@ const {handleSubmit} = useForm({
   }),
 })
 
-const {value: email, errorMessage: emailError} = useField("email")
+const {value: email, errorMessage: emailValidationError} = useField("email")
 const {
   value: termsAndConditions,
   handleChange,
   errorMessage: termsError,
 } = useField("termsAndConditions")
 
+const apiError = ref<string>('')
+
 async function sendVerificationCode(): Promise<void> {
+  apiError.value = ''
   isLoading.value = true
   try {
     const response = await register({
-      email: email.value.trim(),
+      email: typeof email.value === 'string' ? email.value.trim() : ''
     })
 
     if (response && response.user_id) {
       // Emit the user_id and email to parent component for verification step
       emit("nextStep", {
-        nextStep: EAuthStep.VERIFY_CODE,
-        userId: response.user_id,
-        emailOrPhone: email.value.trim()
+        nextStep: EAuthStep.VERIFY_EMAIL,
+        user_id: response.user_id,
+        email: typeof email.value === 'string' ? email.value.trim() : ''
       })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending verification code:", error)
+    // show backend error and do not proceed
+    apiError.value = error?.response?.data?.message || 'An error occurred. Please try again.'
   } finally {
     isLoading.value = false
   }
@@ -76,9 +81,17 @@ const onSubmit = handleSubmit(async (values) => {
     <form class="flex flex-col gap-1" @submit.prevent="onSubmit">
       <div class="flex flex-col gap-5 py-4">
         <div class="flex flex-col">
-          <Input v-model="email" placeholder="ელ.ფოსტა" type="text"/>
-          <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-            {{ emailError }}
+          <Input
+            id="email"
+            v-model="email"
+            type="email"
+            placeholder="example@mail.com"
+            :disabled="isLoading"
+            :error="!!emailValidationError || !!apiError"
+            @keyup.enter="onSubmit"
+          />
+          <p v-if="emailValidationError || apiError" class="text-sm text-red-500 mt-1">
+            {{ apiError || emailValidationError }}
           </p>
         </div>
 

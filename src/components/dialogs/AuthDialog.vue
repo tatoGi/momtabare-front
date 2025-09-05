@@ -3,7 +3,11 @@ import SignInComponent from "@/components/auth/SignInComponent.vue"
 import SignUpEmailComponent from "@/components/auth/SignUpEmailComponent.vue"
 import SignUpPhoneNumberComponent from "@/components/auth/SignUpPhoneNumberComponent.vue"
 import SignUpUserInfoComponent from "@/components/auth/SignUpUserInfoComponent.vue"
-import VerifyCodeComponent from "@/components/auth/VerifyCodeComponent.vue"
+import EmailVerification from "@/components/auth/EmailVerification.vue"
+import PhoneVerification from "@/components/auth/PhoneVerification.vue"
+// Remove unused imports
+// import NewEmailVerification from "@/components/auth/NewEmailVerification.vue"
+// import NewPhoneVerification from "@/components/auth/NewPhoneVerification.vue"
 import {
   Dialog,
   DialogContent,
@@ -24,9 +28,10 @@ const computedIsOpen = computed(() => {
 })
 const userId = ref<number | null>(null)
 const emailOrPhone = ref<string>("")
+const verificationCode = ref<string>("")
 
 // Handle body scroll prevention for mobile
-watch(computedIsOpen, (isOpen) => {
+watch(computedIsOpen, (isOpen: boolean) => {
   if (typeof window !== 'undefined') {
     if (isOpen) {
       document.body.classList.add('mobile-nav-open')
@@ -62,11 +67,13 @@ const dialogStyleBySteps = computed<string>(() => {
 function resetAuthSteps() {
   setTimeout(() => {
     step.value = EAuthStep.SIGN_IN
+    userId.value = null
+    emailOrPhone.value = ""
+    verificationCode.value = ""
   }, 500)
-  closeAuthDialog()
 }
 
-function moveToStep(payload: AuthStepPayload): void {
+function moveToStep(payload: AuthStepPayload & { verification_code?: string }): void {
   if (payload.user_id) {
     userId.value = payload.user_id
   }
@@ -79,12 +86,18 @@ function moveToStep(payload: AuthStepPayload): void {
     emailOrPhone.value = payload.email
   }
 
+  if (payload.verification_code) {
+    verificationCode.value = payload.verification_code
+  }
+
   step.value = payload.nextStep
 }
 
-function closeAuthDialog(): void {
+const closeAuthDialog = () => {
   userStore.setAuthDialogState(false)
+  resetAuthSteps()
 }
+
 </script>
 
 <template>
@@ -132,15 +145,26 @@ function closeAuthDialog(): void {
             v-if="step === EAuthStep.SIGN_UP_EMAIL"
             @next-step="moveToStep"
           />
-          <VerifyCodeComponent
-            v-if="step === EAuthStep.VERIFY_CODE"
-            :email-or-phone="emailOrPhone"
-            :user-id="userId as number"
+          <EmailVerification
+            v-if="step === EAuthStep.VERIFY_EMAIL"
+            :show="true"
+            :email="emailOrPhone"
+            :user-id="userId || 0"
             @next-step="moveToStep"
+            @close="closeAuthDialog"
+            @back="moveToStep({ nextStep: EAuthStep.SIGN_UP_EMAIL })"
+          />
+          <PhoneVerification
+            v-else-if="step === EAuthStep.VERIFY_PHONE"
+            :phone-number="emailOrPhone"
+            :user-id="userId || 0"
+            @next-step="moveToStep"
+            @back="moveToStep({ nextStep: EAuthStep.SIGN_UP_PHONE_NUMBER })"
           />
           <SignUpUserInfoComponent
             v-if="step === EAuthStep.SIGN_UP_USER_INFO"
             :user-id="userId"
+            :verification-code="verificationCode"
             @close="closeAuthDialog"
           />
         </div>
@@ -180,15 +204,26 @@ function closeAuthDialog(): void {
             v-if="step === EAuthStep.SIGN_UP_EMAIL"
             @next-step="moveToStep"
           />
-          <VerifyCodeComponent
-            v-if="step === EAuthStep.VERIFY_CODE"
-            :email-or-phone="emailOrPhone"
-            :user-id="userId as number"
+          <EmailVerification
+            v-if="step === EAuthStep.VERIFY_EMAIL"
+            :show="true"
+            :email="emailOrPhone"
+            :user-id="userId || 0"
             @next-step="moveToStep"
+            @close="closeAuthDialog"
+            @back="moveToStep({ nextStep: EAuthStep.SIGN_UP_EMAIL })"
+          />
+          <PhoneVerification
+            v-else-if="step === EAuthStep.VERIFY_PHONE"
+            :phone-number="emailOrPhone"
+            :user-id="userId || 0"
+            @next-step="moveToStep"
+            @back="moveToStep({ nextStep: EAuthStep.SIGN_UP_PHONE_NUMBER })"
           />
           <SignUpUserInfoComponent
             v-if="step === EAuthStep.SIGN_UP_USER_INFO"
             :user-id="userId"
+            :verification-code="verificationCode"
             @close="closeAuthDialog"
           />
         </div>

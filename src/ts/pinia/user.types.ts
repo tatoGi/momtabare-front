@@ -2,5 +2,6 @@ import type { IUser } from "../models/user-types"
 
 export interface IUserState {
   user: IUser | null
-  authDialogState : boolean
+  authDialogState: boolean
+  _isSettingAuthDialog?: boolean
 }

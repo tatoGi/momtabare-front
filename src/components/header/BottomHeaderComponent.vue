@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseIcon from "@/components/base/BaseIcon.vue";
@@ -8,7 +8,8 @@ import SignInComponent from "@/components/auth/SignInComponent.vue";
 import SignUpEmailComponent from "@/components/auth/SignUpEmailComponent.vue";
 import SignUpPhoneNumberComponent from "@/components/auth/SignUpPhoneNumberComponent.vue";
 import SignUpUserInfoComponent from "@/components/auth/SignUpUserInfoComponent.vue";
-import VerifyCodeComponent from "@/components/auth/VerifyCodeComponent.vue";
+import EmailVerification from "@/components/auth/EmailVerification.vue";
+import PhoneVerification from "@/components/auth/PhoneVerification.vue";
 import HeaderProductMenu from "@/components/header/HeaderProductMenu.vue";
 import HeaderSearchComponent from "@/components/header/HeaderSearchComponent.vue";
 import { useUserStore } from "@/pinia/user.pinia";
@@ -20,13 +21,14 @@ import type { AuthStepPayload } from "@/ts/auth.types.js";
 import cartsvg from "@/assets/svg/cart.svg";
 import heartsvg from "@/assets/svg/heart.svg";
 import usersvg from "@/assets/img/usersvg.svg";
+import { signOut } from '@/services/auth.ts';
 
 const router = useRouter();
 const userStore = useUserStore();
 const cartStore = useCartStore();
 
-// Use dynamic navigation from backend
-const { rootNavigationItems } = useNavigation();
+// Initialize navigation
+useNavigation();
 
 const showMobileSearch = ref(false);
 const showCityModal = ref(false);
@@ -36,13 +38,44 @@ const showMobileAuth = ref(false);
 const mobileAuthStep = ref<string>(EAuthStep.SIGN_IN);
 const mobileAuthUserId = ref<number | null>(null);
 const mobileAuthEmailOrPhone = ref<string>('');
-const user = userStore.user;
+// Get user from store
+const user = computed(() => userStore.user);
 const cartItems = ref(cartStore.getCartLength);
 
 // Mobile search form data
 const mobileSearchName = ref<string>('');
 const mobileSearchCity = ref<string>('');
 const mobileSearchDate = ref<string>('');
+
+// User dropdown state (desktop)
+const showUserDropdown = ref(false)
+const userDropdownRef = ref<HTMLElement | null>(null)
+
+function userInitial(): string {
+  const name = user.value?.first_name?.trim() || ''
+  return name ? name.charAt(0).toUpperCase() : 'U'
+}
+
+function userFullName(): string {
+  const first = user.value?.first_name?.trim() || ''
+  const last = (user.value as any)?.last_name?.trim?.() || ''
+  return [first, last].filter(Boolean).join(' ')
+}
+
+async function handleSignOutClick() {
+  try {
+    await signOut()
+  } catch (e) {
+    console.warn('signOut failed', e)
+  } finally {
+    localStorage.removeItem('user_auth_token')
+    userStore.setUser(null)
+    showUserDropdown.value = false
+  }
+}
+
+// Note: You can add global click listeners if you want outside-click to close
+// the dropdown. Keeping it simple for now (toggle to open/close).
 function routeToCart(): void {
   if (!userStore.getUser) {
     userStore.setAuthDialogState(true);
@@ -114,20 +147,30 @@ function closeMobileAuth() {
 }
 
 // Handle mobile auth step transitions
-function handleMobileAuthStep(payload: AuthStepPayload): void {
-  if (payload.user_id) {
-    mobileAuthUserId.value = payload.user_id;
+const handleMobileAuthStep = (payload: AuthStepPayload): void => {
+  const { nextStep, user_id, email, phone_number } = payload;
+  
+  if (nextStep === EAuthStep.VERIFY_EMAIL || nextStep === EAuthStep.VERIFY_PHONE) {
+    mobileAuthUserId.value = user_id || null;
+    
+    if (email) {
+      mobileAuthEmailOrPhone.value = email;
+    } else if (phone_number) {
+      mobileAuthEmailOrPhone.value = phone_number;
+    }
   }
+  
+  mobileAuthStep.value = nextStep;
+  
+  // Scroll to top when changing steps
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-  if (payload.phone_number) {
-    mobileAuthEmailOrPhone.value = payload.phone_number;
-  }
-
-  if (payload.email) {
-    mobileAuthEmailOrPhone.value = payload.email;
-  }
-
-  mobileAuthStep.value = payload.nextStep;
+// Handle successful registration
+const handleRegistrationComplete = () => {
+  closeMobileAuth();
+  // Refresh user data if needed
+  userStore.fetchUser();
 }
 
 // Toggle city modal
@@ -174,18 +217,52 @@ function selectCity(city: string) {
           </span>
         </button>
         
-        <div>
-          <BaseButton
-            v-if="user"
-            :height="40"
-            :width="40"
-            class="rounded-full bg-customRed"
-            @click.left="router.push('/user')"
+        <div class="relative" v-if="user">
+          <button
+            class="flex items-center gap-2 rounded-full border border-gray-200 bg-[#F8F8F8] px-3 py-1.5 shadow-sm"
+            @click.stop="showUserDropdown = !showUserDropdown"
           >
-            <BaseIcon :size="20" class="text-white" name="account_circle"/>
-          </BaseButton>
-          
-          <AuthDialog v-else>
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-customRed text-white font-semibold">
+              {{ userInitial() }}
+            </span>
+            <span class="hidden lg:inline text-sm font-semibold">{{ user.value?.first_name }}</span>
+          </button>
+          <div
+            v-if="showUserDropdown"
+            ref="userDropdownRef"
+            class="absolute right-0 top-12 z-10 w-64 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg"
+            @click.stop
+          >
+            <div class="mb-2">
+              <p class="text-sm text-gray-500">მომხმარებელი</p>
+            </div>
+            <div class="mb-3">
+              <p class="text-base font-semibold">{{ userFullName() }}</p>
+            </div>
+            <button class="mb-3 w-full rounded-xl bg-customRed py-2 text-white font-semibold">
+              გააქირავე პროდუქცია
+            </button>
+            <ul class="space-y-1 text-sm">
+              <li>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი  პროფილი</button>
+              </li>
+              <li>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">შეტყობინებები</button>
+              </li>
+              <li>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი შეკვეთები</button>
+              </li>
+              <li>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი ბარათები</button>
+              </li>
+              <li class="pt-1 border-t mt-2">
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100 text-red-600" @click="handleSignOutClick">გასვლა</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div v-else>
+          <AuthDialog>
             <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
               <BaseIcon :size="20" class="text-white" name="account_circle"/>
             </BaseButton>
@@ -415,6 +492,18 @@ function selectCity(city: string) {
             @next-step="handleMobileAuthStep"
           />
           
+          <!-- Email Verification (full screen) -->
+          <EmailVerification
+            v-else-if="mobileAuthStep === EAuthStep.VERIFY_EMAIL"
+            :show="true"
+            :email="mobileAuthEmailOrPhone"
+            :user-id="mobileAuthUserId || 0"
+            @close="closeMobileAuth"
+            @back="mobileAuthStep = EAuthStep.SIGN_UP_EMAIL"
+            @registration-complete="handleRegistrationComplete"
+          />
+          
+          <!-- Other auth steps -->
           <div v-else class="flex flex-col justify-between px-4 pb-9 pt-8">
             <SignUpPhoneNumberComponent
               v-if="mobileAuthStep === EAuthStep.SIGN_UP_PHONE_NUMBER"
@@ -424,11 +513,12 @@ function selectCity(city: string) {
               v-if="mobileAuthStep === EAuthStep.SIGN_UP_EMAIL"
               @next-step="handleMobileAuthStep"
             />
-            <VerifyCodeComponent
-              v-if="mobileAuthStep === EAuthStep.VERIFY_CODE"
-              :email-or-phone="mobileAuthEmailOrPhone"
-              :user-id="mobileAuthUserId as number"
+            <PhoneVerification
+              v-if="mobileAuthStep === EAuthStep.VERIFY_PHONE"
+              :phone-number="mobileAuthEmailOrPhone"
+              :user-id="mobileAuthUserId || 0"
               @next-step="handleMobileAuthStep"
+              @back="mobileAuthStep = EAuthStep.SIGN_UP_PHONE_NUMBER"
             />
             <SignUpUserInfoComponent
               v-if="mobileAuthStep === EAuthStep.SIGN_UP_USER_INFO"

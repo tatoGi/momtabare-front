@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { EAuthStep } from "@/ts/auth.types.js"
-import { countriesPrefix } from "@/constants/countriesPrefix.ts"
-import { register } from "@/services/auth.ts"
+import { countriesPrefix } from "@/constants/countriesPrefix"
+import { register } from "@/services/auth"
 import { computed, ref } from "vue"
 import { useField, useForm } from "vee-validate"
 import * as yup from "yup"
@@ -53,15 +53,15 @@ async function sendVerificationCode(): Promise<void> {
   isLoading.value = true
   try {
     const response = await register({
-      phone_number: phoneNumber.value.trim(),
-      country_code: countryPrefix.value.trim(),
+      phone_number: typeof phoneNumber.value === "string" ? phoneNumber.value.trim() : "",
+      country_code: typeof countryPrefix.value === "string" ? countryPrefix.value.trim() : "",
     })
 
     if (response && response.user_id) {
       // Emit the user_id and phone number to parent component for verification step
       emit("nextStep", {
         nextStep: EAuthStep.VERIFY_CODE,
-        userId: response.user_id,
+        user_id: response.user_id,
         emailOrPhone: fullPhoneNumber.value
       })
     }
@@ -103,6 +103,7 @@ const onSubmit = handleSubmit(async (values) => {
                 <SelectLabel>Countries</SelectLabel>
                 <SelectItem
                   v-for="country in countriesPrefix"
+                  :key="country.dial_code"
                   :value="country.dial_code"
                 >
                   {{ country.flag }} {{ country.dial_code }}

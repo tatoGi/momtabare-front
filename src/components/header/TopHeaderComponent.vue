@@ -5,12 +5,16 @@ import { useI18n } from 'vue-i18n';
 import { Switch } from "@/components/ui/switch";
 import { useAppStore } from "@/pinia/app.pinia.ts";
 import { ELanguages } from "@/ts/pinia/app.types.ts";
+import type { ILanguageDisplay } from "@/ts/models/language.types.ts";
 import momtabareLogoWithTextDark from "@/assets/svg/momtabare-logo-with-text-dark.svg";
 import momtabareLogoWithTextLight from "@/assets/svg/momtabare-logo-with-text.svg";
 import ukFlagIcon from '@/assets/img/uk-flag.svg';
 import globeIcon from '@/assets/img/Vector.svg';
 import { useNavigation } from '@/composables/useNavigation';
 import { getOppositeSlug, isGeorgianSlug } from '@/services/slugs';
+import { getLanguages } from '@/services/languages';
+import type { IBackendLanguage } from '@/ts/models/language.types';
+import { getAssetUrl } from '@/utils/config/env';
 
 // Simple confirmation dialog using browser's native confirm
 async function showConfirmationDialog(options: {
@@ -51,23 +55,53 @@ watch(() => props.isMobileNavOpen, (newVal) => {
 // Use dynamic navigation from backend
 const { rootNavigationItems } = useNavigation();
 
-const languages = [
-  { code: 'GEO', label: 'GEO', icon: globeIcon },
-  { code: 'ENG', label: 'ENG', icon: ukFlagIcon },
-]
+// Dynamic languages from backend -> ILanguageDisplay
+const languages = ref<ILanguageDisplay[]>([])
 
-// Initialize language from app store
-const chosenLanguage = ref(appStore.language === ELanguages.KA ? 'GEO' : 'ENG')
+// Map backend language shape to ILanguageDisplay used by header
+function mapBackendLanguageToDisplay(lang: IBackendLanguage, currentLocale: string): ILanguageDisplay {
+  const code = (lang.code || lang.locale || '').toLowerCase()
+  const label = (code || 'lang').toUpperCase()
+  console.log(lang, "LANG" + code)
+  // Prefer backend icon if provided; else use known icons
+  let icon: string | undefined
+  if (lang.icon) {
+    icon = getAssetUrl(lang.icon)
+  } else {
+    if (code === 'en') icon = ukFlagIcon
+    else if (code === 'ka') icon = globeIcon
+    else icon = globeIcon
+  }
+  return {
+    code,
+    label,
+    name: lang.name || lang.title || label,
+    nativeName: (lang as any).native_name || lang.native_title || lang.nativeName || undefined,
+    active: code === currentLocale,
+    icon,
+  }
+}
+
+// Initialize language code from app store ('ka' | 'en')
+const chosenLanguage = ref(appStore.language === ELanguages.KA ? 'ka' : 'en')
 const showLangDropdown = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
+
+// Helper functions to avoid inline arrow functions in template (TypeScript safety)
+function selectedLanguageObj(): ILanguageDisplay | undefined {
+  return languages.value.find((l: ILanguageDisplay) => l.code === chosenLanguage.value)
+}
+function otherLanguages(): ILanguageDisplay[] {
+  return languages.value.filter((l: ILanguageDisplay) => l.code !== chosenLanguage.value)
+}
 
 function toggleLangDropdown(event: MouseEvent) {
   event.stopPropagation();
   showLangDropdown.value = !showLangDropdown.value;
 }
 
-function selectLanguage(lang: string) {
-  chosenLanguage.value = lang;
+function selectLanguage(langCode: string) {
+  chosenLanguage.value = langCode;
   showLangDropdown.value = false;
 }
 
@@ -91,6 +125,34 @@ onMounted(() => {
   
   // Initialize i18n locale from app store
   locale.value = appStore.language === ELanguages.KA ? 'ka' : 'en'
+
+  // Load languages only from backend
+  ;(async () => {
+    languages.value = [] // clear first
+    try {
+      const list = await getLanguages('en')
+      if (list && Array.isArray(list) && list.length > 0) {
+        const activeList = list.filter((l: IBackendLanguage | any) => (l as any).is_active === true || (l as any).active === true || (l as any).active === 1)
+        const sorted = activeList.sort((a: any, b: any) => (a.sort_order || a.id || 0) - (b.sort_order || b.id || 0))
+        const mapped = sorted.map((l: IBackendLanguage) => mapBackendLanguageToDisplay(l, locale.value))
+        languages.value = mapped
+
+        // Choose language: keep current if present, else backend default, else first
+        const exists = languages.value.find((l: ILanguageDisplay) => l.code === chosenLanguage.value)
+        if (!exists) {
+          const def = list.find((l: any) => (l as any).is_default === true)
+          const defCode = (def?.code || def?.locale || mapped[0]?.code || 'en').toLowerCase()
+          chosenLanguage.value = defCode
+          locale.value = defCode
+          languages.value = languages.value.map((l: ILanguageDisplay) => ({ ...l, active: l.code === defCode }))
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load backend languages:', e)
+      // Keep empty list to reflect backend-only requirement
+      languages.value = []
+    }
+  })()
 });
 
 onBeforeUnmount(() => {
@@ -187,24 +249,36 @@ async function handleLanguageRouteUpdate(newLocale: string) {
 }
 
 // Watch for app store language changes to keep UI in sync
-watch(() => appStore.language, (newLanguage) => {
-  chosenLanguage.value = newLanguage === ELanguages.KA ? 'GEO' : 'ENG'
-  locale.value = newLanguage === ELanguages.KA ? 'ka' : 'en'
+watch(() => appStore.language, (newLanguage: ELanguages) => {
+  chosenLanguage.value = newLanguage === ELanguages.KA ? 'ka' : 'en'
+  locale.value = chosenLanguage.value
+  // Update active flags
+  languages.value = languages.value.map((l: ILanguageDisplay) => ({ ...l, active: l.code === locale.value }))
 })
 
 watch(chosenLanguage, async () => {
-  const newLocale = chosenLanguage.value === 'GEO' ? 'ka' : 'en'
+  const newLocale = chosenLanguage.value
   
-  // Update app store and i18n locale
-  if (chosenLanguage.value === 'GEO') {
+  // Update app store only for supported app languages (ka/en)
+  if (newLocale === 'ka') {
     appStore.setLanguage(ELanguages.KA)
-  } else {
+  } else if (newLocale === 'en') {
     appStore.setLanguage(ELanguages.EN)
+  } else {
+    // For other languages (e.g., 'ru'), do not change app store language
+    console.warn(`Selected locale '${newLocale}' not managed by appStore. Skipping appStore.setLanguage.`)
   }
+  
+  // Always set i18n locale to selected code
   locale.value = newLocale
   
-  // Handle route update for pages
-  await handleLanguageRouteUpdate(newLocale)
+  // Update active flags
+  languages.value = languages.value.map((l: ILanguageDisplay) => ({ ...l, active: l.code === newLocale }))
+  
+  // Handle route update only for KA/EN as routing uses English slugs
+  if (newLocale === 'ka' || newLocale === 'en') {
+    await handleLanguageRouteUpdate(newLocale)
+  }
 })
 
 </script>
@@ -259,11 +333,11 @@ watch(chosenLanguage, async () => {
           @click="toggleLangDropdown"
         >
           <img
-            :src="languages.find(l => l.code === chosenLanguage)?.icon"
+            :src="selectedLanguageObj()?.icon"
             alt="lang icon"
             class="w-5 h-5"
           />
-          <span class="text-sm font-semibold">{{ chosenLanguage }}</span>
+          <span class="text-sm font-semibold">{{ selectedLanguageObj()?.label }}</span>
         </button>
         <div
           v-if="showLangDropdown"
@@ -272,7 +346,7 @@ watch(chosenLanguage, async () => {
           @click.stop
         >
           <button
-            v-for="lang in languages.filter(l => l.code !== chosenLanguage)"
+            v-for="lang in otherLanguages()"
             :key="lang.code"
             class="flex-center h-10 w-24 gap-1 rounded-3xl bg-[#F8F8F8] hover:bg-gray-100 transition-all"
             @click.stop="selectLanguage(lang.code)"
