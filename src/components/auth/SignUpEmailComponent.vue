@@ -35,9 +35,11 @@ const {
 } = useField("termsAndConditions")
 
 const apiError = ref<string>('')
+const emailError = ref<string>('')
 
 async function sendVerificationCode(): Promise<void> {
   apiError.value = ''
+  emailError.value = ''
   isLoading.value = true
   try {
     const response = await register({
@@ -54,8 +56,18 @@ async function sendVerificationCode(): Promise<void> {
     }
   } catch (error: any) {
     console.error("Error sending verification code:", error)
-    // show backend error and do not proceed
-    apiError.value = error?.response?.data?.message || 'An error occurred. Please try again.'
+    
+    // Handle field-specific validation errors
+    if (error?.errors?.email) {
+      emailError.value = Array.isArray(error.errors.email) ? error.errors.email[0] : error.errors.email
+    }
+    
+    // Always set general API error if there's a message (for non-field-specific errors)
+    if (error?.message && !error?.errors?.email) {
+      apiError.value = error.message
+    } else if (!error?.errors?.email && !error?.message) {
+      apiError.value = 'An error occurred. Please try again.'
+    }
   } finally {
     isLoading.value = false
   }
@@ -87,11 +99,18 @@ const onSubmit = handleSubmit(async (values) => {
             type="email"
             placeholder="example@mail.com"
             :disabled="isLoading"
-            :error="!!emailValidationError || !!apiError"
+            :error="!!emailValidationError || !!emailError || !!apiError"
             @keyup.enter="onSubmit"
           />
-          <p v-if="emailValidationError || apiError" class="text-sm text-red-500 mt-1">
-            {{ apiError || emailValidationError }}
+          <p v-if="emailValidationError || emailError" class="text-sm text-red-500 mt-1">
+            {{ emailError || emailValidationError }}
+          </p>
+        </div>
+
+        <!-- General API Error -->
+        <div v-if="apiError" class="flex flex-col">
+          <p class="text-sm text-red-500 mt-1">
+            {{ apiError }}
           </p>
         </div>
 

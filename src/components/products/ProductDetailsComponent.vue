@@ -2,7 +2,7 @@
 import BaseIcon from "@/components/base/BaseIcon.vue"
 import { IProduct } from "@/ts/models/product.types.ts"
 import { useAppStore } from "@/pinia/app.pinia.ts"
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 import { toggleFavoriteProduct } from "../../services/products";
 import { useUserStore } from "../../pinia/user.pinia";
 
@@ -14,14 +14,35 @@ const userStore = useUserStore()
 const appStore = useAppStore()
 const computedLanguage = computed(() => appStore.getLanguage)
 
-const heart = ref<boolean>(false)
-  async function favoriteProduct(): Promise<void> {
-  if(!userStore.getUser){
-    userStore.setAuthDialogState(true);
+// Reactive reference for favorite status
+const heart = ref(false)
+
+// Watch for product changes and update heart status
+watch(() => props.product?.is_favorite, (newFavoriteStatus: boolean | undefined) => {
+  if (newFavoriteStatus !== undefined) {
+    heart.value = newFavoriteStatus
+  }
+}, { immediate: true })
+
+async function favoriteProduct(): Promise<void> {
+  if (!props.product) {
+    console.warn('No product available to favorite')
     return;
   }
-  heart.value = !heart.value
-  await toggleFavoriteProduct(props.product.id)
+  
+  const currentFavoriteStatus = heart.value
+  
+  try {
+    const result = await toggleFavoriteProduct(props.product.id, currentFavoriteStatus)
+    
+    if (result.success) {
+      heart.value = result.is_favorite || false
+    } else {
+      console.warn('Failed to toggle favorite:', result.message)
+    }
+  } catch (error) {
+    console.error('💥 Error toggling favorite:', error)
+  }
 }
 </script>
 <template>

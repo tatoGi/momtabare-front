@@ -5,6 +5,7 @@ export interface ICart {
   items: ICartItem[]
   total_items: number
   total_price: number
+  owner?: IUser | null
 }
 
 export interface ICartItem {

@@ -24,6 +24,8 @@ const emit = defineEmits(["nextStep"])
 
 const isLoading = ref<boolean>(false)
 const countryPrefix = ref<string>("+995")
+const apiError = ref<string>('')
+const phoneApiError = ref<string>('')
 
 const { handleSubmit } = useForm({
   validationSchema: yup.object({
@@ -50,6 +52,8 @@ const fullPhoneNumber = computed<string>(() => {
 })
 
 async function sendVerificationCode(): Promise<void> {
+  apiError.value = ''
+  phoneApiError.value = ''
   isLoading.value = true
   try {
     const response = await register({
@@ -65,8 +69,18 @@ async function sendVerificationCode(): Promise<void> {
         emailOrPhone: fullPhoneNumber.value
       })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending verification code:", error)
+    
+    // Handle field-specific validation errors
+    if (error?.errors?.phone_number) {
+      phoneApiError.value = Array.isArray(error.errors.phone_number) ? error.errors.phone_number[0] : error.errors.phone_number
+    } else if (error?.errors?.country_code) {
+      phoneApiError.value = Array.isArray(error.errors.country_code) ? error.errors.country_code[0] : error.errors.country_code
+    } else {
+      // Fallback to general error message
+      apiError.value = error?.message || 'An error occurred. Please try again.'
+    }
   } finally {
     isLoading.value = false
   }
@@ -92,7 +106,8 @@ const onSubmit = handleSubmit(async (values) => {
       <div class="flex flex-col gap-1">
         <!--        <Input id="name" v-model="phoneNumber" placeholder="ტელეფონის ნომერი" />-->
         <div
-          class="flex h-[52px] items-center rounded-xl border border-customBlack/10 dark:border-white/10 px-5"
+          class="flex h-[52px] items-center rounded-xl border px-5"
+          :class="phoneError || phoneApiError || apiError ? 'border-red-500' : 'border-customBlack/10 dark:border-white/10'"
         >
           <Select v-model="countryPrefix">
             <SelectTrigger class="w-[70px] border-0 px-0">
@@ -122,9 +137,9 @@ const onSubmit = handleSubmit(async (values) => {
           />
         </div>
 
-        <!--        <p class="text-xs text-red-700">-->
-        <!--          {{ errors.phone }}-->
-        <!--        </p>-->
+        <p v-if="phoneError || phoneApiError || apiError" class="text-sm text-red-500 mt-1">
+          {{ phoneApiError || phoneError || apiError }}
+        </p>
       </div>
 
       <div class="flex flex-col gap-1">

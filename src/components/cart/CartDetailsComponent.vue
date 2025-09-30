@@ -1,23 +1,28 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import BaseButton from "@/components/base/BaseButton.vue"
 import { Input } from "@/components/ui/input"
-import { ICart } from "@/ts/models/cart.types.ts"
-import { checkout } from "../../services/order"
-import { useRoute, useRouter } from "vue-router"
+import { ICart } from "@/ts/models/cart.types"
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
-const router = useRouter()
-const route = useRoute()
-
-defineProps<{
+const props = defineProps<{
   cart: ICart | null
 }>()
 
+const emit = defineEmits<{
+  (e: 'checkout'): void
+}>()
+
+const router = useRouter()
+const route = useRoute()
+const { t } = useI18n()
+
 async function orderButtonAction(): Promise<void> {
-  if (route.path != "/checkout") {
+  if (route.path !== "/checkout") {
     await router.push({ name: "checkout" })
     return
   }
-  await checkout()
+  emit('checkout')
 }
 </script>
 
@@ -26,29 +31,25 @@ async function orderButtonAction(): Promise<void> {
     <section
       class="border border-customBlack/10 rounded-2xl px-6 py-4 flex flex-col gap-4"
     >
-      <h2 class="font-extrabold font-uppercase">შეკვეთის დეტალები</h2>
+      <h2 class="font-extrabold font-uppercase">{{ t('checkout.orderDetailsTitle') }}</h2>
 
       <div class="flex items-center justify-between">
-        <p class="text-customBlack/70 text-sm font-medium">
-          პროდუქტ(ებ)ის რაოდენობა
-        </p>
-        <p class="text-sm font-bold">{{ cart?.items.length }}</p>
+        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.itemsCount') }}</p>
+        <p class="text-sm font-bold">{{ cart?.items?.length || 0 }}</p>
       </div>
       <div class="flex items-center justify-between">
-        <p class="text-customBlack/70 text-sm font-medium">ფასდაკლება</p>
-        <p class="text-sm font-bold">-50 ₾</p>
+        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.discount') }}</p>
+        <p class="text-sm font-bold">0.00 ₾</p>
       </div>
       <div class="flex items-center justify-between pb-1.5">
-        <p class="text-customBlack/70 text-sm font-medium">
-          პროდუქტ(ებ)ის ღირებულება
-        </p>
-        <p class="text-sm font-bold">{{ cart?.total_price.toFixed(2) }} ₾</p>
+        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.productsCost') }}</p>
+        <p class="text-sm font-bold">{{ cart?.total_price ? cart.total_price.toFixed(2) : '0.00' }} ₾</p>
       </div>
       <div class="h-[1px] bg-customBlack/10"></div>
       <div class="flex items-center justify-between">
-        <p class="text-sm font-semibold">ჯამური თანხა</p>
+        <p class="text-sm font-semibold">{{ t('checkout.total') }}</p>
         <p class="text-customRed font-extrabold">
-          {{ cart?.total_price.toFixed(2) }} ₾
+          {{ cart?.total_price ? cart.total_price.toFixed(2) : '0.00' }} ₾
         </p>
       </div>
     </section>
@@ -56,8 +57,8 @@ async function orderButtonAction(): Promise<void> {
     <section
       class="border border-customBlack/10 rounded-2xl px-6 pt-4 pb-9 flex flex-col gap-3"
     >
-      <h2 class="font-extrabold font-uppercase">პრომო კოდი</h2>
-      <Input class="bg-customGrey" placeholder="შეიყვანე პრომო კოდი" />
+      <h2 class="font-extrabold font-uppercase">{{ t('checkout.promoCodeTitle') }}</h2>
+      <Input class="bg-customGrey" :placeholder="t('checkout.promoCodePlaceholder')" />
     </section>
 
     <BaseButton
@@ -67,7 +68,7 @@ async function orderButtonAction(): Promise<void> {
       @click.left="orderButtonAction"
     >
       <p class="text-white text-sm font-bold font-uppercase">
-        შეკვეთის გაფორმება
+        {{ t('checkout.placeOrder') }}
       </p>
     </BaseButton>
   </div>

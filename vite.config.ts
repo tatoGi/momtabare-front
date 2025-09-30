@@ -30,6 +30,8 @@ export default defineConfig({
     include: ['vue', 'vue-router']
   },
   server: {
+    host: '127.0.0.1',
+    port: 5173,
     proxy: {
       // Add any API proxies here if needed
     }

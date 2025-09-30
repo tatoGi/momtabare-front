@@ -8,6 +8,7 @@ import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { toggleFavoriteProduct } from "../../services/products"
 import { useUserStore } from "../../pinia/user.pinia"
+import { useCart } from "@/composables/useCart"
 import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
@@ -17,10 +18,11 @@ const props = defineProps<{
 
 
 const userStore = useUserStore()
-const heart = ref<boolean>(props.item.is_favorited)
+const { addToCart } = useCart()
+const heart = ref<boolean>(props.item.is_favorite)
 const computedImageUrl = computed<string>(() => {
   // Safely access images array with null checks
-  const imageUrl = props.item.images?.[0]?.url || props.item.image || ''
+  let imageUrl = props.item.images?.[0]?.url || props.item.image || ''
   
   // If no image URL, return a default placeholder
   if (!imageUrl) {
@@ -31,6 +33,7 @@ const computedImageUrl = computed<string>(() => {
   if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
     return imageUrl
   }
+  
   // Otherwise, prepend the backend URL
   return `${ENV.BACKEND_URL}/${imageUrl}`
 })
@@ -49,12 +52,19 @@ function navigateToProduct() {
 }
 
 async function favoriteProduct(): Promise<void> {
-  if (!userStore.getUser) {
-    userStore.setAuthDialogState(true);
-    return;
+  const currentFavoriteStatus = heart.value
+  
+  try {
+    const result = await toggleFavoriteProduct(props.item.id, currentFavoriteStatus)
+    
+    if (result.success) {
+      heart.value = result.is_favorite || false
+    } else {
+      console.warn('Failed to toggle favorite:', result.message)
+    }
+  } catch (error) {
+    console.error('💥 Error toggling favorite:', error)
   }
-  heart.value = !heart.value
-  await toggleFavoriteProduct(props.item.id)
 }
 </script>
 

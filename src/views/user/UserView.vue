@@ -4,85 +4,250 @@ import BaseButton from "@/components/base/BaseButton.vue"
 import BaseCard from "@/components/base/BaseCard.vue"
 import type { IUser } from "@/ts/models/user-types"
 import type { IUserCard } from "@/ts/models/user-types"
-import {signOut} from "@/services/auth.js"
-import {useUserStore} from "@/pinia/user.pinia.js"
-import {computed} from "vue"
-import {useRouter} from "vue-router"
-import {requestRetailerPermission} from "@/services/retailer.ts";
+import { signOut } from "@/services/auth.js"
+import { useUserStore } from "@/pinia/user.pinia.js"
+import { computed, ref, onMounted, watch } from "vue"
+import { useRouter } from "vue-router"
+import { requestRetailerPermission, getRetailerShopCount } from "@/services/retailer.ts"
+import { getUserProductsCount } from "@/services/userProducts"
+import type { Ref } from "vue"
 
 const router = useRouter()
 
 const userStore = useUserStore()
-const retailerCards: IUserCard[] = [
-  {
-    icon: "add_circle",
-    title: "დაამატე განცხადება",
-    description: "დაამატე პროდუქცია რამდენიმე კლიკით",
-    name: "addProduct",
-  },
-  {
-    icon: "storefront",
-    title: "პირადი ინფორმაცია",
-    description: "პირადი ინფორმაციის სრული რედაქტირება",
-    name: "myShop",
-  },
-  {
-    icon: "shopping_bag",
-    title: "პირადი ინფორმაცია",
-    description: "პირადი ინფორმაციის სრული რედაქტირება",
-    name: "myListings",
-  },
-  {
-    icon: "payments",
-    title: "პირადი ინფორმაცია",
-    description: "პირადი ინფორმაციის სრული რედაქტირება",
-    name: "transactions",
-  },
-]
 
-const userCards: IUserCard[] = [
+// State for product counts
+const productCount = ref(0)
+const shopCount = ref(0)
+
+const retailerCards = computed<IUserCard[]>(() => {
+  const count = productCount.value;
+  const shops = shopCount.value;
+  return [
+    {
+      icon: "add_circle",
+      title: "დაამატე განცხადება",
+      description: "დაამატე პროდუქცია რამდენიმე კლიკით",
+      name: "addProduct",
+      height: 139,
+      showBadge: false,
+      badgeCount: 0
+    },
+    {
+      icon: "storefront",
+      title: "ჩემი მაღაზია",
+      description: "მაღაზიის ვიზუალური პარამეტრები",
+      name: "myShop",
+      showBadge: shops > 0,
+      badgeCount: shops,
+      height: 139
+    },
+    {
+      icon: "shopping_bag",
+      title: "ჩემი განცხადებები",
+      description: "იხილეთ თქვენ მიერ დამატებული განცხადებები.",
+      name: "myListings",
+      showBadge: count > 0,
+      badgeCount: count,
+      height: 139
+    },
+    {
+      icon: "payments",
+      title: "ტრანზაქციები",
+      description: "საიტიდან გამომუშავებული შემოსავალი",
+      name: "transactions",
+      height: 139,
+      showBadge: false,
+      badgeCount: 0
+    }
+  ];
+});
+
+const userCards = computed<IUserCard[]>(() => [
   {
     icon: "account_circle",
     title: "პირადი ინფორმაცია",
     description: "პირადი ინფორმაციის სრული რედაქტირება",
     name: "userInfo",
+    height: 139
   },
   {
-    icon: "chat_bubble",
+    icon: "chat",
+    title: "ჩატი",
+    description: "შეტყობინებების გაგზავნა და მიღება",
+    name: "chat",
+    height: 139
+  },
+  {
+    icon: "notifications",
     title: "შეტყობინებები",
-    description: "მიღებული და გაგზავნილი შეყობინებები ",
+    description: "სისტემური შეტყობინებები",
     name: "notifications",
+    height: 139
   },
   {
     icon: "update",
     title: "ჩემი შეკვეთები",
     description: "თქვენ მიერ ნაქირავები პროდუქცია",
     name: "userOrders",
+    height: 139
   },
   {
     icon: "location_on",
     title: "ჩემი მისამართები",
     description: "მისამართები საიდანაც აქირავებთ პროდუქციას",
     name: "userAddresses",
+    height: 139
   },
   {
     icon: "logout",
     title: "გასვლა",
     description: "პროფილის დატოვება",
     name: "logout",
+    height: 139
   },
-]
+])
 
-const user = computed<IUser>(() => userStore.getUser as IUser)
-const fullName = computed<string>(
-    () => user.value?.first_name + " " + user.value?.last_name,
+// Use the store's computed properties
+const user = computed<IUser | null>(() => userStore.user)
+
+const fullName = computed<string>(() => 
+  user.value ? `${user.value.first_name} ${user.value.surname}` : ''
 )
+
+const navigationItems = ref([
+  {
+    icon: "person",
+    title: "პროფილი",
+    description: "პირადი ინფორმაციის რედაქტირება",
+    name: "profile",
+    showBadge: false,
+    badgeCount: 0,
+    height: 139
+  },
+  {
+    icon: "storefront",
+    title: "ჩემი მაღაზია",
+    description: "მაღაზიის ვიზუალური პარამეტრები",
+    name: "myShop",
+    showBadge: false,
+    badgeCount: 0,
+    height: 139
+  },
+  {
+    icon: "shopping_bag",
+    title: "ჩემი განცხადებები",
+    description: "იხილეთ თქვენ მიერ დამატებული განცხადებები.",
+    name: "myListings",
+    showBadge: false,
+    badgeCount: 0,
+    height: 139
+  },
+  {
+    icon: "payments",
+    title: "ტრანზაქციები",
+    description: "საიტიდან გამომუშავებული შემოსავალი",
+    name: "transactions",
+    showBadge: false,
+    height: 139
+  },
+  {
+    icon: "favorite",
+    title: "ფავორიტები",
+    description: "შენახული ნივთები",
+    name: "favorites",
+    showBadge: false,
+    height: 139
+  },
+  {
+    icon: "history",
+    title: "ისტორია",
+    description: "ნახული განცხადებები",
+    name: "history",
+    showBadge: false,
+    height: 139
+  },
+  {
+    icon: "settings",
+    title: "პარამეტრები",
+    description: "პროფილის პარამეტრები",
+    name: "settings",
+    showBadge: false,
+    height: 139
+  }
+])
+
+// Use the store's isApprovedRetailer getter directly
+const isApprovedRetailer = computed<boolean>(() => userStore.isApprovedRetailer)
+const isPendingRetailer = computed<boolean>(() => 
+  userStore.user?.retailer_status === 'pending' || false
+)
+
+// Fetch and update product count
+const fetchAndUpdateProductCount = async () => {
+  try {
+    if (!user.value?.id) return;
+    
+    // Get the product count
+    const count = await getUserProductsCount(user.value.id);
+    productCount.value = count;
+    
+    // Get the shop count
+    const shops = await getRetailerShopCount();
+    shopCount.value = shops;
+    
+    // Update navigation items with the new count
+    navigationItems.value = navigationItems.value.map(item => {
+      // Update both the shopping bag icon and myListings item
+      if (item.name === 'myListings' || item.icon === 'shopping_bag') {
+        return {
+          ...item,
+          showBadge: count > 0,
+          badgeCount: count
+        };
+      }
+      return item;
+    });
+    
+    // Force update the retailerCards computed property by triggering a re-evaluation
+    // The computed property will automatically pick up the new productCount.value
+  } catch (error) {
+    console.error('Failed to fetch product count:', error);
+  }
+}
+
+// Initial fetch
+onMounted(() => {
+  fetchAndUpdateProductCount()
+})
+
+// No need for the watch anymore since we're using a computed property
+
+const canRequestRetailer = computed<boolean>(() => {
+  return !isApprovedRetailer.value && !isPendingRetailer.value
+})
 
 async function handleSignOut(): Promise<void> {
   await signOut()
+  userStore.clearAuth()
   await router.push("/home")
-  userStore.setUser(null)
 }
+
+async function handleRetailerRequest(): Promise<void> {
+  try {
+    const result = await requestRetailerPermission()
+    if (result.success) {
+      // Re-initialize auth to get updated user data
+      await userStore.initializeAuth()
+      console.log('Retailer request submitted successfully:', result.message)
+    } else {
+      console.error('Failed to submit retailer request:', result.message)
+    }
+  } catch (error) {
+    console.error('Error submitting retailer request:', error)
+  }
+}
+
 
 function handleCardClick(name: string): void {
   switch (name) {
@@ -104,9 +269,12 @@ function handleCardClick(name: string): void {
     case "myShop":
       router.push("/retailer-info")
       break
-      // case "myListings":
-      //   router.push("/user/info")
-      //   break
+    case "myListings":
+      router.push("/my-listings")
+      break
+    case "chat":
+      router.push("/chat")
+      break
       // case "transactions":
       //   router.push("/user/addresses")
       //   break
@@ -132,17 +300,29 @@ function handleCardClick(name: string): void {
             , მართე შენი გვერდი მარტივად
           </p>
         </div>
+        <!-- Show button only for non-retailers or pending retailers -->
         <BaseButton
+            v-if="canRequestRetailer"
             :height="36"
             :width="205"
             class="bg-customBlue text-white text-xs font-bold font-uppercase"
-            @click.left="requestRetailerPermission"
+            @click.left="handleRetailerRequest"
         >
           გახდი გამქირავებელი
         </BaseButton>
+        
+        <BaseButton
+            v-else-if="isPendingRetailer"
+            :height="36"
+            :width="205"
+            class="bg-yellow-500 text-white text-xs font-bold font-uppercase"
+            disabled
+        >
+          მოთხოვნა განიხილება
+        </BaseButton>
       </div>
 
-      <section v-if="user.is_retailer" class="flex flex-col gap-4">
+      <section v-if="isApprovedRetailer" class="flex flex-col gap-4">
         <h2
             class="text-customBlack dark:text-white text-xl font-extrabold font-uppercase"
         >
@@ -151,13 +331,16 @@ function handleCardClick(name: string): void {
 
         <div class="grid grid-cols-4 items-center gap-7">
           <BaseCard
-              v-for="userCard in retailerCards"
-              :description="userCard.description"
-              :height="139"
-              :icon="userCard.icon"
-              :title="userCard.title"
-              @click.left="handleCardClick(userCard.name)"
-          />
+  v-for="card in retailerCards"
+  :key="card.name"
+  :icon="card.icon"
+  :title="card.title"
+  :description="card.description"
+  :show-badge="card.showBadge"
+  :badge-count="card.badgeCount"
+  class="relative cursor-pointer hover:shadow-md transition-shadow duration-200"
+  @click="handleCardClick(card.name)"
+/>
         </div>
       </section>
 
@@ -171,6 +354,7 @@ function handleCardClick(name: string): void {
         <div class="grid grid-cols-4 items-center gap-7">
           <BaseCard
               v-for="userCard in userCards"
+              :key="userCard.name"
               :description="userCard.description"
               :height="139"
               :icon="userCard.icon"

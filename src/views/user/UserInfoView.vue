@@ -2,10 +2,12 @@
 import { useUserStore } from "@/pinia/user.pinia"
 import { computed, ref } from "vue"
 import type { IUser } from "@/ts/models/user-types"
+import { uploadUserAvatar } from "@/services/user"
+import { getAssetUrl } from "@/utils/config/env"
 
 const userStore = useUserStore()
 
-const user = computed<IUser>(() => userStore.getUser as IUser)
+const user = computed<IUser | null>(() => userStore.user)
 
 // Edit mode states
 const editingField = ref<string | null>(null)
@@ -17,6 +19,12 @@ const passwordForm = ref({
   new_password: '',
   confirm_password: ''
 })
+
+// Avatar upload states
+const avatarFile = ref<File | null>(null)
+const avatarPreview = ref<string | null>(null)
+const isUploadingAvatar = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
 
 // Functions to handle editing
 function startEditing(fieldKey: string, currentValue: string | null) {
@@ -159,7 +167,6 @@ const personalInfoFields = computed(() => [
     editable: true
   }
 ])
-
 const contactInfoFields = computed(() => [
   {
     key: "phone",
@@ -179,11 +186,156 @@ function formatPhoneNumber(phone: string): string {
   const regex = /^(\+\d{3})(\d{3})(\d{3})(\d{3})$/
   return <string>phone?.replace(regex, "$1 $2 $3 $4")
 }
+
+// Avatar upload functions
+function triggerAvatarUpload() {
+  avatarInput.value?.click()
+}
+
+function handleAvatarSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (file) {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('გთხოვთ აირჩიოთ სურათის ფაილი')
+      return
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ფაილის ზომა არ უნდა აღემატებოდეს 5MB-ს')
+      return
+    }
+    
+    avatarFile.value = file
+    
+    // Create preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      avatarPreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+async function uploadAvatar() {
+  if (!avatarFile.value) return
+  
+  try {
+    isUploadingAvatar.value = true
+    
+    const updatedUser = await uploadUserAvatar(avatarFile.value)
+    
+    if (updatedUser) {
+      // Update user store with new profile picture
+      await userStore.initializeAuth()
+      
+      // Clear preview and file
+      avatarFile.value = null
+      avatarPreview.value = null
+      
+      alert('ავატარი წარმატებით აიტვირთა')
+    }
+  } catch (error) {
+    console.error('Avatar upload failed:', error)
+    alert('ავატარის ატვირთვა ვერ მოხერხდა. გთხოვთ სცადოთ თავიდან.')
+  } finally {
+    isUploadingAvatar.value = false
+  }
+}
+
+function cancelAvatarUpload() {
+  avatarFile.value = null
+  avatarPreview.value = null
+  if (avatarInput.value) {
+    avatarInput.value.value = ''
+  }
+}
+
+// Get user avatar URL or fallback to first letter
+const userAvatarUrl = computed(() => {
+  // Check both avatar and profile_picture fields for compatibility
+  const avatarPath = user.value?.avatar || user.value?.profile_picture
+  if (avatarPath) {
+    return getAssetUrl(`/storage/${avatarPath}`)
+  }
+  return null
+})
+
+const userInitials = computed(() => {
+  const firstName = user.value?.first_name || ''
+  const lastName = user.value?.last_name || user.value?.surname || ''
+  return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || 'U'
+})
 </script>
 
 <template>
   <main class="pb-20 pt-8">
     <h2 class="font-uppercase text-xl font-extrabold dark:text-white">პირადი ინფორმაცია</h2>
+    
+    <!-- Avatar Section -->
+    <div class="flex justify-center pt-6 pb-4">
+      <div class="flex flex-col items-center gap-4">
+        <!-- Avatar Display -->
+        <div class="relative">
+          <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600">
+            <img 
+              v-if="avatarPreview || userAvatarUrl" 
+              :src="avatarPreview || userAvatarUrl" 
+              :alt="user?.first_name || 'User'"
+              class="w-full h-full object-cover"
+            />
+            <div 
+              v-else 
+              class="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-300"
+            >
+              {{ userInitials }}
+            </div>
+          </div>
+          
+          <!-- Upload Button -->
+          <button
+            @click="triggerAvatarUpload"
+            class="absolute -bottom-1 -right-1 w-8 h-8 bg-[#F44000] text-white rounded-full flex items-center justify-center hover:bg-[#d63700] transition-colors"
+            :disabled="isUploadingAvatar"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Upload Controls -->
+        <div v-if="avatarFile" class="flex gap-2">
+          <button
+            @click="uploadAvatar"
+            :disabled="isUploadingAvatar"
+            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm"
+          >
+            {{ isUploadingAvatar ? 'იტვირთება...' : 'ატვირთვა' }}
+          </button>
+          <button
+            @click="cancelAvatarUpload"
+            :disabled="isUploadingAvatar"
+            class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 text-sm"
+          >
+            გაუქმება
+          </button>
+        </div>
+        
+        <!-- Hidden File Input -->
+        <input
+          ref="avatarInput"
+          type="file"
+          accept="image/*"
+          @change="handleAvatarSelect"
+          class="hidden"
+        />
+      </div>
+    </div>
+    
     <div class="flex gap-6 pt-7">
       <div class="w-1/2 rounded-2xl border border-customBlack/10 dark:border-white/10 px-6 pt-4">
         <p class="font-uppercase font-extrabold dark:text-white">პერსონალური</p>

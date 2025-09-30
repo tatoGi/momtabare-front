@@ -1,0 +1,439 @@
+import { defineStore } from 'pinia';
+import { ref, computed, watch } from 'vue';
+import type { IUser } from '../ts/models/user-types';
+import { getUser, updateUserProfile, uploadUserAvatar } from '../services/user';
+import { useAuthStore } from './auth.pinia';
+
+export const useUserStore = defineStore('user', () => {
+  // State
+  const user = ref<IUser | null>(null);
+  const showAuthDialog = ref(false);
+  const isAuthenticating = ref(false);
+  const isAuthenticated = ref(false);
+  const isInitialized = ref(false);
+  
+  // Concurrency lock to avoid duplicate init calls
+  let initPromise: Promise<void> | null = null;
+
+  // Getters
+  const currentUser = computed(() => user.value);
+  const authDialog = computed(() => showAuthDialog.value);
+  const authenticating = computed(() => isAuthenticating.value);
+  const authenticated = computed(() => isAuthenticated.value);
+  const initialized = computed(() => isInitialized.value);
+  const isRetailer = computed(() => Boolean(user.value?.is_retailer));
+  const isApprovedRetailer = computed(() => 
+    Boolean(user.value?.is_retailer) && user.value?.retailer_status === 'approved'
+  );
+  const retailerStatus = computed(() => user.value?.retailer_status || null);
+
+  // Actions
+  async function clearAuth(): Promise<void> {
+    try {
+      // Clear all auth-related data from localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_auth_token');
+      
+      // Clear axios auth header
+      try {
+        const { default: AxiosJSON } = await import('../utils/helpers/axios');
+        delete AxiosJSON.defaults.headers.common['Authorization'];
+      } catch (e) {
+        console.warn('Failed to clear axios auth header:', e);
+      }
+      
+      // Reset all state
+      user.value = null;
+      isAuthenticated.value = false;
+      isInitialized.value = true;
+      isAuthenticating.value = false;
+      
+      // Clear any session-related data
+      try {
+        sessionStorage.removeItem('auth_state');
+        
+        // Clear all cookies (if using cookies for session)
+        document.cookie.split(';').forEach(cookie => {
+          const [name] = cookie.trim().split('=');
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        });
+      } catch (e) {
+        console.warn('Failed to clear session data:', e);
+      }
+      
+      console.log('🧹 Cleared authentication state');
+    } catch (error) {
+      console.error('Error during auth cleanup:', error);
+      // Even if cleanup fails, ensure we reset the state
+      user.value = null;
+      isAuthenticated.value = false;
+      isInitialized.value = true;
+      isAuthenticating.value = false;
+    }
+  }
+
+  async function initializeAuth(): Promise<void> {
+    // If an initialization is already in progress, await it
+    if (initPromise) {
+      await initPromise;
+      return;
+    }
+    
+    // If already initialized and authenticated with a user, nothing to do
+    if (isInitialized.value && isAuthenticated.value && user.value) {
+      console.log('ℹ️ Auth already initialized, skipping');
+      return;
+    }
+    
+    // Mark as initializing
+    isInitialized.value = false;
+    isAuthenticated.value = false;
+    isAuthenticating.value = true;
+
+    // Start a single initialization run
+    initPromise = (async () => {
+      try {
+        // Restore Bearer token on app start (if present)
+        const storedToken = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
+        if (storedToken) {
+          const { default: AxiosJSON } = await import('../utils/helpers/axios');
+          AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+          console.log('🔑 Restored authentication token from localStorage');
+          
+          // Set authenticated state to true since we have a token
+          isAuthenticated.value = true;
+          
+          // Fetch user data
+          try {
+            const userData = await getUser();
+            if (userData) {
+              user.value = {
+                ...userData,
+                is_retailer: Boolean(userData.is_retailer),
+                retailer_status: userData.retailer_status || null
+              };
+              isAuthenticated.value = true;
+              console.log('✅ User data loaded successfully');
+            } else {
+              console.warn('No user data returned, clearing auth');
+              await clearAuth();
+            }
+          } catch (userError) {
+            console.error('Failed to fetch user data:', userError);
+            await clearAuth();
+          }
+        } else {
+          console.log('⚠️ No authentication token found in localStorage');
+          await clearAuth();
+        }
+      } catch (error) {
+        console.error('❌ Authentication initialization failed:', error);
+        await clearAuth();
+      } finally {
+        isInitialized.value = true;
+        isAuthenticating.value = false;
+        initPromise = null;
+        console.log('🏁 Authentication initialization completed');
+      }
+    })();
+
+    return initPromise;
+  }
+
+  async function setAuthenticatedUser(userData: IUser, token?: string): Promise<void> {
+    try {
+      if (token) {
+        localStorage.setItem('auth_token', token);
+        const { default: AxiosJSON } = await import('../utils/helpers/axios');
+        AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
+      
+      user.value = {
+        ...userData,
+        is_retailer: Boolean(userData.is_retailer),
+        retailer_status: userData.retailer_status || null
+      };
+      
+      isAuthenticated.value = true;
+      isInitialized.value = true;
+      
+      console.log('✅ User authenticated:', userData.email);
+    } catch (error) {
+      console.error('Failed to set authenticated user:', error);
+      throw error;
+    }
+  }
+
+  async function updateProfile(payload: Partial<IUser>): Promise<IUser | null> {
+    try {
+      const updatedUser = await updateUserProfile(payload);
+      if (updatedUser && user.value) {
+        user.value = { ...user.value, ...updatedUser };
+      }
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      return null;
+    }
+  }
+
+  async function updateAvatar(file: File): Promise<IUser | null> {
+    try {
+      const updatedUser = await uploadUserAvatar(file);
+      if (updatedUser && user.value) {
+        user.value = { ...user.value, ...updatedUser };
+      }
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update avatar:', error);
+      return null;
+    }
+  }
+
+  function setAuthDialog(show: boolean): void {
+    showAuthDialog.value = show;
+  }
+
+  // Watch for store initialization to ensure token is set in axios
+  watch(isInitialized, async (initialized: boolean) => {
+    if (initialized && isAuthenticated.value && user.value) {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
+      if (token) {
+        const { default: AxiosJSON } = await import('../utils/helpers/axios');
+        AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        console.log('🔑 Restored authentication token after store hydration');
+      }
+    }
+  }, { immediate: true });
+
+  return {
+    // State
+    user: currentUser,
+    authDialog,
+    authenticating,
+    authenticated,
+    initialized,
+    isRetailer,
+    isApprovedRetailer,
+    retailerStatus,
+    
+    // Actions
+    clearAuth,
+    initializeAuth,
+    setAuthenticatedUser,
+    updateProfile,
+    updateAvatar,
+    setAuthDialog
+  };
+}, {
+  persist: {
+    key: 'user-store',
+    storage: localStorage,
+    paths: ['user', 'isAuthenticated', 'isInitialized']
+  }
+});
+  async function clearAuth(): Promise<void> {
+    try {
+      // Clear all auth-related data from localStorage
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_auth_token')
+      
+      // Clear axios auth header
+      try {
+        const { default: AxiosJSON } = await import('../utils/helpers/axios')
+        delete AxiosJSON.defaults.headers.common['Authorization']
+      } catch (e) {
+        console.warn('Failed to clear axios auth header:', e)
+      }
+      
+      // Reset all state
+      user.value = null
+      isAuthenticated.value = false
+      isInitialized.value = true
+      isAuthenticating.value = false
+      
+      // Clear any session-related data
+      try {
+        // Clear any session storage if needed
+        sessionStorage.removeItem('auth_state')
+        
+        // Clear all cookies (if using cookies for session)
+        document.cookie.split(';').forEach(cookie => {
+          const [name] = cookie.trim().split('=')
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+        })
+      } catch (e) {
+        console.warn('Failed to clear session data:', e)
+      }
+      
+      console.log('🧹 Cleared authentication state')
+    } catch (error) {
+      console.error('Error during auth cleanup:', error)
+      // Even if cleanup fails, ensure we reset the state
+      user.value = null
+      isAuthenticated.value = false
+      isInitialized.value = true
+      isAuthenticating.value = false
+    }
+          const { default: AxiosJSON } = await import('../utils/helpers/axios')
+          // Make sure to set the token in axios headers
+          AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
+          console.log('🔑 Restored authentication token from localStorage')
+          
+          // Set authenticated state to true since we have a token
+          isAuthenticated.value = true
+        } else {
+          console.log('⚠️ No authentication token found in localStorage')
+          // Clear any existing auth state if no token is found
+          clearAuth()
+          return
+        }
+
+        // Ensure Sanctum CSRF cookie exists to support session-based auth as well
+        try {
+          const { default: AxiosJSON } = await import('../utils/helpers/axios')
+          await AxiosJSON.get('/sanctum/csrf-cookie')
+          console.log('🍪 CSRF cookie refreshed successfully')
+        } catch (e) {
+          console.warn('⚠️ Failed to refresh CSRF cookie:', e)
+          // Non-fatal; continue with token-based flow
+        }
+
+        // Now load current user
+        try {
+          const userData = await getUser()
+          if (userData) {
+            user.value = {
+              ...userData,
+              is_retailer: Boolean(userData.is_retailer),
+              retailer_status: userData.retailer_status || null
+            }
+            isAuthenticated.value = true
+            console.log('✅ Authentication restored successfully')
+          } else {
+            console.warn('⚠️ No user data returned, clearing auth')
+            clearAuth()
+          }
+        } catch (userError) {
+          console.error('❌ Failed to fetch user data:', userError)
+          // Clear any potentially invalid tokens
+          clearAuth()
+          console.log('🧹 Cleared invalid authentication tokens')
+        }
+      } catch (err) {
+        const error = err as { response?: { status: number } }
+        console.error('❌ Authentication initialization failed:', error)
+        if (error?.response?.status === 401) {
+          clearAuth()
+          console.log('🚫 401 Unauthorized - cleared authentication tokens')
+        }
+      } finally {
+        isInitialized.value = true
+        isAuthenticating.value = false
+        initPromise = null
+        console.log('🏁 Authentication initialization completed')
+      }
+    })()
+
+    await initPromise
+  }
+
+  async function setAuthenticatedUser(userData: IUser, token?: string): Promise<void> {
+    if (!userData) return
+    
+    // Store token if provided
+    if (token) {
+      const authStore = useAuthStore()
+      authStore.setToken(token)
+      
+      // Also store in localStorage for initial app load
+      localStorage.setItem('auth_token', token)
+      localStorage.setItem('user_auth_token', token)
+      
+      // Set axios authorization header
+      const { default: AxiosJSON } = await import('../utils/helpers/axios')
+      AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    }
+    
+    // Update user data
+    user.value = {
+      ...userData,
+      is_retailer: Boolean(userData.is_retailer),
+      retailer_status: userData.retailer_status || null
+    }
+    
+    isAuthenticated.value = true
+    isInitialized.value = true
+  }
+
+  async function updateProfile(payload: Partial<IUser>): Promise<IUser | null> {
+    if (!user.value) return null
+
+    try {
+      const updated = await updateUserProfile(payload)
+      if (updated) {
+        user.value = { ...user.value, ...updated }
+      }
+      return updated
+    } catch (error) {
+      console.error('Failed to update profile:', error)
+      return null
+    }
+  }
+
+  async function updateAvatar(file: File): Promise<IUser | null> {
+    if (!user.value) return null
+
+    try {
+      const updated = await uploadUserAvatar(file)
+      if (updated) {
+        user.value = { ...user.value, ...updated }
+      }
+      return updated
+    } catch (error) {
+      console.error('Failed to update avatar:', error)
+      return null
+    }
+  }
+
+  function setAuthDialog(show: boolean): void {
+    showAuthDialog.value = show
+  }
+
+  // Watch for store initialization to ensure token is set in axios
+  watch(isInitialized, async (initialized: boolean) => {
+    if (initialized && isAuthenticated.value && user.value) {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
+      if (token) {
+        const { default: AxiosJSON } = await import('../utils/helpers/axios')
+        AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        console.log('🔑 Restored authentication token after store hydration')
+      }
+    }
+  }, { immediate: true })
+
+  return {
+    // State exposed through getters
+    user: currentUser,
+    authDialog,
+    authenticating,
+    authenticated,
+    initialized,
+    isRetailer,
+    isApprovedRetailer,
+    retailerStatus,
+    // Actions
+    setAuthenticatedUser,
+    clearAuth,
+    initializeAuth,
+    updateProfile,
+    updateAvatar,
+    setAuthDialog
+  }
+}, {
+  persist: {
+    paths: ['user', 'isAuthenticated', 'isInitialized'],
+    storage: localStorage,
+    key: 'user-store'
+  }
+})

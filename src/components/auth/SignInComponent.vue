@@ -9,7 +9,9 @@ import {useUserStore} from "@/pinia/user.pinia.ts"
 import {ref} from "vue"
 import { useI18n } from 'vue-i18n'
 
+
 const userStore = useUserStore()
+// Router no longer needed for login
 
 const emit = defineEmits(["nextStep", "close"])
 
@@ -33,22 +35,41 @@ async function handleSignIn(): Promise<void> {
     }
 
     const data = await signIn(payload, locale.value)
+    
     // If backend returns success: false, surface the message
     if (!data || data.success === false) {
       const msg = data?.message || 'Sign in failed'
       throw new Error(msg)
     }
-    // Some backends don't return user in login response; fetch it
-    const user = await getUser()
-    if (!user) {
-      throw new Error('Login succeeded but fetching profile failed')
+    
+    // Extract tokens from the response
+    const token = data.token || data.data?.token || data.access_token || data.data?.access_token
+    const refreshToken = data.refresh_token || data.data?.refresh_token
+    
+    if (!token) {
+      throw new Error('No authentication token received')
     }
-    userStore.setUser(user)
+    
+    // Get user data (either from response or fetch separately)
+    let user = data.data?.user  
+    if (!user) {
+      const fetchedUser = await getUser()
+      if (!fetchedUser) {
+        throw new Error('Login succeeded but user data not available')
+      }
+      user = fetchedUser
+    }
+    
+    // Store both access and refresh tokens
+    // Use the new authentication method to properly set up the user session
+    await userStore.setAuthenticatedUser(user, token, refreshToken)
+    
+    // Close the dialog
     emit("close")
+    
+    // Authentication state is managed by Pinia store - no need to reload
   } catch (err) {
-    console.error(err)
     const message = typeof err === 'string' ? err : (err as any)?.message || 'Invalid email or password. Please try again.'
-    // Display alert as requested
     alert(message)
   } finally {
     isLoading.value = false

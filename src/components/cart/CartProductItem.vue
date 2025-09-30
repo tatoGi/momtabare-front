@@ -7,11 +7,10 @@ import NumberFieldContent from "@/components/ui/number-field/NumberFieldContent.
 import NumberFieldDecrement from "@/components/ui/number-field/NumberFieldDecrement.vue"
 import NumberFieldIncrement from "@/components/ui/number-field/NumberFieldIncrement.vue"
 import NumberFieldInput from "@/components/ui/number-field/NumberFieldInput.vue"
-import type { IProduct } from "@/ts/models/product.types.ts"
-import { removeFromCart, updateCartItem } from "@/services/cart.ts"
-import { useCartStore } from "@/pinia/cart.pinia.ts"
+import type { IProduct } from "@/ts/models/product.types"
+import { removeFromCart, updateCartItem } from "@/services/cart"
+import { useCartStore } from "@/pinia/cart.pinia"
 import { computed, watch } from "vue"
-import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct
@@ -25,7 +24,7 @@ const cartStore = useCartStore()
 const quantity = defineModel<number>({ default: 1 })
 
 const computedImageUrl = computed<string>(() => {
-  return `${ENV.BACKEND_URL}/${props.product.images[0].url}`
+  return `${props.product.images[0].url}`
 })
 
 async function removeFromCartTrigger(id: number) {
@@ -33,14 +32,25 @@ async function removeFromCartTrigger(id: number) {
   await cartStore.fetchCart()
 }
 
-watch(quantity, async (value) => {
+watch(quantity, async (value: number) => {
   if (!value) return
 
-  await updateCartItem(
-    { quantity: value, rental_days: props.rental_days },
-    props.id,
-  )
-  await cartStore.fetchCart()
+  try {
+    const result = await updateCartItem(
+      { quantity: value, rental_days: props.rental_days },
+      props.id,
+    )
+    
+    if (result.success) {
+      // Only refresh cart if update was successful
+      await cartStore.fetchCart()
+    } else {
+      console.error('Failed to update cart item:', result.message)
+      // Optionally revert the quantity change or show error message
+    }
+  } catch (error) {
+    console.error('Error updating cart item:', error)
+  }
 })
 </script>
 
@@ -56,7 +66,7 @@ watch(quantity, async (value) => {
           <h2
             class="text-sm font-medium w-64 truncate-two-lines dark:text-white"
           >
-            {{ product.name }}
+            {{ props.product.name }}
           </h2>
           <div class="flex items-center gap-2">
             <p
@@ -72,7 +82,7 @@ watch(quantity, async (value) => {
             <p
               class="text-customBlack/70 dark:text-white/70 text-xs font-medium"
             >
-              ზომა: {{ product.size }}
+              ზომა: {{ props.product.size }}
             </p>
           </div>
         </div>
@@ -81,7 +91,7 @@ watch(quantity, async (value) => {
 
     <div class="flex flex-col items-center text-sm">
       <p class="text-customBlack/70 text-white/70 font-medium">დღე</p>
-      <p class="font-semibold dark:text-white">{{ rental_days }}</p>
+      <p class="font-semibold dark:text-white">{{ props.rental_days }}</p>
     </div>
 
     <div class="flex items-center gap-12">
@@ -93,12 +103,12 @@ watch(quantity, async (value) => {
         </NumberFieldContent>
       </NumberField>
 
-      <p class="text-customRed font-extrabold">{{ total_price }} ₾</p>
+      <p class="text-customRed font-extrabold">{{ props.total_price }} ₾</p>
 
       <BaseAlertDialog
-        :description="product.name"
+        :description="props.product.name"
         title="პროდუქტის წაშლა"
-        @action="removeFromCartTrigger(id)"
+        @action="removeFromCartTrigger(props.id)"
       >
         <BaseIcon
           :size="24"

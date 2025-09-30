@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from "vue-router";
 import BaseButton from "@/components/base/BaseButton.vue";
 import BaseIcon from "@/components/base/BaseIcon.vue";
@@ -15,13 +15,15 @@ import HeaderSearchComponent from "@/components/header/HeaderSearchComponent.vue
 import { useUserStore } from "@/pinia/user.pinia";
 import { useCartStore } from "@/pinia/cart.pinia";
 import { useNavigation } from "@/composables/useNavigation";
-import { cities } from "@/constants/cities.ts";
-import { EAuthStep } from "@/ts/auth.types.js";
-import type { AuthStepPayload } from "@/ts/auth.types.js";
+import { cities } from "@/constants/cities";
+import { EAuthStep } from "@/ts/auth.types";
+import type { AuthStepPayload } from "@/ts/auth.types";
 import cartsvg from "@/assets/svg/cart.svg";
 import heartsvg from "@/assets/svg/heart.svg";
 import usersvg from "@/assets/img/usersvg.svg";
 import { signOut } from '@/services/auth.ts';
+import { getAssetUrl } from '@/utils/config/env';
+import { requestRetailerPermission } from '@/services/retailer.ts';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -38,9 +40,41 @@ const showMobileAuth = ref(false);
 const mobileAuthStep = ref<string>(EAuthStep.SIGN_IN);
 const mobileAuthUserId = ref<number | null>(null);
 const mobileAuthEmailOrPhone = ref<string>('');
+
 // Get user from store
 const user = computed(() => userStore.user);
-const cartItems = ref(cartStore.getCartLength);
+
+// Cart count - reactive to store changes
+const cartItems = computed(() => cartStore.getCartLength);
+
+// Get retailer status from store
+const isApprovedRetailer = computed(() => userStore.isApprovedRetailer)
+const isPendingRetailer = computed(() => userStore.user?.retailer_status === 'pending' || false)
+const canRequestRetailer = computed(() => !isApprovedRetailer.value && !isPendingRetailer.value)
+
+// Initialize cart when component mounts
+onMounted(async () => {
+  // Fetch cart data if user is authenticated
+  if (userStore.authenticated && userStore.user) {
+    console.log('🛒 Initializing cart for authenticated user:', userStore.user.first_name)
+    await cartStore.fetchCart()
+  }
+})
+
+// Watch for user authentication changes
+watch(() => userStore.authenticated, async (isAuthenticated: boolean) => {
+  if (isAuthenticated && userStore.user) {
+    console.log('🛒 User authenticated, fetching cart data')
+    await cartStore.fetchCart()
+  } else {
+    console.log('🛒 User logged out, clearing cart')
+    cartStore.clearCart()
+  }
+})
+
+
+
+
 
 // Mobile search form data
 const mobileSearchName = ref<string>('');
@@ -52,8 +86,19 @@ const showUserDropdown = ref(false)
 const userDropdownRef = ref<HTMLElement | null>(null)
 
 function userInitial(): string {
-  const name = user.value?.first_name?.trim() || ''
-  return name ? name.charAt(0).toUpperCase() : 'U'
+  const firstName = user.value?.first_name?.trim() || ''
+  const lastName = user.value?.last_name?.trim() || user.value?.surname?.trim() || ''
+  return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || 'U'
+}
+
+// Get user avatar URL
+function getUserAvatarUrl(): string | null {
+  // Check both avatar and profile_picture fields for compatibility
+  const avatarPath = user.value?.avatar || user.value?.profile_picture
+  if (avatarPath) {
+    return getAssetUrl(`/storage/${avatarPath}`)
+  }
+  return null
 }
 
 function userFullName(): string {
@@ -69,7 +114,7 @@ async function handleSignOutClick() {
     console.warn('signOut failed', e)
   } finally {
     localStorage.removeItem('user_auth_token')
-    userStore.setUser(null)
+    userStore.clearAuth()
     showUserDropdown.value = false
   }
 }
@@ -77,24 +122,32 @@ async function handleSignOutClick() {
 // Note: You can add global click listeners if you want outside-click to close
 // the dropdown. Keeping it simple for now (toggle to open/close).
 function routeToCart(): void {
-  if (!userStore.getUser) {
-    userStore.setAuthDialogState(true);
-    return;
-  }
-  router.push({ name: "cart" });}
+  console.log('🛒 Navigating to cart')
+  router.push({ name: "cart" });
+}
 
 function routeToFavorites(): void {
-  if (!userStore.getUser) {
-    userStore.setAuthDialogState(true);
-    return;
-  }
+  console.log('❤️ Navigating to favorites')
   router.push({ name: "favorite" });
 }
 
-// Update cart items when the store changes
-cartStore.$subscribe(() => {
-  cartItems.value = cartStore.getCartLength;
-});
+async function handleRetailerRequest(): Promise<void> {
+  try {
+    const result = await requestRetailerPermission()
+    if (result.success) {
+      // Re-initialize auth to get updated user data
+      await userStore.initializeAuth()
+      console.log('Retailer request submitted successfully:', result.message)
+      showUserDropdown.value = false // Close dropdown after request
+    } else {
+      console.error('Failed to submit retailer request:', result.message)
+    }
+  } catch (error) {
+    console.error('Error submitting retailer request:', error)
+  }
+}
+
+// Cart items are now reactive via computed property - no manual subscription needed
 
 // Toggle mobile search dropdown
 function toggleMobileSearch() {
@@ -170,7 +223,7 @@ const handleMobileAuthStep = (payload: AuthStepPayload): void => {
 const handleRegistrationComplete = () => {
   closeMobileAuth();
   // Refresh user data if needed
-  userStore.fetchUser();
+  userStore.initializeAuth();
 }
 
 // Toggle city modal
@@ -219,38 +272,85 @@ function selectCity(city: string) {
         
         <div class="relative" v-if="user">
           <button
-            class="flex items-center gap-2 rounded-full border border-gray-200 bg-[#F8F8F8] px-3 py-1.5 shadow-sm"
+            class="flex items-center gap-2 rounded-full border border-gray-200 bg-[#F8F8F8] px-3 py-1.5 shadow-sm relative"
             @click.stop="showUserDropdown = !showUserDropdown"
           >
-            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-customRed text-white font-semibold">
-              {{ userInitial() }}
-            </span>
+            <div class="relative">
+              <div class="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden bg-customRed text-white font-semibold">
+                <img 
+                  v-if="getUserAvatarUrl()" 
+                  :src="getUserAvatarUrl()" 
+                  :alt="user?.first_name || 'User'"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else>
+                  {{ userInitial() }}
+                </span>
+              </div>
+              <!-- Online/Offline Status Indicator -->
+              <span 
+                class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white"
+                :class="userStore.authenticated ? 'bg-green-500' : 'bg-red-500'"
+                :title="userStore.authenticated ? 'Online' : 'Offline'"
+              ></span>
+            </div>
             <span class="hidden lg:inline text-sm font-semibold">{{ user.value?.first_name }}</span>
           </button>
           <div
             v-if="showUserDropdown"
             ref="userDropdownRef"
-            class="absolute right-0 top-12 z-10 w-64 rounded-2xl border border-gray-200 bg-white p-3 shadow-lg"
+            class="absolute right-0 top-12 z-10 w-64 rounded-2xl border border-gray-200 bg-white shadow-lg"
+            :class="canRequestRetailer || isPendingRetailer ? 'p-3' : 'p-3'"
             @click.stop
           >
-            <div class="mb-2">
+            <div class="mb-2 flex items-center justify-between">
               <p class="text-sm text-gray-500">მომხმარებელი</p>
+              <div class="flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full" :class="userStore.authenticated ? 'bg-green-500' : 'bg-red-500'"></span>
+                <span class="text-xs text-gray-500">{{ userStore.authenticated ? 'აქტიური' : 'არააქტიური' }}</span>
+              </div>
             </div>
             <div class="mb-3">
               <p class="text-base font-semibold">{{ userFullName() }}</p>
             </div>
-            <button class="mb-3 w-full rounded-xl bg-customRed py-2 text-white font-semibold">
+            
+            <!-- Retailer Request Button -->
+            <button 
+              v-if="canRequestRetailer"
+              class="mb-3 w-full rounded-xl bg-customBlue py-2 text-white font-semibold text-sm"
+              @click="handleRetailerRequest"
+            >
+              გახდი გამქირავებელი
+            </button>
+            
+            <!-- Pending Retailer Status -->
+            <button 
+              v-else-if="isPendingRetailer"
+              class="mb-3 w-full rounded-xl bg-yellow-500 py-2 text-white font-semibold text-sm"
+              disabled
+            >
+              მოთხოვნა განიხილება
+            </button>
+            
+            <!-- Rent Product Button (for non-retailers or approved retailers) -->
+            <button 
+              v-if="!isApprovedRetailer"
+              class="mb-3 w-full rounded-xl bg-customRed py-2 text-white font-semibold text-sm"
+            >
               გააქირავე პროდუქცია
             </button>
             <ul class="space-y-1 text-sm">
               <li>
-                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი  პროფილი</button>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი პროფილი</button>
               </li>
               <li>
-                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">შეტყობინებები</button>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100 flex items-center gap-2" @click="router.push('/chat')">
+                  <BaseIcon name="chat" :size="16" class="text-gray-600" />
+                  <span>შეტყობინებები</span>
+                </button>
               </li>
               <li>
-                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი შეკვეთები</button>
+                <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user/orders')">ჩემი შეკვეთები</button>
               </li>
               <li>
                 <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი ბარათები</button>
@@ -307,29 +407,41 @@ function selectCity(city: string) {
           v-if="user"
           :height="40"
           :width="40"
-          class="rounded-full bg-customRed"
+          class="rounded-full bg-customRed overflow-hidden"
           @click.left="router.push('/user')"
         >
-          <img :src="usersvg" alt="user" class="w-5 h-5" />
+          <img 
+            v-if="getUserAvatarUrl()" 
+            :src="getUserAvatarUrl()" 
+            :alt="user?.first_name || 'User'"
+            class="w-full h-full object-cover"
+          />
+          <span 
+            v-else 
+            class="text-white font-semibold text-sm"
+          >
+            {{ userInitial() }}
+          </span>
         </BaseButton>
         
-        <!-- Mobile: Use overlay -->
-        <BaseButton 
-          v-else-if="!user"
-          :height="40" 
-          :width="40" 
-          class="rounded-full bg-customRed md:hidden"
-          @click="toggleMobileAuth"
-        >
-          <img :src="usersvg" alt="user" class="w-5 h-5" />
-        </BaseButton>
-        
-        <!-- Desktop: Use dialog -->
-        <AuthDialog v-else-if="!user" class="hidden md:block">
-          <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
+        <template v-else>
+          <!-- Mobile: Use overlay -->
+          <BaseButton 
+            :height="40" 
+            :width="40" 
+            class="rounded-full bg-customRed md:hidden"
+            @click="toggleMobileAuth"
+          >
             <img :src="usersvg" alt="user" class="w-5 h-5" />
           </BaseButton>
-        </AuthDialog>
+          
+          <!-- Desktop: Use dialog -->
+          <AuthDialog class="hidden md:block">
+            <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
+              <img :src="usersvg" alt="user" class="w-5 h-5" />
+            </BaseButton>
+          </AuthDialog>
+        </template>
       </div>
       
     </div>

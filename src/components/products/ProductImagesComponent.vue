@@ -39,7 +39,7 @@ function selectImage(index: number) {
 </script>
 <template>
   <div class="flex flex-col gap-8">
-    <div class="w-[464px] h-[314px] flex-center bg-gray-100 rounded-lg">
+    <div class="w-[464px] h-[314px] flex-center  rounded-lg">
       <img
         v-if="computedChosenImage"
         :src="computedChosenImage"

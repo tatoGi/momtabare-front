@@ -67,8 +67,11 @@ export interface ICompleteRegistrationResponse {
 export interface ISignInResponseData {
   token: string
   access_token?: string
+  refresh_token?: string
   token_type: string
   user: IUser
+  success?: boolean
+  message?: string
 }
 
 export interface ISignInResponse {
@@ -77,6 +80,7 @@ export interface ISignInResponse {
   data: ISignInResponseData
   token?: string
   access_token?: string
+  refresh_token?: string
 }
 
 export interface ISignOutResponse {

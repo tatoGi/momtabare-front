@@ -8,7 +8,10 @@ import { useCategoryStore } from "@/pinia/category.pinia"
 import { computed, ref, onMounted, watch } from "vue"
 import { useRouter } from "vue-router"
 import { getCategoriesForLocale } from "@/services/categories"
+import { getNavigation } from "@/services/pages"
 import { ELanguages } from "@/ts/pinia/app.types"
+import BaseNavigation from "@/components/base/BaseNavigation.vue"
+import type { INavigationItem } from "@/ts/models/page.types"
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -16,9 +19,10 @@ const categoryStore = useCategoryStore()
 
 const isDropdownOpen = ref<boolean>(false)
 const categories = ref<ICategoryDisplay[]>([])
+const navigationItems = ref<INavigationItem[]>([])
 const hoveredCategory = ref<ICategoryDisplay | null>(null)
 const hoveredSubcategory = ref<ICategoryDisplay | null>(null)
-const computedLanguage = computed(() => appStore.getLanguage)
+const currentLanguage = computed(() => appStore.getLanguage)
 
 
 
@@ -44,15 +48,28 @@ async function fetchCategories() {
   }
 }
 
+// Function to fetch navigation items
+async function fetchNavigationItems() {
+  const currentLocale = currentLanguage.value === ELanguages.KA ? 'ka' : 'en'
+  try {
+    const navItems = await getNavigation(currentLocale)
+    if (navItems) {
+      navigationItems.value = navItems
+    }
+  } catch (error) {
+    console.error('Error fetching navigation items:', error)
+  }
+}
+
 onMounted(async () => {
-  await fetchCategories()
+  await Promise.all([fetchCategories(), fetchNavigationItems()])
 })
 
 // Watch for language changes and re-fetch categories
 watch(
   () => appStore.language,
   async () => {
-    await fetchCategories()
+    await Promise.all([fetchCategories(), fetchNavigationItems()])
   }
 )
 
@@ -98,72 +115,73 @@ function closeDropdown(): void {
       class="rounded-2xl bg-white shadow-xl dark:bg-customBlack p-0 overflow-hidden"
       :class="{ 'w-[800px]': hoveredCategory }"
     >
-      <div class="flex" @mouseleave="hoveredCategory = null; hoveredSubcategory = null">
-        <!-- Categories Column -->
-        <div class="w-64 h-[315px] overflow-y-auto custom-scrollbar">
-          <h2 class="p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title"
-             >
-            {{ $t("categories") }}
-          </h2>
-          <div class="py-2">
-            <div 
-              v-for="category in categories" 
-              :key="category.id"
-              class="flex items-center px-4 py-3 cursor-pointer transition-colors"
-              :class="{
-                'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredCategory?.id === category.id,
-                'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredCategory?.id !== category.id
-              }"
-              @mouseenter="hoveredCategory = category; hoveredSubcategory = null"
-              @click="moveToCategory(category)"
-            >
-              <span class="font-medium">{{ category.title }}</span>
-             
+      <div class="p-4" @mouseleave="isDropdownOpen = false">
+        <!-- Categories -->
+        <div>
+          <h2 class="text-lg font-bold mb-3 dark:text-white">{{ $t("categories") }}</h2>
+          <div class="flex" @mouseleave="hoveredCategory = null; hoveredSubcategory = null">
+            <!-- Categories Column -->
+            <div class="w-64 h-[315px] overflow-y-auto custom-scrollbar">
+              <div class="py-2">
+                <div 
+                  v-for="category in categories" 
+                  :key="category.id"
+                  class="flex items-center px-4 py-3 cursor-pointer transition-colors"
+                  :class="{
+                    'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredCategory?.id === category.id,
+                    'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredCategory?.id !== category.id
+                  }"
+                  @mouseenter="hoveredCategory = category; hoveredSubcategory = null"
+                  @click="moveToCategory(category)"
+                >
+                  <span class="font-medium">{{ category.title }}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Subcategories Column -->
-        <div 
-          v-if="hoveredCategory?.children?.length" 
-          class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
-        >
-          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title">
-            {{ hoveredCategory?.title }}
-          </h2>
-          <div class="py-2">
+            <!-- Subcategories Column -->
             <div 
-              v-for="subcategory in hoveredCategory.children" 
-              :key="subcategory.id"
-              class="flex items-center px-4 py-3 cursor-pointer transition-colors"
-              :class="{
-                'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredSubcategory?.id === subcategory.id,
-                'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredSubcategory?.id !== subcategory.id
-              }"
-              @mouseenter="hoveredSubcategory = subcategory"
-              @click="moveToCategory(subcategory)"
+              v-if="hoveredCategory?.children?.length" 
+              class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
             >
-              <span class="font-medium">{{ subcategory.title }}</span>
+              <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 dark:text-white cateogries-title">
+                {{ hoveredCategory?.title }}
+              </h2>
+              <div class="py-2">
+                <div 
+                  v-for="subcategory in hoveredCategory.children" 
+                  :key="subcategory.id"
+                  class="flex items-center px-4 py-3 cursor-pointer transition-colors"
+                  :class="{
+                    'bg-orange-50 dark:bg-gray-800 text-orange-500': hoveredSubcategory?.id === subcategory.id,
+                    'hover:bg-gray-50 dark:hover:bg-gray-800': hoveredSubcategory?.id !== subcategory.id
+                  }"
+                  @mouseenter="hoveredSubcategory = subcategory"
+                  @click="moveToCategory(subcategory)"
+                >
+                  <span class="font-medium">{{ subcategory.title }}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Products Column -->
-        <div 
-          v-if="hoveredSubcategory?.children?.length" 
-          class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
-        >
-          <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 cateogries-title">
-            {{ hoveredSubcategory?.title }}
-          </h2>
-          <div class="py-2">
+            <!-- Products Column -->
             <div 
-              v-for="product in hoveredSubcategory.children" 
-              :key="product.id"
-              class="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              @click="moveToCategory(product)"
+              v-if="hoveredSubcategory?.children?.length" 
+              class="w-64 h-[315px] overflow-y-auto custom-scrollbar"
             >
-              <div class="font-medium">{{ product.title }}</div>
+              <h2 class="font-bold text-lg p-4 sticky top-0 bg-white dark:bg-gray-900 z-10 cateogries-title">
+                {{ hoveredSubcategory?.title }}
+              </h2>
+              <div class="py-2">
+                <div 
+                  v-for="product in hoveredSubcategory.children" 
+                  :key="product.id"
+                  class="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  @click="moveToCategory(product)"
+                >
+                  <div class="font-medium">{{ product.title }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

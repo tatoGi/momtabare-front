@@ -20,6 +20,45 @@
   "blogs": "Blogs",
   "blog": "Blog",
   "blogShow": "Blog Show",
-  "home": "Home"
+  "home": "Home",
+  "checkout": {
+    "contactInfoTitle": "Contact information",
+    "contactInfoHint": "Specify where the renter can pick up the items and who to contact",
+    "paymentMethodTitle": "Payment method",
+    "paymentMethodHint": "Please choose a payment method",
+    "payWithOtherCard": "Pay with another card",
+    "otherCardHint": "You'll enter card details on the bank's secure page.",
+    "rememberCard": "Remember card",
+    "productsTitle": "Products",
+    "productsHint": "Items you selected",
+    "orderDetailsTitle": "Order details",
+    "promoCodeTitle": "Promo code",
+    "promoCodePlaceholder": "Enter promo code",
+    "itemsCount": "Product(s) quantity",
+    "discount": "Discount",
+    "productsCost": "Products cost",
+    "totalAmount": "Total amount",
+      "placeOrder": "Place order"
+  },
+  "payment": {
+    "success": {
+      "title": "Payment Successful",
+      "message": "Thank you for your purchase! Your payment has been processed successfully."
+    },
+    "error": {
+      "title": "Payment Failed",
+      "generic": "We couldn't process your payment. Please try again or use a different payment method.",
+      "card_declined": "Your card was declined. Please try another payment method.",
+      "insufficient_funds": "Insufficient funds. Please try a different payment method.",
+      "expired_card": "The card has expired. Please use a different payment method.",
+      "invalid_card": "The card details are invalid. Please check and try again.",
+      "processing_error": "There was an error processing your payment. Please try again."
+    },
+    "actions": {
+      "retry": "Try Again",
+      "continue_shopping": "Continue Shopping",
+      "return_to_cart": "Return to Cart"
+    }
+  }
 
 }

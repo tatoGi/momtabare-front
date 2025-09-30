@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import ProductList from '../../components/products/ProductList.vue';
 import BaseNoData from '../../components/base/BaseNoData.vue';
 import { useRouter } from 'vue-router';
 import { getFavoriteProducts } from '../../services/products';
 import BasePagination from '../../components/base/BasePagination.vue';
 import BaseBreadcrumbs from '../../components/base/BaseBreadcrumbs.vue';
+import { useUserStore } from '@/pinia/user.pinia';
 
 
 const router = useRouter()
@@ -16,6 +17,7 @@ const productsTotal = ref<number>(1)
 const currentPage = ref<number>(1)
 const productsLoading = ref<boolean>(false);
 const checkedForEmpty = ref<boolean>(false)
+const userStore = useUserStore();
 
 async function fetchProducts(): Promise<void>{
     productsLoading.value = true
@@ -39,8 +41,8 @@ watch(currentPage,async ()=>{
 
 },{immediate:true})
 
-watch(favoriteProducts,async (newVal)=>{
-    if(newVal.length === 0 && !checkedForEmpty.value){
+watch(favoriteProducts, async (newVal: any[]) => {
+    if (newVal?.length === 0 && !checkedForEmpty.value) {
         await fetchProducts()
         checkedForEmpty.value = true;
     }
