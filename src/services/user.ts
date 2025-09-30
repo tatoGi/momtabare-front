@@ -5,7 +5,33 @@ import { getLocalizedApiUrl } from '../utils/config/env'
 import { useAppStore } from '../pinia/app.pinia'
 import { ELanguages } from '../ts/pinia/app.types'
 
+// Get all users (Laravel: GET /users)
+export async function getAllUsers(): Promise<{ users: IUser[] } | null> {
+  try {
+    const locale = getCurrentLocale()
+    const response = await AxiosJSON.get(getLocalizedApiUrl('/users', locale), {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
 
+    // Handle different response formats
+    if (response.data?.success && Array.isArray(response.data.data)) {
+      return { users: response.data.data as IUser[] }
+    } else if (Array.isArray(response.data)) {
+      return { users: response.data as IUser[] }
+    }
+
+    console.warn('getAllUsers: unexpected response format', response.data)
+    return { users: [] }
+  } catch (error) {
+    console.error('getAllUsers failed:', error)
+    return null
+  }
+}
 
 // Get user by ID (Laravel: GET /users/{id})
 
@@ -187,5 +213,51 @@ export async function uploadUserAvatar(file: File): Promise<IUser | null> {
   } catch (error) {
     console.error('uploadUserAvatar failed', error)
     throw error
+  }
+}
+
+// Fetch a user by ID
+// Tries to be resilient to different backend response shapes
+export async function getUserById(userId: number): Promise<{ user: IUser; message: string } | null> {
+  try {
+    const locale = getCurrentLocale()
+    const url = getLocalizedApiUrl(`/users/${userId}`, locale)
+
+    const resp = await AxiosJSON.get(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    })
+
+    const data = resp?.data
+
+    // Possible formats:
+    // 1) { user, message }
+    if (data?.user) {
+      return { user: data.user as IUser, message: data?.message || '' }
+    }
+
+    // 2) { data: { user }, message }
+    if (data?.data?.user) {
+      return { user: data.data.user as IUser, message: data?.message || '' }
+    }
+
+    // 3) { data: { ...user }, message }
+    if (data?.data && typeof data.data === 'object' && 'id' in data.data) {
+      return { user: data.data as IUser, message: data?.message || '' }
+    }
+
+    // 4) { ...user }
+    if (data && typeof data === 'object' && 'id' in data) {
+      return { user: data as IUser, message: '' }
+    }
+
+    console.warn('getUserById: unexpected response shape', data)
+    return null
+  } catch (error) {
+    console.error('getUserById failed:', error)
+    return null
   }
 }

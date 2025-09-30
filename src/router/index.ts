@@ -139,7 +139,7 @@ const router = createRouter({
       beforeEnter: loadPageDataBeforeEnter
       // No requiresAuth - home page should be accessible to everyone
     },
-    {
+    { 
       path: "/blog",
       name: "blog",
       component: BlogView,
