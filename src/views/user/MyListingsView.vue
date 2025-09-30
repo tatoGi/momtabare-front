@@ -8,6 +8,7 @@ import { getProductsByUser } from "@/services/products"
 import { deleteProduct as deleteRetailerProduct } from "@/services/retailer"
 import type { IProductListItem } from "@/ts/models/product.types"
 import { ENV } from '@/utils/config/env'
+import Swal from 'sweetalert2'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -118,7 +119,7 @@ const toggleVisibility = (product: IProductListItem) => {
 }
 
 const deleteProduct = async (productId: number) => {
-  const Swal = (await import('sweetalert2')).default
+  
   const confirmed = await Swal.fire({
     title: 'დარწმუნებული ხართ?',
     text: 'გსურთ პროდუქტის წაშლა?',
