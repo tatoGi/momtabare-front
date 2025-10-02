@@ -73,7 +73,8 @@ export async function register(
       requestData
     )
     const data = response.data
-    await setTokenFromResponseData(data)
+    // Registration endpoint may not return access token; ignore if absent
+    try { await setTokenFromResponseData(data) } catch {}
     // Fetch current user to reflect retailer flags immediately
     try {
       const [{ useUserStore }, { getUser }] = await Promise.all([
