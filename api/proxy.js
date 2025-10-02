@@ -1,5 +1,12 @@
 // Vercel serverless function to proxy API requests and add CORS headers
 export default async function handler(req, res) {
+  console.log(`[PROXY] Incoming request:`, {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    headers: req.headers
+  })
+  
   // Get the origin from the request headers
   const origin = req.headers.origin || req.headers.host
   
@@ -38,7 +45,21 @@ export default async function handler(req, res) {
   try {
     // Extract the path from the request
     const { path, ...queryParams } = req.query
-    const apiPath = Array.isArray(path) ? path.join('/') : path
+    const apiPath = Array.isArray(path) ? path.join('/') : (path || '')
+    
+    console.log(`[PROXY] Raw path:`, req.query.path)
+    console.log(`[PROXY] Processed apiPath:`, apiPath)
+    
+    // Validate apiPath
+    if (!apiPath || typeof apiPath !== 'string') {
+      console.error(`[PROXY] Invalid apiPath:`, apiPath)
+      res.status(400).json({ 
+        error: 'Invalid API path',
+        message: 'The requested API endpoint is not valid',
+        timestamp: new Date().toISOString()
+      })
+      return
+    }
     
     // Build the target URL
     // The apiPath from the route /api/(.*) will be like "en/products", "en/pages", "en/languages"
@@ -155,12 +176,19 @@ export default async function handler(req, res) {
       message: error.message,
       stack: error.stack,
       method: req.method,
-      path: req.query.path
+      path: req.query.path,
+      url: req.url,
+      headers: req.headers
     })
-    res.status(500).json({ 
+    
+    // Return appropriate error response
+    const errorMessage = typeof error?.message === 'string' ? error.message : ''
+    const statusCode = errorMessage.includes('Invalid') ? 400 : 500
+    res.status(statusCode).json({ 
       error: 'Proxy request failed',
-      message: error.message,
-      timestamp: new Date().toISOString()
+      message: errorMessage || 'Unexpected proxy error',
+      timestamp: new Date().toISOString(),
+      path: req.query.path
     })
   }
 }
