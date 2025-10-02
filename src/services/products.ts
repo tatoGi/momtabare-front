@@ -165,7 +165,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const response = await axios.get(`${API_BASE_URL}/${locale}/api/retailer/user/products`, {
+    const response = await axios.get(`${API_BASE_URL}/${locale}/retailer/user/products`, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -224,7 +224,7 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = `${API_BASE_URL}/${locale}/api/products`
+    const apiUrl = `${API_BASE_URL}/${locale}/products`
     
     // Get all products and filter for popular products (is_popular = 1)
     const response = await axios.get(apiUrl, { 

@@ -41,9 +41,25 @@ export default async function handler(req, res) {
     const apiPath = Array.isArray(path) ? path.join('/') : path
     
     // Build the target URL
-    // The apiPath from the route /api/(.*) will be like "en/api/categories"
-    // We need to call https://admin.momtabare.com/en/api/categories
-    const targetUrl = `https://admin.momtabare.com/${apiPath}`
+    // The apiPath from the route /api/(.*) will be like "en/products" or "en/api/categories"
+    // We need to call https://admin.momtabare.com/en/api/products or https://admin.momtabare.com/en/api/categories
+    let targetUrl
+    if (apiPath.includes('/api/')) {
+      // If path already includes /api/, use it directly
+      targetUrl = `https://admin.momtabare.com/${apiPath}`
+    } else {
+      // Otherwise, add /api/ before the endpoint
+      const parts = apiPath.split('/')
+      if (parts.length >= 2) {
+        // Format: locale/endpoint -> locale/api/endpoint
+        const locale = parts[0]
+        const endpoint = parts.slice(1).join('/')
+        targetUrl = `https://admin.momtabare.com/${locale}/api/${endpoint}`
+      } else {
+        // Fallback: just add /api/
+        targetUrl = `https://admin.momtabare.com/api/${apiPath}`
+      }
+    }
     
     // Add query parameters if they exist
     const urlParams = new URLSearchParams(queryParams)
