@@ -1,27 +1,10 @@
 {
   "version": 2,
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "./dist",
   "functions": {
-    "api/[...path].js": {
+    "vercel-proxy.js": {
       "runtime": "nodejs18.x"
-    }
-  },
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "./dist",
-        "buildCommand": "npm run vercel-build"
-      }
-    },
-    {
-      "src": "vercel-proxy.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "build": {
-    "env": {
-      "NODE_VERSION": "18.x"
     }
   },
   "routes": [
