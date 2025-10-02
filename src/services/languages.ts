@@ -28,7 +28,12 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await LanguagesAxios.get(endpoint)
+      const response = await LanguagesAxios.get(endpoint, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       const data = response.data
       const list: IBackendLanguage[] = data?.data || (Array.isArray(data) ? data : [])
 

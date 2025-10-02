@@ -7,6 +7,7 @@ import type { IPage, INavigationItem, IPageTranslation, IBanner, IBannerTranslat
 // Create axios instance for pages API
 const PagesAxios = axios.create({
   baseURL: ENV.BACKEND_URL,
+  withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',

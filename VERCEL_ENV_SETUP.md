@@ -10,7 +10,7 @@
 ### Production Environment Variables
 
 **Variable Name:** `VITE_BACKEND_URL_PRODUCTION`  
-**Value:** `http://system.momtabare.com`  
+**Value:** `https://admin.momtabare.com`  
 **Environment:** Production (and Preview if needed)
 
 **Variable Name:** `VITE_DEFAULT_LOCALE`  
@@ -37,16 +37,16 @@
 ## Verification
 
 After deployment, your frontend will use:
-- **Production:** `http://system.momtabare.com` for API calls
+- **Production:** `https://system.momtabare.com` for API calls
 - **Local Development:** `http://127.0.0.1:8000` for API calls
 
 ## API Endpoints
 
 Your frontend will make requests to:
-- **Base API**: `http://system.momtabare.com/api`
-- **Localized Pages**: `http://system.momtabare.com/en/pages` (or `/ka/pages` for Georgian)
-- **Localized API**: `http://system.momtabare.com/{locale}/{endpoint}`
-- **Assets**: `http://system.momtabare.com/[asset-path]`
+- **Base API**: `https://system.momtabare.com/api`
+- **Localized Pages**: `https://system.momtabare.com/en/pages` (or `/ka/pages` for Georgian)
+- **Localized API**: `https://system.momtabare.com/{locale}/{endpoint}`
+- **Assets**: `https://system.momtabare.com/[asset-path]`
 
 ## Usage Examples
 
@@ -54,11 +54,11 @@ Your frontend will make requests to:
 import { getPagesUrl, getLocalizedApiUrl, getAssetUrl } from '@/utils/config/env'
 
 // Get pages for English locale
-const pagesUrl = getPagesUrl('en') // http://system.momtabare.com/en/pages
+const pagesUrl = getPagesUrl('en') // https://system.momtabare.com/en/pages
 
 // Get localized API endpoint
-const apiUrl = getLocalizedApiUrl('products', 'ka') // http://system.momtabare.com/ka/products
+const apiUrl = getLocalizedApiUrl('products', 'ka') // https://system.momtabare.com/ka/products
 
 // Get asset URL
-const imageUrl = getAssetUrl('images/product.jpg') // http://system.momtabare.com/images/product.jpg
+const imageUrl = getAssetUrl('images/product.jpg') // https://system.momtabare.com/images/product.jpg
 ```

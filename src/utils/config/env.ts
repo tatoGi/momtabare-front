@@ -7,7 +7,7 @@ const isVercel = typeof window !== 'undefined' && window.location.hostname.inclu
 const getBackendUrl = (): string => {
   // Production environment (Vercel)
   if (isProduction) {
-    const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'http://system.momtabare.com'
+    const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'https://admin.momtabare.com'
     console.log('🌐 Production Mode - Using backend URL:', prodUrl)
     console.log('🔍 Environment variables:', {
       VITE_BACKEND_URL_PRODUCTION: import.meta.env.VITE_BACKEND_URL_PRODUCTION,
@@ -44,7 +44,7 @@ export const getEnvironmentInfo = () => {
 // Helper function to get backend URL with protocol fallback
 export const getBackendUrlWithFallback = (preferHttps: boolean = true): string => {
   if (import.meta.env.PROD) {
-    const domain = 'https://system.momtabare.com'
+    const domain = 'admin.momtabare.com'
     return preferHttps ? `https://${domain}` : `http://${domain}`
   }
   return import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
