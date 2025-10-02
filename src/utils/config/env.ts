@@ -7,10 +7,21 @@ const isVercel = typeof window !== 'undefined' && window.location.hostname.inclu
 const getBackendUrl = (): string => {
   // Production environment (Vercel)
   if (isProduction) {
+    // Use Vercel proxy to avoid CORS issues
     const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'https://admin.momtabare.com'
+    const useProxy = import.meta.env.VITE_USE_PROXY !== 'false' // Default to true
+    
+    if (useProxy && isVercel) {
+      // Use relative path for proxy
+      const proxyUrl = '/api'
+      console.log('🌐 Production Mode - Using Vercel proxy URL:', proxyUrl)
+      return proxyUrl
+    }
+    
     console.log('🌐 Production Mode - Using backend URL:', prodUrl)
     console.log('🔍 Environment variables:', {
       VITE_BACKEND_URL_PRODUCTION: import.meta.env.VITE_BACKEND_URL_PRODUCTION,
+      VITE_USE_PROXY: import.meta.env.VITE_USE_PROXY,
       PROD: import.meta.env.PROD,
       MODE: import.meta.env.MODE
     })

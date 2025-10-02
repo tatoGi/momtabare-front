@@ -17,6 +17,10 @@
 **Value:** `ka`  
 **Environment:** Production (and Preview if needed)
 
+**Variable Name:** `VITE_USE_PROXY`  
+**Value:** `true`  
+**Environment:** Production (and Preview if needed)
+
 ### Development Environment Variables (Optional)
 
 **Variable Name:** `VITE_BACKEND_URL`  
