@@ -41,6 +41,8 @@ export default async function handler(req, res) {
     const apiPath = Array.isArray(path) ? path.join('/') : path
     
     // Build the target URL
+    // The apiPath from the route /api/(.*) will be like "en/api/categories"
+    // We need to call https://admin.momtabare.com/en/api/categories
     const targetUrl = `https://admin.momtabare.com/${apiPath}`
     
     // Add query parameters if they exist
@@ -78,6 +80,7 @@ export default async function handler(req, res) {
     console.log(`[PROXY] Backend response status: ${backendResponse.status}`)
     console.log(`[PROXY] Backend response headers:`, Object.fromEntries(backendResponse.headers.entries()))
     console.log(`[PROXY] Response data length: ${data.length}`)
+    console.log(`[PROXY] Response data preview:`, data.substring(0, 200))
     
     // Set the same status code as the backend response
     res.status(backendResponse.status)
@@ -100,7 +103,36 @@ export default async function handler(req, res) {
     res.removeHeader('content-encoding')
     res.removeHeader('transfer-encoding')
     
-    res.send(data)
+    // Handle different response types
+    if (contentType.includes('application/json')) {
+      try {
+        const jsonData = JSON.parse(data)
+        console.log(`[PROXY] Parsed JSON data type:`, typeof jsonData)
+        console.log(`[PROXY] Is array:`, Array.isArray(jsonData))
+        if (Array.isArray(jsonData)) {
+          console.log(`[PROXY] Array length:`, jsonData.length)
+        } else if (jsonData && typeof jsonData === 'object') {
+          console.log(`[PROXY] Object keys:`, Object.keys(jsonData))
+          // If it's an error response, log it but still return it
+          if (jsonData.error || jsonData.message) {
+            console.log(`[PROXY] Error response:`, jsonData)
+          }
+        }
+        res.json(jsonData)
+      } catch (parseError) {
+        console.error(`[PROXY] JSON parse error:`, parseError)
+        console.error(`[PROXY] Raw data:`, data)
+        // Return empty array for categories/pages if parsing fails
+        if (apiPath.includes('categories') || apiPath.includes('pages')) {
+          console.log(`[PROXY] Returning empty array for failed ${apiPath}`)
+          res.json([])
+        } else {
+          res.send(data)
+        }
+      }
+    } else {
+      res.send(data)
+    }
   } catch (error) {
     console.error('Proxy error:', error)
     console.error('Error details:', {
