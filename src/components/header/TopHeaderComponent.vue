@@ -47,13 +47,21 @@ const toggleMenu = () => {
 }
 
 // Watch for changes to isMobileNavOpen prop
-watch(() => props.isMobileNavOpen, (newVal) => {
+watch(() => props.isMobileNavOpen, (newVal: boolean) => {
   isMenuOpen.value = newVal
   document.body.style.overflow = newVal ? 'hidden' : ''
 })
 
 // Use dynamic navigation from backend
-const { rootNavigationItems } = useNavigation();
+const { rootNavigationItems, isLoading: navLoading, error: navError } = useNavigation();
+
+// For debugging navigation loading
+watch(
+  [rootNavigationItems, navLoading, navError],
+  ([items, loading, error]: [any[], boolean, string | null]) => {
+    console.log('Navigation state:', { items, loading, error });
+  }
+);
 
 // Dynamic languages from backend -> ILanguageDisplay
 const languages = ref<ILanguageDisplay[]>([])
@@ -62,7 +70,6 @@ const languages = ref<ILanguageDisplay[]>([])
 function mapBackendLanguageToDisplay(lang: IBackendLanguage, currentLocale: string): ILanguageDisplay {
   const code = (lang.code || lang.locale || '').toLowerCase()
   const label = (code || 'lang').toUpperCase()
-  console.log(lang, "LANG" + code)
   // Prefer backend icon if provided; else use known icons
   let icon: string | undefined
   if (lang.icon) {
@@ -125,6 +132,10 @@ onMounted(() => {
   
   // Initialize i18n locale from app store
   locale.value = appStore.language === ELanguages.KA ? 'ka' : 'en'
+  
+  // Trigger initial navigation load
+  const { loadNavigation } = useNavigation();
+  loadNavigation();
 
   // Load languages only from backend
   ;(async () => {

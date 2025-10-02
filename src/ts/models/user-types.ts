@@ -1,28 +1,45 @@
-// User types definition
+// User types definition - matches Laravel backend database schema
 export interface IUser {
+    // Required fields from database
     id: number
-    first_name: string
-    // Some endpoints use surname instead of last_name
-    surname?: string | null
-    last_name?: string | null
     email: string
-    // Laravel profile fields
+    password?: string // Only included in some responses
+    is_retailer: boolean | number
+    created_at: string
+    updated_at: string
+    
+    // Optional profile fields
+    first_name?: string | null
+    surname?: string | null
     phone?: string | null
+    avatar?: string | null
     personal_id?: string | null
     birth_date?: string | null
     gender?: string | null
-    // Legacy fields kept for compatibility with older screens
-    country_code?: string
-    phone_number?: string
-    profile_picture: string
-    rating_stats: IUserRatingStats
-    products_amount: number
-    comments_amount: number
-    is_retailer: number | boolean
+    
+    // Email verification fields
+    email_verification_token?: string | null
+    verification_code?: string | null
+    verification_expires_at?: string | null
+    email_verified_at?: string | null
+    
+    // Retailer fields
     retailer_status?: string | null
     retailer_requested_at?: string | null
-    is_admin: number
-    created_at: string
+    
+    // Authentication fields
+    remember_token?: string | null
+    
+    // Legacy/compatibility fields
+    last_name?: string | null
+    profile_picture?: string | null
+    country_code?: string
+    phone_number?: string
+    rating_stats?: IUserRatingStats
+    products_amount?: number
+    products_count?: number // Backend uses products_count
+    comments_amount?: number
+    is_admin?: number
 }
 
 export interface IUserRatingStats {
@@ -35,9 +52,12 @@ export interface IUserRatingStats {
     rating_5: number
 }
 
+import type { ComputedRef } from 'vue'
+
 export interface IUserCard {
   icon: string
   title: string
   name: string
   description: string
+  showBadge?: boolean | (() => boolean) | ComputedRef<boolean>
 }

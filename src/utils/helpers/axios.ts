@@ -1,162 +1,131 @@
-import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import { ENV } from '../config/env'
-import { getCurrentLocale } from '@/services/user'
+// src/utils/helpers/axios.ts
+import axios, { 
+  AxiosError, 
+  AxiosResponse, 
+  InternalAxiosRequestConfig
+} from 'axios';
+import { ENV } from '../config/env';
+import { getCurrentLocale } from '@/services/user';
 
-// Create Axios instance configured for JSON APIs
+// Normalize baseURL for local development to avoid accidental HTTPS on 127.0.0.1
+let normalizedBaseUrl = ENV.BACKEND_URL;
+try {
+  const isDev = import.meta.env?.DEV;
+  const isLocal127 = typeof window !== 'undefined' && window.location.hostname === '127.0.0.1';
+  if (isDev && isLocal127 && normalizedBaseUrl.startsWith('https://127.0.0.1')) {
+    normalizedBaseUrl = normalizedBaseUrl.replace('https://', 'http://');
+    console.warn('Adjusted backend URL for dev to HTTP:', normalizedBaseUrl);
+  }
+} catch {}
+
 const AxiosJSON = axios.create({
-  baseURL: ENV.BACKEND_URL,
+  baseURL: normalizedBaseUrl,
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
     'X-Requested-With': 'XMLHttpRequest'
-  }
+  },
 })
 
-// CSRF defaults (helpful for Laravel/Sanctum setups)
+// Configure CSRF token handling
 AxiosJSON.defaults.withCredentials = true
 AxiosJSON.defaults.xsrfCookieName = 'XSRF-TOKEN'
 AxiosJSON.defaults.xsrfHeaderName = 'X-XSRF-TOKEN'
 
-function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
-}
-
-// Request interceptor: attach Authorization and locale
+// Single request interceptor
 AxiosJSON.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (config.url?.includes('/auth/')) {
-      return config
-    }
-
-    const token = getAuthToken()
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
     const locale = getCurrentLocale()
 
     if (config.headers) {
-      config.headers = {
-        ...(config.headers as Record<string, unknown>),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(locale ? { 'Accept-Language': locale, 'X-Localization': locale } : {})
-      } as typeof config.headers
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      if (locale) {
+        config.headers['Accept-Language'] = locale
+        config.headers['X-Localization'] = locale
+      }
+      // CSRF token from cookie
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('XSRF-TOKEN='))
+        ?.split('=')[1]
+      if (csrfToken) {
+        config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken)
+      }
     }
-
     return config
   },
   (error: AxiosError) => Promise.reject(error)
 )
 
-// Response interceptor: debug log and 401 refresh handling
+// Single response interceptor with refresh logic and no hard redirects
 AxiosJSON.interceptors.response.use(
   (response: AxiosResponse) => {
-    if ((response as any)?.data?.debug) {
-      console.log('Debug Information:', (response as any).data.debug)
+    if (response?.data?.debug) {
+      console.log('Debug Information:', response.data.debug)
     }
     return response
   },
-  async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+  async (error: any) => {
+    const originalRequest = error.config
 
-    if (!originalRequest) {
-      return Promise.reject(error)
-    }
-
-    if (originalRequest._retry || error.response?.status !== 401 || originalRequest.url?.includes('/auth/refresh')) {
-      return Promise.reject(error)
-    }
-
-    originalRequest._retry = true
-
-    try {
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (!refreshToken) {
-        throw new Error('No refresh token available')
-      }
-
-      const response = await axios.post(
-        `${ENV.BACKEND_URL}/auth/refresh`,
-        { refresh_token: refreshToken },
-        {
-          withCredentials: true,
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-
-      const { token, refresh_token } = (response as any).data || {}
-
-      if (token) {
-        localStorage.setItem('auth_token', token)
-        if (refresh_token) {
-          localStorage.setItem('refresh_token', refresh_token)
-        }
-
-        if (originalRequest.headers) {
-          originalRequest.headers = {
-            ...(originalRequest.headers as Record<string, unknown>),
-            Authorization: `Bearer ${token}`
-          } as typeof originalRequest.headers
-        }
-
-        return AxiosJSON(originalRequest)
-      }
-
-      throw new Error('Invalid token in response')
-    } catch (refreshError) {
-      console.error('Token refresh failed:', refreshError)
-
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('user_auth_token')
-
+    if (error.response?.status === 401 && !originalRequest?._retry) {
+      originalRequest._retry = true
       try {
-        // Remove any default Authorization header
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (AxiosJSON.defaults.headers as any).common['Authorization']
-      } catch {}
-
-      if (window.location.pathname !== '/login') {
-        setTimeout(() => {
-          window.location.href = '/login?session_expired=true'
-        }, 100)
+        const refreshToken = localStorage.getItem('refresh_token')
+        if (refreshToken) {
+          const response = await axios.post(`${ENV.BACKEND_URL}/auth/refresh`, {
+            refresh_token: refreshToken,
+          })
+          const { token, refresh_token } = response.data
+          localStorage.setItem('auth_token', token)
+          if (refresh_token) {
+            localStorage.setItem('refresh_token', refresh_token)
+          }
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+          }
+          return AxiosJSON(originalRequest)
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError)
+        // Clear tokens without redirecting; UI/router can handle login modal if needed
+        try {
+          const { useAuthStore } = await import('@/pinia/auth.pinia')
+          const authStore = useAuthStore()
+          authStore.clearToken()
+        } catch {}
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_auth_token')
+        return Promise.reject(refreshError)
       }
-
-      return Promise.reject(refreshError)
-    }
-  }
-)
-
-// Error logging interceptor
-AxiosJSON.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error: AxiosError) => {
-    interface ApiErrorResponse {
-      errors?: Record<string, string[]>
-      debug?: any
-      [key: string]: any
     }
 
+    // Non-401 error logging
     if (error.response) {
-      const responseData = error.response.data as ApiErrorResponse
-
-      console.group('API Error Response:')
-      console.log('Status:', error.response.status)
-      console.log('Data:', responseData)
-      console.log('Headers:', error.response.headers)
-
-      if (error.response.status === 422 && responseData?.errors) {
-        console.log('Validation Errors:', responseData.errors)
+      if (error.response.status === 422) {
+        console.group('Laravel Validation Errors:')
+        console.log('Validation Errors:', error.response.data.errors)
+        if (error.response.data.debug) {
+          console.log('Debug Information:', error.response.data.debug)
+        }
+        console.groupEnd()
+      } else {
+        console.group('API Error Response:')
+        console.log('Status:', error.response.status)
+        console.log('Data:', error.response.data)
+        console.log('Headers:', error.response.headers)
+        if (error.response.data?.debug) {
+          console.log('Debug Information:', error.response.data.debug)
+        }
+        console.groupEnd()
       }
-
-      if (responseData?.debug) {
-        console.log('Debug Information:', responseData.debug)
-      }
-
-      console.groupEnd()
-    } else if ((error as any).request) {
-      console.error('Request Error:', (error as any).request)
+    } else if (error.request) {
+      console.error('Request Error:', error.request)
     } else {
       console.error('Error:', error.message)
     }

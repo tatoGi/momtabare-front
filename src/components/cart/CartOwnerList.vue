@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import CartOwnerItem from "@/components/cart/CartOwnerItem.vue"
-import { ICartItem } from "@/ts/models/cart.types.ts"
+import { ICartItem } from "@/ts/models/cart.types"
 import { computed } from "vue"
 
 const props = defineProps<{
@@ -9,7 +9,7 @@ const props = defineProps<{
 
 const owners = computed(() => {
   const ownersMap = new Map()
-  props.cartItems?.forEach((item) => {
+  props.cartItems?.forEach((item) => {  
     const owner = item.product.product_owner
     if (!ownersMap.has(owner.id)) {
       ownersMap.set(owner.id, owner)
@@ -18,7 +18,7 @@ const owners = computed(() => {
   return Array.from(ownersMap.values())
 })
 
-function getCartByOwner(ownerId): ICartItem[] {
+function getCartByOwner(ownerId: number): ICartItem[] {
   return props.cartItems.filter(
     (item) => item.product.product_owner.id === ownerId,
   )

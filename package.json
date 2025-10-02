@@ -18,6 +18,7 @@
     "postinstall": "vite build"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.0.18",
     "@internationalized/date": "^3.5.6",
     "@popperjs/core": "^2.11.8",
     "@types/swiper": "^6.0.0",
@@ -35,8 +36,10 @@
     "lucide-vue-next": "^0.446.0",
     "nprogress": "^0.2.0",
     "pinia": "^2.3.1",
+    "pinia-plugin-persistedstate": "^2.4.0",
     "radix-vue": "^1.9.6",
     "slick-carousel": "^1.8.1",
+    "sweetalert2": "^11.23.0",
     "swiper": "^11.2.10",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
@@ -59,13 +62,16 @@
     "@volar/vue-typescript": "^1.6.5",
     "@vue/runtime-dom": "^3.5.17",
     "@vue/tsconfig": "^0.7.0",
+    "@vueuse/head": "^2.0.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
     "tailwindcss": "^3.4.13",
+    "terser": "^5.44.0",
     "typescript": "^5.8.3",
     "vite": "^5.4.1",
+    "vite-plugin-pages": "^0.33.1",
     "vue-tsc": "^2.0.29"
   }
 }

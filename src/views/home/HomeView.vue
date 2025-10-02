@@ -10,7 +10,7 @@ import type { IProductListItem } from "@/ts/models/product.types.js"
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import BlogList from "@/components/blog/BlogList.vue"
 import { getHomePageData, getBlogPosts } from "@/services/pages"
-import { getProducts } from "@/services/products"
+import { getProducts, getFavoriteProducts, getPopularProducts } from "@/services/products"
 import type { IBanner } from "@/ts/models/page.types"
 import { useAppStore } from "@/pinia/app.pinia"
 import { ELanguages } from "@/ts/pinia/app.types"
@@ -22,7 +22,7 @@ const products = ref<IProductListItem[] | null>(null)
 const homeBanners = ref<IBanner[]>([])
 const blogPosts = ref<any[]>([])
 // Dynamic section data from posts
-type JoinUsData = {
+type JoinUsSection = {
   titleTop?: string
   titleBottom?: string
   descriptions?: string[]
@@ -32,15 +32,15 @@ type JoinUsData = {
   helmetImage?: string
   snowboardImage?: string
 }
-type RentalData = {
+type RentalSection = {
   titleLine1?: string
   titleLine2?: string
   description?: string
   steps?: { title: string; text: string }[]
   imageMain?: string
 }
-const joinUsData = ref<JoinUsData | null>(null)
-const rentalData = ref<RentalData | null>(null)
+const joinUsData = ref<JoinUsSection | null>(null)
+const rentalData = ref<RentalSection | null>(null)
 const appStore = useAppStore()
 
 // Function to fetch home page dynamic data (banners + posts)
@@ -53,22 +53,26 @@ async function fetchHomePageDynamic() {
   // Banners
   homeBanners.value = homePageData?.banners ?? []
   
-  // Fetch popular products
+  // Fetch popular products for popular products section
   try {
-    const productsData = await getProducts()
+    const popularProductsData = await getPopularProducts()
+    let popularProducts: IProductListItem[] = []
     
-    // Handle response structure
-    if (productsData?.products && Array.isArray(productsData.products)) {
-      products.value = productsData.products
-    } else if (Array.isArray(productsData)) {
-      products.value = productsData
+    // Handle popular products response structure
+    if (popularProductsData?.products && Array.isArray(popularProductsData.products)) {
+      popularProducts = popularProductsData.products
+      console.log('Popular products loaded:', popularProducts.length)
+    } else if (Array.isArray(popularProductsData)) {
+      popularProducts = popularProductsData
     } else {
-      console.warn('No products found in response:', productsData)
-      products.value = []
+      console.warn('No popular products found in response:', popularProductsData)
     }
     
+    // Store popular products initially
+    products.value = popularProducts
+    
   } catch (error) {
-    console.error('Error fetching products:', error)
+    console.error('Error fetching popular products:', error)
     products.value = []
   }
   
@@ -106,35 +110,52 @@ async function fetchHomePageDynamic() {
     blogPosts.value = []
   }
 
-  // Products from home page response
+  // Products from home page response - combine with favorite products
   if (homePageData?.products && Array.isArray(homePageData.products)) {
     // Transform backend products to match IProductListItem interface
-    products.value = homePageData.products.slice(0, 8).map((backendProduct: any) => ({
+    const homeProducts: IProductListItem[] = homePageData.products.slice(0, 8).map((backendProduct: any) => ({
       id: backendProduct.id,
       sku: backendProduct.product_identify_id || `product-${backendProduct.id}`,
       slug: backendProduct.slug,
       name: backendProduct.title,
-      price: parseFloat(backendProduct.price?.replace(/[^\d.]/g, '') || '0'),
-      images: [
-        {
-          id: backendProduct.images?.[0]?.id || 1,
-          url: backendProduct.images?.[0]?.image_name ? getAssetUrl(`storage/${backendProduct.images[0].image_name}`) : getAssetUrl('storage/placeholder-image.jpg'),
-          is_primary: true
-        }
-      ],
-      rating: 4.5, // Default rating since backend doesn't provide this
-      reviews_count: 0, // Default since backend doesn't provide this
-      is_favorited: false, // Default since backend doesn't provide this
-      is_popular: true,
-      product_owner: {
+      price: backendProduct.price?.toString() || '0',
+      location: backendProduct.location || 'Tbilisi, Georgia',
+      rating: null,
+      ratings_amount: 0,
+      comments_amount: 0,
+      categories: backendProduct.category ? [{
+        id: backendProduct.category.id,
+        name: {
+          ka: backendProduct.category.title,
+          en: backendProduct.category.title
+        },
+        slug: backendProduct.category.slug,
+        parent: null,
+        children: []
+      }] : [],
+      images: backendProduct.images?.map((img: any) => ({
+        id: img.id || 1,
+        url: img.image_name ? getAssetUrl(`/storage/products/${img.image_name}`) : getAssetUrl('storage/placeholder-image.jpg')
+      })) || [{
         id: 1,
-        name: 'Momtabare',
-        avatar: 'https://via.placeholder.com/50'
-      },
-      location: backendProduct.location || 'Tbilisi, Georgia'
+        url: getAssetUrl('storage/placeholder-image.jpg')
+      }],
+      is_favorite: backendProduct.is_favorite === 1
     }))
-  } else {
-    products.value = null
+
+    // Combine home page products with popular products, remove duplicates
+    const currentProducts = products.value || []
+    const combinedProducts = [...currentProducts]
+    
+    // Add home page products that aren't already in popular products
+    homeProducts.forEach(homeProduct => {
+      const exists = combinedProducts.find(p => p.id === homeProduct.id)
+      if (!exists) {
+        combinedProducts.push(homeProduct)
+      }
+    })
+    
+    products.value = combinedProducts
   }
 
   // Posts -> extract join_us / rental
@@ -255,13 +276,11 @@ const checkIfMobile = () => {
   
   // Consider it mobile if any of these are true
   const mobile = isSmallScreen || isMobileUserAgent || isTouchDevice;
-  
   // Debug information
-  if (import.meta.env.DEV) {
-    const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
-  
+  if (isDev) {
+    // You can add debug logs here if needed, e.g.:
+    // console.log('Viewport meta:', document.querySelector('meta[name="viewport"]'));
   }
-  
   isMobile.value = mobile;
 };
 
@@ -289,8 +308,7 @@ onMounted(() => {
     window.addEventListener('load', checkWithDelay);
   }
   
-  // Fetch home page data
-  fetchHomePageDynamic();
+  // Already fetched above; avoid duplicate call on mount
 });
 
 // Clean up event listeners

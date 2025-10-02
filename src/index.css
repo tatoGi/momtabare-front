@@ -302,3 +302,15 @@ left: 44px;
 opacity: 1;
 margin-bottom: 24px;
 }
+/* comments */
+.comment-title{
+    font-family:' Avenir Next Georgian';
+    font-weight: 800;
+    font-style: ExtraBold;
+    font-size: 20px;
+    line-height: 100%;
+    letter-spacing: 0%;
+    text-transform: uppercase;
+    color: rgba(20, 20, 20, 1);
+    margin-bottom: 16px;
+}

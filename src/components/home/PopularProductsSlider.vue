@@ -7,11 +7,13 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel"
 import { onMounted, ref } from "vue"
+import { useI18n } from "vue-i18n"
+
+const { t } = useI18n()
 
 const props = defineProps<{
   products: IProductListItem[]
 }>()
-
 const isMobile = ref(false)
 
 const checkIfMobile = () => {
@@ -30,7 +32,7 @@ onMounted(() => {
 <template>
   <div class="md:hidden container">
     <h2 class="text-2xl font-extrabold mb-4 dark:text-white product-list-title">
-      {{ $t('popularProducts') }}
+      {{ t('popularProducts') }}
     </h2>
     <Carousel
       :opts="{
@@ -56,7 +58,7 @@ onMounted(() => {
   <!-- Desktop View -->
   <div class="hidden md:block">
     <h2 class="text-2xl font-extrabold mb-4 dark:text-white">
-      {{ $t('popularProducts') }}
+      {{ t('popularProducts') }}
     </h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <ProductItem

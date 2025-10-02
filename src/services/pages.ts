@@ -1,11 +1,13 @@
 import axios from 'axios'
 import { getLocalizedApiUrl } from '@/utils/config/env'
 import { ENV } from '@/utils/config/env'
+import AxiosJSON from '@/utils/helpers/axios'
 import type { IPage, INavigationItem, IPageTranslation, IBanner, IBannerTranslation } from '@/ts/models/page.types'
 
 // Create axios instance for pages API
 const PagesAxios = axios.create({
   baseURL: ENV.BACKEND_URL,
+  withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -34,8 +36,8 @@ export async function getAllPages(): Promise<IPage[] | null> {
     try {
      
       
-      // Fetch from either /en/pages or /ka/pages - both should return same data with all translations
-      const endpoint = '/en/pages' // Use English endpoint as default
+      // Fetch from either /en/api/pages or /ka/api/pages - both should return same data with all translations
+      const endpoint = '/en/api/pages' // Use English endpoint as default
       
       const response = await PagesAxios.get(endpoint)
       
@@ -49,8 +51,6 @@ export async function getAllPages(): Promise<IPage[] | null> {
       return pages
     } catch (error) {
       lastError = error
-      const errorMessage = error instanceof Error ? error.message : String(error)
-     
       
       // If this isn't the last attempt, wait before retrying
       if (attempt < maxRetries) {
@@ -224,22 +224,25 @@ export async function getPageBySlug(slug: string, locale: string = 'ka'): Promis
 export async function getContent(slug: string, locale: string = 'ka') {
   return getPageBySlug(slug, locale)
 }
-// Get blog posts for homepage
-export async function getBlogPosts(): Promise<any> {
-  try {
-    const url = getLocalizedApiUrl('blog-posts')
-    
-    const response = await PagesAxios.get(url)
-    
-    if (response.data) {
-      return response.data
+// Get blog posts for homepage with fallback and shorter per-attempt timeout
+export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
+  const paths = [
+    `/${locale}/api/blog-posts`,
+    `/${locale === 'ka' ? 'en' : 'ka'}/api/blog-posts`,
+  ]
+
+  let lastError: any = null
+  for (const url of paths) {
+    try {
+      const response = await AxiosJSON.get(url, { timeout: 12000 })
+      if (response.data) return response.data
+    } catch (error) {
+      lastError = error
+      // try next path
     }
-    
-    return null
-  } catch (error) {
-    console.error('Error fetching blog posts:', error)
-    return null
   }
+  if (lastError) console.error('Error fetching blog posts:', lastError)
+  return null
 }
 
 // Get home page data with banners

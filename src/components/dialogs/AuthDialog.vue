@@ -23,17 +23,15 @@ import { VisuallyHidden } from "radix-vue"
 const step = ref<string>(EAuthStep.SIGN_IN)
 const userStore = useUserStore()
 
-const computedIsOpen = computed(() => {
-  return userStore.getAuthDialogState
-})
+const isOpen = computed(() => userStore.authDialog)
 const userId = ref<number | null>(null)
 const emailOrPhone = ref<string>("")
 const verificationCode = ref<string>("")
 
 // Handle body scroll prevention for mobile
-watch(computedIsOpen, (isOpen: boolean) => {
+watch(isOpen, (newIsOpen: boolean) => {
   if (typeof window !== 'undefined') {
-    if (isOpen) {
+    if (newIsOpen) {
       document.body.classList.add('mobile-nav-open')
     } else {
       document.body.classList.remove('mobile-nav-open')
@@ -94,7 +92,7 @@ function moveToStep(payload: AuthStepPayload & { verification_code?: string }): 
 }
 
 const closeAuthDialog = () => {
-  userStore.setAuthDialogState(false)
+  userStore.setAuthDialog(false)
   resetAuthSteps()
 }
 
@@ -103,17 +101,17 @@ const closeAuthDialog = () => {
 <template>
   <!-- Mobile Dropdown Overlay -->
   <div class="block lg:hidden">
-    <div @click="userStore.setAuthDialogState(true)">
+    <div @click="userStore.setAuthDialog(true)">
       <slot />
     </div>
 
     <!-- Mobile Auth Overlay -->
     <div 
-      v-if="computedIsOpen" 
+      v-if="isOpen" 
       class="fixed inset-0 z-50 bg-white dark:bg-customBlack"
       :class="{
-        'animate-slide-down': computedIsOpen,
-        'animate-slide-up': !computedIsOpen
+        'animate-slide-down': isOpen,
+        'animate-slide-up': !isOpen
       }"
     >
       <!-- Close Button -->
@@ -174,8 +172,8 @@ const closeAuthDialog = () => {
 
   <!-- Desktop Modal -->
   <div class="hidden lg:block">
-    <Dialog v-model:open="computedIsOpen">
-      <div @click="userStore.setAuthDialogState(true)">
+    <Dialog v-model:open="isOpen">
+      <div @click="userStore.setAuthDialog(true)">
         <slot />
       </div>
 

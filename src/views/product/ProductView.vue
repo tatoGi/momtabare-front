@@ -15,6 +15,7 @@ import {getProductBySku, getProducts} from "@/services/products.ts"
 import Skeleton from "../../components/ui/skeleton/Skeleton.vue"
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from "vue-router"
+import { getAssetUrl } from "@/utils/config/env"
 const route = useRoute()
 
 const response = ref<IGetProductByIdResponse | null>()
@@ -27,6 +28,7 @@ const productLoaded = ref<boolean>(false)
 const commentsLoaded = ref<boolean>(false)
 
 const recommendedProductLoaded = ref<boolean>(false)
+const ownerProductCount = ref<number>(0)
 
 const computedProductSku = computed<string | null>(() => {
   return (route.params.productSku as string) || null
@@ -46,6 +48,7 @@ async function fetchProductData(): Promise<void> {
     setTimeout(() => (productLoaded.value = true), 200)
     await fetchRecommendedProducts()
     await fetchComments()
+    await fetchOwnerProductCount()
   } catch (error) {
     console.error("Error fetching the product:", error)
   }
@@ -63,13 +66,27 @@ async function fetchComments() {
 
   if (!tempProduct || !tempProduct?.id) return
 
-  const response = await getCommentsByProduct(tempProduct.id)
+  const response = await getCommentsByProduct({ id: tempProduct.id })
 
   if (!response) return
 
-  comments.value = response.comments
+  comments.value = response.data
   commentsLoaded.value = true
 }
+
+async function fetchOwnerProductCount() {
+  if (!product.value?.product_owner) return 
+  
+  try {
+    // Use the products_count directly from the product_owner data (backend uses products_count)
+    ownerProductCount.value = product.value.product_owner.products_count || product.value.product_owner.products_amount || 0
+   
+  } catch (error) {
+    console.error('Error setting owner product count:', error)
+    ownerProductCount.value = 0
+  }
+}
+
 
 onMounted(fetchProductData)
 
@@ -98,11 +115,12 @@ watch(
           <ProductDetailsComponent :product="product"/>
           <ProductStatsComponent :product="product"/>
         </div>
-
+        
         <ProductCommentSection
             v-if="commentsLoaded"
             :comments="comments"
             :product="product"
+            @refresh-comments="fetchComments"
         />
 
         <div v-if="!commentsLoaded" class="w-full space-y-5">

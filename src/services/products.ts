@@ -31,7 +31,8 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      }
+      },
+      withCredentials: true
     })
     
     
@@ -55,7 +56,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
         slug: product.category.slug
       }] : [],
       images: product.images || [],
-      is_favorited: false // Not provided by backend yet
+      is_favorite: product.is_favorite === 1 // Map backend is_favorite field
     }))
 
     NProgress.done()
@@ -85,7 +86,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   }
 }
 
-export async function getProductBySku({ sku }: { sku: string }): Promise<{ product: any } | null> {
+export async function getProductBySku({ sku }: { sku: string }): Promise<{ message: string; product: any } | null> {
   try {
     NProgress.start()
     
@@ -97,15 +98,12 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ produ
     
     if (!product) {
       NProgress.done()
-      console.error('Product not found with slug/SKU:', sku)
-      console.log('Available products:', productsResponse.products.map(p => ({ slug: p.slug, sku: p.sku })))
       return null
     }
 
     // Get detailed product data using the ID with locale
     const locale = getCurrentLocale()
     const detailApiUrl = `${API_BASE_URL}/${locale}/products/${product.id}`
-    console.log('🔍 Fetching product details:', detailApiUrl)
     
     const response = await axios.get(detailApiUrl)
     const backendProduct = response.data.data
@@ -124,12 +122,7 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ produ
       views: 0, // Not provided by backend yet
       status: 'available',
       description: backendProduct.description || '',
-      product_owner: {
-        id: 1,
-        first_name: 'მფლობელი',
-        last_name: '',
-        email: 'owner@example.com'
-      },
+      product_owner: backendProduct.product_owner,
       categories: backendProduct.category ? [{
         id: backendProduct.category.id,
         name: {
@@ -143,12 +136,13 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ produ
         id: img.id,
         url: img.url.replace(API_BASE_URL + '/', '') // Remove base URL as component adds it back
       })),
-      is_favorited: false, // Not provided by backend yet
+      is_favorite: false, // Not provided by backend yet
       booked_dates: []
     }
 
     NProgress.done()
     return {
+      message: 'Product fetched successfully',
       product: mappedProduct
     }
   } catch (error) {
@@ -167,17 +161,298 @@ export async function getProductBySeller() {
   };
 }
 
-export async function getFavoriteProducts() {
-  return {
-    products: [
-      { id: 2, name: 'Sample Product', price: 200 }
-    ],
-    total: 1
-  };
+export async function getProductsByUser(userId: number): Promise<{ data: IProductListItem[] }> {
+  try {
+    NProgress.start()
+    const locale = getCurrentLocale()
+    const response = await axios.get(`${API_BASE_URL}/${locale}/api/retailer/user/products`, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+      },
+      params: { user_id: userId }
+    })
+
+    // Handle paginated response structure
+    const paginated = response.data.data
+    const productsArray = Array.isArray(paginated.data) ? paginated.data : []
+
+    const products: IProductListItem[] = productsArray.map((product: any) => {
+      const mappedImages = Array.isArray(product.images)
+        ? product.images.map((img: any) => ({
+            id: img.id ?? 0,
+            url: img.image_name || img.url || img.path || img.image_path || img.file_path || img.src || ''
+          }))
+        : []
+
+      return {
+        id: product.id,
+        name: product.title || 'No Title',
+        sku: product.product_identify_id || `product-${product.id}`,
+        slug: product.slug || `product-${product.id}`,
+        location: product.location || 'Location not specified',
+        price: product.price || '0.00',
+        rating: 0,
+        ratings_amount: 0,
+        comments_amount: 0,
+        categories: product.categories?.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name || 'Uncategorized',
+          slug: cat.slug || `category-${cat.id}`
+        })) || [],
+        images: mappedImages.length ? mappedImages : [{ id: 0, url: '' }],
+        is_favorite: Boolean(product.is_favorite),
+        status: product.status,
+        rental_start_date: product.rental_start_date ?? product.start_date ?? null,
+        rental_end_date: product.rental_end_date ?? product.end_date ?? null
+      } as IProductListItem & { status?: string }
+    })
+
+    // Optionally return pagination info if needed
+    // return { data: products, pagination: paginated }
+    return { data: products }
+  } catch (error) {
+    console.error('Error fetching user products:', error)
+    return { data: [] }
+  } finally {
+    NProgress.done()
+  }
 }
 
-export async function toggleFavoriteProduct(productId: number): Promise<{ success: boolean }> {
-  console.log('Toggling favorite for product:', productId);
-  // In a real implementation, this would make an API call
-  return { success: true };
+export async function getPopularProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
+  try {
+    NProgress.start()
+    const locale = getCurrentLocale()
+    const apiUrl = `${API_BASE_URL}/${locale}/api/products`
+    
+    // Get all products and filter for popular products (is_popular = 1)
+    const response = await axios.get(apiUrl, { 
+      params,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true
+    })
+    
+    // Filter products where is_popular = 1 (only popular products)
+    const allProducts = response.data.data || []
+    const popularProducts = allProducts.filter((product: any) => product.is_popular === 1)
+    
+    const products: IProductListItem[] = popularProducts.map((product: any) => ({
+      id: product.id,
+      name: product.title,
+      sku: product.product_identify_id,
+      slug: product.slug,
+      location: product.location,
+      price: product.price,
+      rating: null,
+      ratings_amount: 0,
+      comments_amount: 0,
+      categories: product.category ? [{
+        id: product.category.id,
+        name: {
+          ka: product.category.title,
+          en: product.category.title
+        },
+        slug: product.category.slug
+      }] : [],
+      images: product.images?.map((img: any) => ({
+        id: img.id,
+        url: img.url ? img.url.replace('/storage/', '/storage/') : `/storage/${img.image_name || 'placeholder.jpg'}`
+      })) || [],
+      is_favorite: product.is_favorite === 1 // Map actual favorite status from backend
+    }))
+
+    NProgress.done()
+    return {
+      message: 'Popular products fetched successfully',
+      products,
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: products.length,
+        total: products.length
+      }
+    }
+  } catch (error) {
+    NProgress.done()
+    console.error('Error fetching popular products:', error)
+    return {
+      message: 'Failed to fetch popular products',
+      products: [],
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: 12,
+        total: 0
+      }
+    }
+  }
+}
+
+export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
+  try {
+    NProgress.start()
+    const locale = getCurrentLocale()
+    const apiUrl = `${API_BASE_URL}/${locale}/products`
+    
+    // Get all products and filter for favorites (is_favorite = 1)
+    const response = await axios.get(apiUrl, { 
+      params,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true
+    })
+    
+    // Filter products where is_favorite = 1 (only actually favorited products)
+    const allProducts = response.data.data || []
+    const favoriteProducts = allProducts.filter((product: any) => product.is_favorite === 1)
+    
+    const products: IProductListItem[] = favoriteProducts.map((product: any) => ({
+      id: product.id,
+      name: product.title,
+      sku: product.product_identify_id,
+      slug: product.slug,
+      location: product.location,
+      price: product.price,
+      rating: null,
+      ratings_amount: 0,
+      comments_amount: 0,
+      categories: product.category ? [{
+        id: product.category.id,
+        name: {
+          ka: product.category.title,
+          en: product.category.title
+        },
+        slug: product.category.slug
+      }] : [],
+      images: product.images?.map((img: any) => ({
+        id: img.id,
+        url: img.url ? img.url.replace('/storage/', '/storage/') : `/storage/${img.image_name || 'placeholder.jpg'}`
+      })) || [],
+      is_favorite: true // All products in this list are favorited
+    }))
+
+    NProgress.done()
+    return {
+      message: 'Favorite products fetched successfully',
+      products,
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: products.length,
+        total: products.length
+      }
+    }
+  } catch (error) {
+    NProgress.done()
+    console.error('Error fetching favorite products:', error)
+    return {
+      message: 'Failed to fetch favorite products',
+      products: [],
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: 12,
+        total: 0
+      }
+    }
+  }
+}
+
+export async function toggleFavoriteProduct(productId: number, currentFavoriteStatus: boolean): Promise<{ success: boolean; is_favorite?: boolean; message?: string }> {
+  try {
+    NProgress.start()
+    const locale = getCurrentLocale()
+    
+    let apiUrl: string
+    let requestData: any
+    
+    if (currentFavoriteStatus) {
+      // Product is currently favorite, so remove it
+      apiUrl = `${API_BASE_URL}/${locale}/remove-from-wishlist`
+      requestData = { product_id: productId }
+    } else {
+      // Product is not favorite, so add it
+      apiUrl = `${API_BASE_URL}/${locale}/add-to-wishlist`
+      requestData = { product_id: productId }
+    }
+    
+    // Prepare headers - include auth token if available
+    const headers: any = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+    
+    const authToken = localStorage.getItem('auth_token')
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`
+    }
+    
+    // Make API call to add/remove favorite
+    const response = await axios.post(apiUrl, requestData, { headers })
+    
+    NProgress.done()
+    const newFavoriteStatus = currentFavoriteStatus ? false : true
+    
+    return {
+      success: true,
+      is_favorite: newFavoriteStatus,
+      message: currentFavoriteStatus 
+        ? 'Product removed from wishlist' 
+        : (response.data.exists ? 'Product already in wishlist' : 'Product added to wishlist')
+    }
+  } catch (error: any) {
+    NProgress.done()
+    
+    // For non-authenticated users, we can still allow wishlist operations
+    // The backend should handle session-based wishlist for non-authenticated users
+    if (error.response?.status === 401) {
+      // Try without authentication - might work for session-based wishlist
+      try {
+        const locale = getCurrentLocale()
+        let apiUrl: string
+        let requestData: any
+        
+        if (currentFavoriteStatus) {
+          apiUrl = `${API_BASE_URL}/${locale}/remove-from-wishlist`
+          requestData = { product_id: productId }
+        } else {
+          apiUrl = `${API_BASE_URL}/${locale}/add-to-wishlist`
+          requestData = { product_id: productId }
+        }
+        
+        const response = await axios.post(apiUrl, requestData, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        const newFavoriteStatus = currentFavoriteStatus ? false : true
+        
+        return {
+          success: true,
+          is_favorite: newFavoriteStatus,
+          message: currentFavoriteStatus 
+            ? 'Product removed from wishlist' 
+            : (response.data.exists ? 'Product already in wishlist' : 'Product added to wishlist')
+        }
+      } catch (retryError: any) {
+        return { 
+          success: false, 
+          message: 'Failed to update wishlist. Please try again.' 
+        }
+      }
+    }
+    
+    return { 
+      success: false, 
+      message: error.response?.data?.message || 'Failed to update wishlist' 
+    }
+  }
 }

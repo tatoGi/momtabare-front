@@ -1,14 +1,13 @@
 <script lang="ts" setup>
-import type { IProduct } from "@/ts/models/product.types.ts"
+import type { IProduct } from "@/ts/models/product.types"
 import { computed } from "vue"
-import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct
 }>()
 
 const computedImageUrl = computed<string>(() => {
-  return `${ENV.BACKEND_URL}/${props.product.images[0].url}`
+  return `${props.product.images[0].url}`
 })
 </script>
 
@@ -18,8 +17,7 @@ const computedImageUrl = computed<string>(() => {
       <img :src="computedImageUrl" alt="productImage" class="w-20 h-20" />
       <div class="flex flex-col gap-2">
         <p class="text-sm font-semibold w-64 truncate-two-lines">
-          {{ product.name }} dfa dfasd fasd fasdf jasi fasdfasodij
-          asdfasdfasdfjasmdfkjn
+          {{ product.name }}
         </p>
         <p class="text-xs text-customBlack/70 font-medium">2 დღე</p>
       </div>

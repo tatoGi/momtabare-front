@@ -5,11 +5,8 @@ import { useAppStore } from "@/pinia/app.pinia.ts"
 import { useCartStore } from "@/pinia/cart.pinia.ts"
 import { useCategoryStore } from "@/pinia/category.pinia"
 import { useOrderStore } from "@/pinia/order.pinia"
-import { useUserStore } from "@/pinia/user.pinia"
 import { onMounted, watch } from "vue"
-
 const appStore = useAppStore()
-const userStore = useUserStore()
 const categoryStore = useCategoryStore()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
@@ -20,16 +17,15 @@ onMounted(async () => {
   if (theme) {
     appStore.darkMode = true
   }
-
+  // Authentication is initialized in main.ts - no need to call again
   await categoryStore.fetchCategories()
-  await userStore.fetchUser()
   await cartStore.fetchCart()
   await orderStore.fetchOrders()
 })
 
 watch(
   () => appStore.darkMode,
-  (isDarkMode) => {
+  (isDarkMode: boolean) => {
     const html = document.documentElement
     if (isDarkMode) {
       html.classList.add("dark")

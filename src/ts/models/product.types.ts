@@ -23,7 +23,7 @@ export interface IProduct {
   categories: ICategory[]
   comments_amount: number
   images: IProductThumbnail[]
-  is_favorited : boolean
+  is_favorite : boolean
   booked_dates : IBookedDate[]
 }
 
@@ -52,5 +52,5 @@ export interface IProductListItem {
   comments_amount: number
   categories: ICategory[]
   images: IProductThumbnail[]
-  is_favorited : boolean
+  is_favorite : boolean
 }

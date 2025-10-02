@@ -7,10 +7,21 @@ const isVercel = typeof window !== 'undefined' && window.location.hostname.inclu
 const getBackendUrl = (): string => {
   // Production environment (Vercel)
   if (isProduction) {
-    const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'http://system.momtabare.com'
+    // Use Vercel proxy to avoid CORS issues
+    const prodUrl = import.meta.env.VITE_BACKEND_URL_PRODUCTION || 'https://admin.momtabare.com'
+    const useProxy = import.meta.env.VITE_USE_PROXY !== 'false' // Default to true
+    
+    if (useProxy && isVercel) {
+      // Use relative path for proxy
+      const proxyUrl = '/api'
+      console.log('🌐 Production Mode - Using Vercel proxy URL:', proxyUrl)
+      return proxyUrl
+    }
+    
     console.log('🌐 Production Mode - Using backend URL:', prodUrl)
     console.log('🔍 Environment variables:', {
       VITE_BACKEND_URL_PRODUCTION: import.meta.env.VITE_BACKEND_URL_PRODUCTION,
+      VITE_USE_PROXY: import.meta.env.VITE_USE_PROXY,
       PROD: import.meta.env.PROD,
       MODE: import.meta.env.MODE
     })
@@ -18,8 +29,15 @@ const getBackendUrl = (): string => {
   }
   
   // Development environment (localhost)
-  const devUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
-  console.log('🔧 Development Mode - Using backend URL:', devUrl)
+  let devUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
+  // Normalize: avoid HTTPS on 127.0.0.1 in dev which causes ERR_CONNECTION_CLOSED
+  try {
+    const isLocal127 = typeof window !== 'undefined' && window.location.hostname === '127.0.0.1'
+    if (isDevelopment && isLocal127 && devUrl.startsWith('https://127.0.0.1')) {
+      devUrl = devUrl.replace('https://', 'http://')
+      console.warn('Adjusted dev backend URL to HTTP:', devUrl)
+    }
+  } catch {}
   return devUrl
 }
 
@@ -37,7 +55,7 @@ export const getEnvironmentInfo = () => {
 // Helper function to get backend URL with protocol fallback
 export const getBackendUrlWithFallback = (preferHttps: boolean = true): string => {
   if (import.meta.env.PROD) {
-    const domain = 'system.momtabare.com'
+    const domain = 'admin.momtabare.com'
     return preferHttps ? `https://${domain}` : `http://${domain}`
   }
   return import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
@@ -49,7 +67,7 @@ export const ENV = {
   BACKEND_URL: getBackendUrl(),
   
   // API endpoints with locale support
-  API_BASE_URL: `${getBackendUrl()}/api`,
+  API_BASE_URL: `${getBackendUrl()}`,
   
   // Asset URLs (for images, files, etc.)
   ASSET_URL: getBackendUrl(),
@@ -85,7 +103,7 @@ export const getApiUrl = (endpoint: string, locale?: string): string => {
 export const getLocalizedApiUrl = (endpoint: string, locale: string = ENV.DEFAULT_LOCALE): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
-  return `${ENV.BACKEND_URL}/${locale}/${cleanEndpoint}`
+  return `${ENV.BACKEND_URL}/${locale}/api/${cleanEndpoint}`
 }
 
 // Helper function to get pages URL (as you mentioned /en/pages)

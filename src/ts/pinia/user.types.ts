@@ -4,4 +4,7 @@ export interface IUserState {
   user: IUser | null
   authDialogState: boolean
   _isSettingAuthDialog?: boolean
+  _initializingAuth?: boolean
+  isAuthenticated: boolean
+  isInitialized: boolean
 }

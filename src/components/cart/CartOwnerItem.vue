@@ -1,13 +1,33 @@
 <script lang="ts" setup>
 import CartProductItem from "@/components/cart/CartProductItem.vue"
 import {Checkbox} from "@/components/ui/checkbox"
-import {ICartItem} from "@/ts/models/cart.types.ts"
+import {ICartItem} from "@/ts/models/cart.types"
 import type { IUser } from "@/ts/models/user-types"
+import { getAssetUrl } from "@/utils/config/env"
 
 defineProps<{
   ownerCart: ICartItem[]
   owner: IUser
+  
 }>()
+
+function getAvatarUrl(avatar: string): string {
+  if (!avatar) return ''
+  
+  // If avatar already has full URL, use it as is
+  if (avatar.startsWith('http')) {
+    return avatar
+  }
+  
+  // Otherwise, construct URL using backend base URL
+  return getAssetUrl(`/storage/${avatar}`)
+}
+
+function getInitials(firstName?: string, lastName?: string): string {
+  const first = firstName?.charAt(0)?.toUpperCase() || ''
+  const last = lastName?.charAt(0)?.toUpperCase() || ''
+  return first + last
+}
 </script>
 
 <template>
@@ -20,11 +40,24 @@ defineProps<{
 
         <div class="flex items-center gap-2 py-4">
           <div
-              class="border border-customBlack/10 dark:border-white/10 w-10 h-10 rounded-full"
-          />
+              class="border border-customBlack/10 dark:border-white/10 w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800"
+          >
+            <img 
+              v-if="owner.avatar" 
+              :src="getAvatarUrl(owner.avatar)" 
+              :alt="owner.first_name"
+              class="w-full h-full object-cover"
+            />
+            <div 
+              v-else 
+              class="w-full h-full flex items-center justify-center text-customRed font-bold text-sm"
+            >
+              {{ getInitials(owner.first_name, owner.surname || owner.last_name) }}
+            </div>
+          </div>
           <div class="flex flex-col gap-0.5">
             <h2 class="text-sm font-semibold dark:text-white">
-              {{ owner.first_name + owner.last_name }}
+              {{ owner.first_name }} {{ owner.surname || owner.last_name }}
             </h2>
             <p class="text-customBlack/70 dark:text-white/70 text-xs">
               შეფასება (9.1)
