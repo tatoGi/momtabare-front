@@ -103,14 +103,9 @@ export const getApiUrl = (endpoint: string, locale?: string): string => {
 export const getLocalizedApiUrl = (endpoint: string, locale: string = ENV.DEFAULT_LOCALE): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
-  
-  // If using Vercel proxy, don't add /api prefix since the proxy route already has it
-  const useProxy = import.meta.env.VITE_USE_PROXY !== 'false' // Default to true
-  if (isProduction && useProxy && isVercel) {
-    return `${ENV.BACKEND_URL}/${locale}/${cleanEndpoint}`
-  }
-  
-  return `${ENV.BACKEND_URL}/${locale}/api/${cleanEndpoint}`
+  // Always return a locale-prefixed path relative to BACKEND_URL.
+  // Ensure BACKEND_URL itself is set to the correct host or proxy base.
+  return `${ENV.BACKEND_URL}/${locale}/${cleanEndpoint}`
 }
 
 // Helper function to get pages URL (as you mentioned /en/pages)
