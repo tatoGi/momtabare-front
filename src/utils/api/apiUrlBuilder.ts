@@ -1,4 +1,3 @@
-import { getLocalizedApiUrl } from "../../utils/config/env"
 import { API_ROUTES } from "@/config/api.routes"
 
 /**
@@ -13,9 +12,15 @@ function buildApiUrl(
   locale: string = 'en',
   params: Record<string, string | number> = {}
 ): string {
+  // Build a relative locale-prefixed path; Axios baseURL will prepend the host
+  const localizedPath = (endpoint: string, loc: string) => {
+    const clean = endpoint.replace(/^\//, '')
+    return `/${loc}/${clean}`
+  }
+
   // Handle direct paths (starting with /)
   if (path.startsWith('/')) {
-    return getLocalizedApiUrl(path, locale)
+    return localizedPath(path, locale)
   }
 
   // Handle route keys (e.g., 'auth.register')
@@ -33,11 +38,11 @@ function buildApiUrl(
     // Handle function routes
     if (typeof route === 'function') {
       const dynamicPath = route(params)
-      return getLocalizedApiUrl(dynamicPath, locale)
+      return localizedPath(dynamicPath, locale)
     }
 
     // Handle string routes
-    return getLocalizedApiUrl(route, locale)
+    return localizedPath(route, locale)
   } catch (error) {
     console.error('Error building API URL:', error)
     return ''
