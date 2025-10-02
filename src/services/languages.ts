@@ -23,7 +23,7 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
     return cachedLanguages
   }
 
-  const endpoint = `/${locale}/api/languages`
+  const endpoint = `/${locale}/languages`
   const maxRetries = 3
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

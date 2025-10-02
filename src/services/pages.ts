@@ -36,8 +36,8 @@ export async function getAllPages(): Promise<IPage[] | null> {
     try {
      
       
-      // Fetch from either /en/api/pages or /ka/api/pages - both should return same data with all translations
-      const endpoint = '/en/api/pages' // Use English endpoint as default
+      // Fetch from either /en/pages or /ka/pages - both should return same data with all translations
+      const endpoint = '/en/pages' // Use English endpoint as default
       
       const response = await PagesAxios.get(endpoint)
       
@@ -227,8 +227,8 @@ export async function getContent(slug: string, locale: string = 'ka') {
 // Get blog posts for homepage with fallback and shorter per-attempt timeout
 export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
   const paths = [
-    `/${locale}/api/blog-posts`,
-    `/${locale === 'ka' ? 'en' : 'ka'}/api/blog-posts`,
+    `/${locale}/blog-posts`,
+    `/${locale === 'ka' ? 'en' : 'ka'}/blog-posts`,
   ]
 
   let lastError: any = null

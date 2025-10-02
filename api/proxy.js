@@ -41,8 +41,8 @@ export default async function handler(req, res) {
     const apiPath = Array.isArray(path) ? path.join('/') : path
     
     // Build the target URL
-    // The apiPath from the route /api/(.*) will be like "en/products" or "en/api/categories"
-    // We need to call https://admin.momtabare.com/en/api/products or https://admin.momtabare.com/en/api/categories
+    // The apiPath from the route /api/(.*) will be like "en/products", "en/pages", "en/languages"
+    // We need to call https://admin.momtabare.com/en/api/products, https://admin.momtabare.com/en/api/pages, etc.
     let targetUrl
     if (apiPath.includes('/api/')) {
       // If path already includes /api/, use it directly
