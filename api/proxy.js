@@ -47,21 +47,24 @@ export default async function handler(req, res) {
     const urlParams = new URLSearchParams(queryParams)
     const finalUrl = urlParams.toString() ? `${targetUrl}?${urlParams.toString()}` : targetUrl
     
-    console.log(`[PROXY] ${req.method} ${finalUrl}`)
-    
     // Prepare headers for the backend request
     const backendHeaders = {
       'Authorization': req.headers.authorization || '',
       'Accept-Language': req.headers['accept-language'] || '',
       'X-Localization': req.headers['x-localization'] || '',
       'X-XSRF-TOKEN': req.headers['x-xsrf-token'] || '',
-      'X-Requested-With': 'XMLHttpRequest'
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json',
+      'Accept-Encoding': 'identity' // Disable compression to avoid decoding issues
     }
     
     // Only add Content-Type for requests with body
     if (req.method !== 'GET' && req.method !== 'DELETE') {
       backendHeaders['Content-Type'] = 'application/json'
     }
+
+    console.log(`[PROXY] ${req.method} ${finalUrl}`)
+    console.log(`[PROXY] Request headers:`, backendHeaders)
 
     // Forward the request to the backend
     const backendResponse = await fetch(finalUrl, {
@@ -72,15 +75,30 @@ export default async function handler(req, res) {
 
     const data = await backendResponse.text()
     
+    console.log(`[PROXY] Backend response status: ${backendResponse.status}`)
+    console.log(`[PROXY] Backend response headers:`, Object.fromEntries(backendResponse.headers.entries()))
+    console.log(`[PROXY] Response data length: ${data.length}`)
+    
     // Set the same status code as the backend response
     res.status(backendResponse.status)
     
-    // Forward response headers
+    // Set content type explicitly
+    const contentType = backendResponse.headers.get('content-type') || 'application/json'
+    res.setHeader('Content-Type', contentType)
+    
+    // Forward other response headers (excluding CORS and compression headers)
     backendResponse.headers.forEach((value, key) => {
-      if (!key.toLowerCase().startsWith('access-control-')) {
+      const lowerKey = key.toLowerCase()
+      if (!lowerKey.startsWith('access-control-') && 
+          !lowerKey.startsWith('content-encoding') &&
+          !lowerKey.startsWith('transfer-encoding')) {
         res.setHeader(key, value)
       }
     })
+    
+    // Ensure no compression headers are sent to client
+    res.removeHeader('content-encoding')
+    res.removeHeader('transfer-encoding')
     
     res.send(data)
   } catch (error) {
