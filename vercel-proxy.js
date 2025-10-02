@@ -4,6 +4,7 @@ export default async function handler(req, res) {
   const origin = req.headers.origin || req.headers.host
   
   // Define allowed origins for production
+  // cors
   const allowedOrigins = [
     'https://momtabare-front.vercel.app',
     'https://momtabare-front-git-main.vercel.app',
