@@ -43,12 +43,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Extract the path from the request
+    // Extract the path from the request (support both catch-all and direct /api/* invocations)
     const { path, ...queryParams } = req.query
-    const apiPath = Array.isArray(path) ? path.join('/') : (path || '')
+    const urlPath = (req.url || '').split('?')[0] || ''
+    const pathFromUrl = urlPath.startsWith('/api/') ? urlPath.slice(5) : ''
+    const rawPath = Array.isArray(path) ? path.join('/') : (typeof path === 'string' ? path : '')
+    const apiPath = rawPath || pathFromUrl
     
-    console.log(`[PROXY] Raw path:`, req.query.path)
-    console.log(`[PROXY] Processed apiPath:`, apiPath)
+    console.log(`[PROXY] Raw path from query:`, req.query.path)
+    console.log(`[PROXY] Path from URL:`, pathFromUrl)
+    console.log(`[PROXY] Final apiPath:`, apiPath)
     
     // Validate apiPath
     if (!apiPath || typeof apiPath !== 'string') {
