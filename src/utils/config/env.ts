@@ -103,7 +103,7 @@ export const getAssetUrl = (path: string): string => {
 }
 
 // Helper function to get API URL with optional locale
-export const getApiUrl = (endpoint: string, locale?: string): string => {
+export const getApiUrl = (endpoint: string): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   
@@ -112,7 +112,7 @@ export const getApiUrl = (endpoint: string, locale?: string): string => {
 }
 
 // Helper function to get localized API URL
-export const getLocalizedApiUrl = (endpoint: string, locale: string = ENV.DEFAULT_LOCALE): string => {
+export const getLocalizedApiUrl = (endpoint: string): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   // Always use /api prefix without locale (locale goes in headers)
@@ -120,6 +120,6 @@ export const getLocalizedApiUrl = (endpoint: string, locale: string = ENV.DEFAUL
 }
 
 // Helper function to get pages URL
-export const getPagesUrl = (locale: string = 'en'): string => {
+export const getPagesUrl = (): string => {
   return `${ENV.BACKEND_URL}/api/pages`
 }

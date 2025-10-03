@@ -1,15 +1,15 @@
 // API Route configuration
 const API_ROUTES = {
   auth: {
-    register: '/send-registration-email',
-    verifyPhone: '/verify-phone',
-    verifyEmail: '/verify-email',
-    verifyCode: '/verify-email-code',
-    resendPhoneCode: '/resend-phone-verification',
-    resendEmailCode: '/resend-email-verification',
-    completeRegistration: '/complete-registration',
-    signIn: '/login',
-    signOut: '/logout',
+    register: '/api/send-registration-email',
+    verifyPhone: '/api/verify-phone',
+    verifyEmail: '/api/verify-email',
+    verifyCode: '/api/verify-email-code',
+    resendPhoneCode: '/api/resend-phone-verification',
+    resendEmailCode: '/api/resend-email-verification',
+    completeRegistration: '/api/complete-registration',
+    signIn: '/api/login',
+    signOut: '/api/logout',
   },
   products: {
     list: '/products',
