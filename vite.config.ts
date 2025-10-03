@@ -37,7 +37,7 @@ export default defineConfig({
       '^/api/.*': {
         target: 'https://admin.momtabare.com',
         changeOrigin: true,
-        secure: true,
+        secure: false,
         rewrite: (path) => {
           console.log('Proxying request:', path);
           return path;
