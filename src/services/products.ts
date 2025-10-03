@@ -22,15 +22,17 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = `${API_BASE_URL}/${locale}/products`
+    const apiUrl = `${API_BASE_URL}/api/products`
     
     
-    // Use localized API endpoint: /en/products or /ka/products
+    // Use API endpoint with locale in headers: /api/products
     const response = await axios.get(apiUrl, { 
       params,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Accept-Language': locale,
+        'X-Localization': locale,
       },
       withCredentials: true
     })
@@ -102,8 +104,7 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
     }
 
     // Get detailed product data using the ID with locale
-    const locale = getCurrentLocale()
-    const detailApiUrl = `${API_BASE_URL}/${locale}/products/${product.id}`
+    const detailApiUrl = `${API_BASE_URL}/api/products/${product.id}`
     
     const response = await axios.get(detailApiUrl)
     const backendProduct = response.data.data
@@ -164,8 +165,7 @@ export async function getProductBySeller() {
 export async function getProductsByUser(userId: number): Promise<{ data: IProductListItem[] }> {
   try {
     NProgress.start()
-    const locale = getCurrentLocale()
-    const response = await axios.get(`${API_BASE_URL}/${locale}/retailer/user/products`, {
+    const response = await axios.get(`${API_BASE_URL}/api/retailer/user/products`, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -223,8 +223,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
 export async function getPopularProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const locale = getCurrentLocale()
-    const apiUrl = `${API_BASE_URL}/${locale}/products`
+    const apiUrl = `${API_BASE_URL}/api/products`
     
     // Get all products and filter for popular products (is_popular = 1)
     const response = await axios.get(apiUrl, { 
@@ -295,8 +294,7 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
 export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const locale = getCurrentLocale()
-    const apiUrl = `${API_BASE_URL}/${locale}/products`
+    const apiUrl = `${API_BASE_URL}/api/products`
     
     // Get all products and filter for favorites (is_favorite = 1)
     const response = await axios.get(apiUrl, { 
@@ -367,18 +365,17 @@ export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<I
 export async function toggleFavoriteProduct(productId: number, currentFavoriteStatus: boolean): Promise<{ success: boolean; is_favorite?: boolean; message?: string }> {
   try {
     NProgress.start()
-    const locale = getCurrentLocale()
     
     let apiUrl: string
     let requestData: any
     
     if (currentFavoriteStatus) {
       // Product is currently favorite, so remove it
-      apiUrl = `${API_BASE_URL}/${locale}/remove-from-wishlist`
+      apiUrl = `${API_BASE_URL}/api/remove-from-wishlist`
       requestData = { product_id: productId }
     } else {
       // Product is not favorite, so add it
-      apiUrl = `${API_BASE_URL}/${locale}/add-to-wishlist`
+      apiUrl = `${API_BASE_URL}/api/add-to-wishlist`
       requestData = { product_id: productId }
     }
     
@@ -414,15 +411,14 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     if (error.response?.status === 401) {
       // Try without authentication - might work for session-based wishlist
       try {
-        const locale = getCurrentLocale()
         let apiUrl: string
         let requestData: any
         
         if (currentFavoriteStatus) {
-          apiUrl = `${API_BASE_URL}/${locale}/remove-from-wishlist`
+          apiUrl = `${API_BASE_URL}/api/remove-from-wishlist`
           requestData = { product_id: productId }
         } else {
-          apiUrl = `${API_BASE_URL}/${locale}/add-to-wishlist`
+          apiUrl = `${API_BASE_URL}/api/add-to-wishlist`
           requestData = { product_id: productId }
         }
         

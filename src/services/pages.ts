@@ -36,10 +36,15 @@ export async function getAllPages(): Promise<IPage[] | null> {
     try {
      
       
-      // Fetch from either /en/pages or /ka/pages - both should return same data with all translations
-      const endpoint = '/en/pages' // Use English endpoint as default
+      // Fetch from /api/pages - locale is sent in headers
+      const endpoint = '/api/pages'
       
-      const response = await PagesAxios.get(endpoint)
+      const response = await PagesAxios.get(endpoint, {
+        headers: {
+          'Accept-Language': 'en',
+          'X-Localization': 'en'
+        }
+      })
       
       // Handle different response structures
       const data = response.data
@@ -80,9 +85,14 @@ export async function getPages(_locale: string = 'en'): Promise<IPage[] | null> 
 // Get localized API data
 export async function getLocalizedData(endpoint: string, locale: string = 'ka') {
   try {
-    // This will call: http://system.momtabare.com/ka/{endpoint}
+    // This will call: /api/{endpoint} with locale in headers
     const url = getLocalizedApiUrl(endpoint, locale)
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
+    })
     return await response.json()
   } catch (error) {
     console.error(`Error fetching ${endpoint}:`, error)
@@ -226,23 +236,19 @@ export async function getContent(slug: string, locale: string = 'ka') {
 }
 // Get blog posts for homepage with fallback and shorter per-attempt timeout
 export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
-  const paths = [
-    `/${locale}/blog-posts`,
-    `/${locale === 'ka' ? 'en' : 'ka'}/blog-posts`,
-  ]
-
-  let lastError: any = null
-  for (const url of paths) {
-    try {
-      const response = await AxiosJSON.get(url, { timeout: 12000 })
-      if (response.data) return response.data
-    } catch (error) {
-      lastError = error
-      // try next path
-    }
+  try {
+    const response = await AxiosJSON.get('/api/blog-posts', { 
+      timeout: 12000,
+      headers: {
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error fetching blog posts:', error)
+    return null
   }
-  if (lastError) console.error('Error fetching blog posts:', lastError)
-  return null
 }
 
 // Get home page data with banners

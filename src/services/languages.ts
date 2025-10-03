@@ -23,7 +23,7 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
     return cachedLanguages
   }
 
-  const endpoint = `/${locale}/languages`
+  const endpoint = `/api/languages`
   const maxRetries = 3
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -32,6 +32,8 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
+          'Accept-Language': locale,
+          'X-Localization': locale,
         },
       })
       const data = response.data

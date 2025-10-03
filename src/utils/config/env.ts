@@ -29,15 +29,30 @@ const getBackendUrl = (): string => {
   }
   
   // Development environment (localhost)
-  let devUrl = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
-  // Normalize: avoid HTTPS on 127.0.0.1 in dev which causes ERR_CONNECTION_CLOSED
-  try {
-    const isLocal127 = typeof window !== 'undefined' && window.location.hostname === '127.0.0.1'
-    if (isDevelopment && isLocal127 && devUrl.startsWith('https://127.0.0.1')) {
-      devUrl = devUrl.replace('https://', 'http://')
-      console.warn('Adjusted dev backend URL to HTTP:', devUrl)
+  let devUrl = import.meta.env.VITE_BACKEND_URL
+  
+  // If VITE_BACKEND_URL is empty, use relative URLs (will use Vite proxy)
+  if (!devUrl || devUrl.trim() === '') {
+    devUrl = '' // Empty string means relative URLs
+    console.log('🔧 Development Mode - Using relative URLs with Vite proxy')
+  } else {
+    // Remove /api suffix if present in development URL
+    if (isDevelopment && devUrl.endsWith('/api')) {
+      devUrl = devUrl.replace('/api', '')
+      console.warn('Removed /api suffix from development backend URL:', devUrl)
     }
-  } catch {}
+    // Normalize: avoid HTTPS on 127.0.0.1 in dev which causes ERR_CONNECTION_CLOSED
+    try {
+      const isLocal127 = typeof window !== 'undefined' && window.location.hostname === '127.0.0.1'
+      if (isDevelopment && isLocal127 && devUrl.startsWith('https://127.0.0.1')) {
+        devUrl = devUrl.replace('https://', 'http://')
+        console.warn('Adjusted dev backend URL to HTTP:', devUrl)
+      }
+    } catch {}
+    
+    console.log('🔧 Development Mode - Using backend URL:', devUrl)
+  }
+  
   return devUrl
 }
 
@@ -58,7 +73,7 @@ export const getBackendUrlWithFallback = (preferHttps: boolean = true): string =
     const domain = 'admin.momtabare.com'
     return preferHttps ? `https://${domain}` : `http://${domain}`
   }
-  return import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'
+  return import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000/api'
 }
 
 // Environment configuration
@@ -92,23 +107,19 @@ export const getApiUrl = (endpoint: string, locale?: string): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
   
-  if (locale) {
-    return `${ENV.BACKEND_URL}/${locale}/${cleanEndpoint}`
-  }
-  
-  return `${ENV.API_BASE_URL}/${cleanEndpoint}`
+  // Always use /api prefix without locale (locale goes in headers)
+  return `${ENV.BACKEND_URL}/api/${cleanEndpoint}`
 }
 
 // Helper function to get localized API URL
 export const getLocalizedApiUrl = (endpoint: string, locale: string = ENV.DEFAULT_LOCALE): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
-  // Always return a locale-prefixed path relative to BACKEND_URL.
-  // Ensure BACKEND_URL itself is set to the correct host or proxy base.
-  return `${ENV.BACKEND_URL}/${locale}/${cleanEndpoint}`
+  // Always use /api prefix without locale (locale goes in headers)
+  return `${ENV.BACKEND_URL}/api/${cleanEndpoint}`
 }
 
-// Helper function to get pages URL (as you mentioned /en/pages)
+// Helper function to get pages URL
 export const getPagesUrl = (locale: string = 'en'): string => {
-  return `${ENV.BACKEND_URL}/${locale}/pages`
+  return `${ENV.BACKEND_URL}/api/pages`
 }

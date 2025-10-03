@@ -33,7 +33,27 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     proxy: {
-      // Add any API proxies here if needed
+      // Proxy API calls to production backend to avoid CORS issues
+      '^/api/.*': {
+        target: 'https://admin.momtabare.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => {
+          console.log('Proxying request:', path);
+          return path;
+        },
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('Proxy error:', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to Target:', req.method, req.url, '->', proxyReq.path);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from Target:', proxyRes.statusCode, req.url);
+          });
+        },
+      }
     }
   },
   build: {
