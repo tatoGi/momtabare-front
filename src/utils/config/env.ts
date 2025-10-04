@@ -78,32 +78,22 @@ export const getAssetUrl = (path: string): string => {
 console.log('🌐 Environment Configuration:', {
   BACKEND_URL: ENV.BACKEND_URL,
   NODE_ENV: import.meta.env.MODE,
-  isProduction,
   isDevelopment,
   isVercel,
   isProductionDomain
 });
 
-// Helper function to get localized API URL
-export const getLocalizedApiUrl = (endpoint: string, locale: string = 'ka'): string => {
-  // Remove leading slash if present
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  
-  // Get the base API URL
-  const baseUrl = getBackendUrl();
-  
-  // Handle API URL construction based on the environment
-  if (isProduction && isProductionDomain) {
-    // In production with custom domain, use /api prefix
-    return `/api/${locale}/${cleanEndpoint}`;
-  } else if (isVercel) {
-    // In Vercel preview/development, use full URL
-    return `${baseUrl}/api/${locale}/${cleanEndpoint}`;
-  } else {
-    // In local development
-    return `${baseUrl}/api/${locale}/${cleanEndpoint}`;
-  }
-};
+/**
+ * Get API URL without locale prefix
+ * @param endpoint - The API endpoint (e.g., 'categories', 'auth/login')
+ * @returns Full API URL with the endpoint
+ */
+export function getLocalizedApiUrl(endpoint: string): string {
+  // Remove any leading slashes from endpoint
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+  // Return URL without locale prefix
+  return `${getBackendUrl()}/api/${cleanEndpoint}`;
+}
 
 // Environment info for debugging
 export const getEnvironmentInfo = () => {

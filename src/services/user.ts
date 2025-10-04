@@ -1,4 +1,3 @@
-import axios from "axios"
 import AxiosJSON from "../utils/helpers/axios"
 import type { IUser } from "../ts/models/user-types"
 import { getLocalizedApiUrl } from '../utils/config/env'
@@ -8,8 +7,7 @@ import { ELanguages } from '../ts/pinia/app.types'
 // Get all users (Laravel: GET /users)
 export async function getAllUsers(): Promise<{ users: IUser[] } | null> {
   try {
-    const locale = getCurrentLocale()
-    const response = await AxiosJSON.get(getLocalizedApiUrl('/users', locale), {
+    const response = await AxiosJSON.get(getLocalizedApiUrl('users'), {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -49,87 +47,58 @@ export function getCurrentLocale(): string {
  */
 export async function getUser(): Promise<IUser | null> {
   try {
-    const locale = getCurrentLocale()
-    // Prefer non-localized /me for auth endpoints; attach Bearer as fallback
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
-    let resp: any
+    const locale = getCurrentLocale();
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
+    
+    // Prepare headers
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-Localization': locale,
+      'Accept-Language': locale
+    };
+
+    // Add authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Try with the localized API URL first
     try {
-      resp = await AxiosJSON.get(getLocalizedApiUrl('/me', locale), {
+      const response = await AxiosJSON.get(getLocalizedApiUrl('me'), {
         withCredentials: true,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          'X-Localization': locale,
-          'Accept-Language': locale,
-        }
-      })
-    } catch (e: any) {
-      resp = await AxiosJSON.get('/me', {
-        withCredentials: true,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          'X-Localization': locale,
-          'Accept-Language': locale,
-        }
-      })
-    }
+        headers
+      });
 
-
-    // Handle different response formats
-    const data = resp.data
-
-    // Your backend returns: { success: true, data: { ...user } }
-    const user: IUser | null = data?.success && data?.data ? data.data as IUser : null
-    if (!user) {
-      console.warn('getUser: unexpected response shape', data)
-      return null
-    }
-
-    // If we got a token in the response, store it
-    if (data.token) {
-      localStorage.setItem('auth_token', data.token)
-    }
-
-    return user
-  } catch (error) {
-    console.error('❌ getUser failed:', error)
-
-    // If we get a 401, clear any invalid tokens
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      console.log('🚫 401 Unauthorized - clearing authentication tokens')
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user_auth_token')
-
-      // If this was an API call (not the initial auth check), try to refresh the session
-      if (!error.config?.url?.includes('/me')) {
-        try {
-          console.log('🔄 Attempting to refresh CSRF token and retry...')
-          // Try to refresh the CSRF token and session
-          const retryLocale = getCurrentLocale()
-          try {
-            await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', retryLocale), {
-              withCredentials: true
-            })
-          } catch (e) {
-            await AxiosJSON.get('/sanctum/csrf-cookie', { withCredentials: true })
-          }
-
-          // Retry the original request
-          console.log('🔄 Retrying user fetch...')
-          return getUser()
-        } catch (refreshError) {
-          console.error('❌ Failed to refresh session:', refreshError)
-        }
+      // Handle successful response
+      const data = response.data;
+      
+      // Handle different response formats
+      if (data?.success && data?.data) {
+        // Format: { success: true, data: { ...user } }
+        return data.data as IUser;
+      } else if (data?.id) {
+        // Direct user object
+        return data as IUser;
       }
-
-      return null
+      
+      console.warn('Unexpected response format from /me endpoint:', data);
+      return null;
+    } catch (error: any) {
+      console.error('Error fetching user:', error);
+      
+      // If we get a 401, clear any invalid tokens
+      if (error.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        delete AxiosJSON.defaults.headers.common['Authorization'];
+      }
+      
+      return null;
     }
-
-    console.error('getUser failed with non-401 error:', error)
-    return null
+  } catch (error) {
+    console.error('❌ Unexpected error in getUser:', error);
+    return null;
   }
 }
 
@@ -138,16 +107,11 @@ export async function updateUserProfile(payload: Partial<IUser>): Promise<IUser 
   try {
     const locale = getCurrentLocale()
     
-    // For profile updates, we might need CSRF token + session auth
-    // First get CSRF cookie (localized with fallback)
-    try {
-      await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', locale))
-    } catch (e) {
-      await AxiosJSON.get('/sanctum/csrf-cookie')
-    }
+    // For profile updates, we need CSRF token + session auth
+    await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
     
     // Make the authenticated request with both Bearer token and session credentials
-    const resp = await AxiosJSON.put(getLocalizedApiUrl(`/profile`, locale), payload, {
+    const resp = await AxiosJSON.put(getLocalizedApiUrl('profile'), payload, {
       withCredentials: true,
       headers: {
         'Accept': 'application/json',
@@ -167,11 +131,11 @@ export async function updateUserProfile(payload: Partial<IUser>): Promise<IUser 
 // OPTIONAL: upload avatar (expects backend route like POST /profile/avatar)
 export async function uploadUserAvatar(file: File): Promise<IUser | null> {
   try {
-    const locale = getCurrentLocale()
+    
     
     // Get CSRF cookie first (localized with fallback)
     try {
-      await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', locale))
+      await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie'))
     } catch (e) {
       await AxiosJSON.get('/sanctum/csrf-cookie')
     }
@@ -180,7 +144,7 @@ export async function uploadUserAvatar(file: File): Promise<IUser | null> {
     // Backend expects 'avatar' field name
     form.append('avatar', file)
     
-    const resp = await AxiosJSON.post(getLocalizedApiUrl(`/profile/avatar`, locale), form, {
+    const resp = await AxiosJSON.post(getLocalizedApiUrl('profile/avatar'), form, {
       withCredentials: true,
       headers: { 
         'Content-Type': 'multipart/form-data',
@@ -220,8 +184,7 @@ export async function uploadUserAvatar(file: File): Promise<IUser | null> {
 // Tries to be resilient to different backend response shapes
 export async function getUserById(userId: number): Promise<{ user: IUser; message: string } | null> {
   try {
-    const locale = getCurrentLocale()
-    const url = getLocalizedApiUrl(`/users/${userId}`, locale)
+    const url = getLocalizedApiUrl(`/users/${userId}`)
 
     const resp = await AxiosJSON.get(url, {
       headers: {

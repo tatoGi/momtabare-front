@@ -3,15 +3,11 @@ import type {
   ICompleteRegistrationResponse,
   IRegisterParams,
   IRegisterResponse,
-  IResendVerificationCodeParams,
-  IResendVerificationCodeResponse,
   ISignInParams,
-  ISignInResponse,
-  IVerifyCodeParams,
-  IVerifyCodeResponse,
+  ISignInResponse
 } from "../ts/services/auth.types"
 import AxiosJSON from "../utils/helpers/axios.ts"
-import { buildApiUrl } from "@/utils/api/apiUrlBuilder"
+import { getLocalizedApiUrl } from "@/utils/config/env"
 
 // Helper: set tokens via Pinia auth store (persisted) if response contains them
 async function setTokenFromResponseData(data: any) {
@@ -62,183 +58,23 @@ export async function register(
 ): Promise<IRegisterResponse | null> {
   try {
     const { locale = 'en', ...restParams } = params;
-    
     // Filter out undefined values
     const requestData = Object.fromEntries(
       Object.entries(restParams).filter(([_, value]) => value !== undefined)
     );
 
     const response = await AxiosJSON.post<IRegisterResponse>(
-      buildApiUrl('auth.register', locale),
+      getLocalizedApiUrl('auth/register'),
       requestData
     )
     const data = response.data
     // Registration endpoint may not return access token; ignore if absent
-    try { await setTokenFromResponseData(data) } catch {}
-    // Fetch current user to reflect retailer flags immediately
-    try {
-      const [{ useUserStore }, { getUser }] = await Promise.all([
-        import('@/pinia/user.pinia'),
-        import('@/services/user'),
-      ])
-      const userStore = useUserStore()
-      const currentUser = await getUser()
-      if (currentUser) {
-        const token = localStorage.getItem('auth_token') || ''
-        userStore.setAuthenticatedUser(currentUser, token)
-      }
-    } catch (e) {
-      console.warn('Failed to fetch user after register:', e)
+    if ('token' in data || 'access_token' in data) {
+      await setTokenFromResponseData(data);
     }
-    return data
+    return data;
   } catch (error: any) {
-    console.error('🔐 Registration error:', {
-      url: buildApiUrl('auth.register', params.locale || 'en'),
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    })
-    // Throw the full error response to preserve validation errors
-    throw error.response?.data || { message: "Registration failed" }
-  }
-}
-
-// Verify phone number with code
-export async function verifyPhone(
-  params: IVerifyCodeParams,
-): Promise<IVerifyCodeResponse | null> {
-  try {
-    const { locale = 'en', ...restParams } = params;
-    const response = await AxiosJSON.post<IVerifyCodeResponse>(
-      buildApiUrl('auth.verifyPhone', locale),
-      restParams,
-    )
-    const data = response.data
-    await setTokenFromResponseData(data)
-    try {
-      const [{ useUserStore }, { getUser }] = await Promise.all([
-        import('@/pinia/user.pinia'),
-        import('@/services/user'),
-      ])
-      const userStore = useUserStore()
-      const currentUser = await getUser()
-      if (currentUser) {
-        const token = localStorage.getItem('auth_token') || ''
-        userStore.setAuthenticatedUser(currentUser, token)
-      }
-    } catch (e) {
-      console.warn('Failed to fetch user after verifyPhone:', e)
-    }
-    return data
-  } catch (error: any) {
-    console.error('📱 Phone verification error:', {
-      url: buildApiUrl('auth.verifyPhone', params.locale || 'en'),
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    })
-    throw error.response?.data?.message || "Phone verification failed"
-  }
-}
-
-// Verify email with code
-export async function verifyEmail(
-  params: IVerifyCodeParams,
-): Promise<IVerifyCodeResponse | null> {
-  try {
-    const { locale = 'en', ...restParams } = params;
-    const response = await AxiosJSON.post<IVerifyCodeResponse>(
-      buildApiUrl('auth.verifyEmail', locale),
-      restParams,
-    )
-    const data = response.data
-    await setTokenFromResponseData(data)
-    try {
-      const [{ useUserStore }, { getUser }] = await Promise.all([
-        import('@/pinia/user.pinia'),
-        import('@/services/user'),
-      ])
-      const userStore = useUserStore()
-      const currentUser = await getUser()
-      if (currentUser) {
-        const token = localStorage.getItem('auth_token') || ''
-        userStore.setAuthenticatedUser(currentUser, token)
-      }
-    } catch (e) {
-      console.warn('Failed to fetch user after verifyEmail:', e)
-    }
-    return data
-  } catch (error: any) {
-    console.error('📧 Email verification error:', {
-      url: buildApiUrl('auth.verifyEmail', params.locale || 'en'),
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    })
-    throw error.response?.data?.message || "Email verification failed"
-  }
-}
-
-// Generic verify code endpoint (email code)
-export async function verifyCode(
-  params: IVerifyCodeParams,
-): Promise<IVerifyCodeResponse | null> {
-  try {
-    const { locale = 'en', ...restParams } = params;
-    const response = await AxiosJSON.post<IVerifyCodeResponse>(
-      buildApiUrl('auth.verifyCode', locale),
-      restParams,
-    )
-    const data = response.data
-    await setTokenFromResponseData(data)
-    try {
-      const [{ useUserStore }, { getUser }] = await Promise.all([
-        import('@/pinia/user.pinia'),
-        import('@/services/user'),
-      ])
-      const userStore = useUserStore()
-      const currentUser = await getUser()
-      if (currentUser) {
-        const token = localStorage.getItem('auth_token') || ''
-        userStore.setAuthenticatedUser(currentUser, token)
-      }
-    } catch (e) {
-      console.warn('Failed to fetch user after verifyCode:', e)
-    }
-    return data
-  } catch (error: any) {
-    throw error.response?.data?.message || "Verification failed"
-  }
-}
-
-// Resend phone verification code
-export async function resendPhoneVerificationCode(
-  params: IResendVerificationCodeParams,
-): Promise<IResendVerificationCodeResponse | null> {
-  try {
-    const { locale = 'en', ...restParams } = params;
-    const response = await AxiosJSON.post<IResendVerificationCodeResponse>(
-      buildApiUrl('auth.resendPhoneCode', locale),
-      restParams,
-    )
-    return response.data
-  } catch (error: any) {
-    throw error.response?.data?.message || "Failed to resend verification code"
-  }
-}
-
-export async function resendEmailVerificationCode(
-  params: IResendVerificationCodeParams,
-): Promise<IResendVerificationCodeResponse | null> {
-  try {
-    const { locale = 'en', ...restParams } = params;
-    const response = await AxiosJSON.post<IResendVerificationCodeResponse>(
-      buildApiUrl('auth.resendEmailCode', locale),
-      restParams,
-    )
-    return response.data
-  } catch (error: any) {
-    throw error.response?.data?.message || "Failed to resend verification code"
+    throw error.response?.data?.message || "Registration failed";
   }
 }
 
@@ -248,48 +84,47 @@ export async function completeRegistration(
   try {
     const { locale = 'en', ...restParams } = params;
     const response = await AxiosJSON.post<ICompleteRegistrationResponse>(
-      buildApiUrl('auth.completeRegistration', locale),
-      restParams,
-    )
-    const data = response.data
-    await setTokenFromResponseData(data)
+      getLocalizedApiUrl('auth/complete-registration'),
+      restParams
+    );
+    const data = response.data;
+    await setTokenFromResponseData(data);
+    
     try {
       const [{ useUserStore }, { getUser }] = await Promise.all([
         import('@/pinia/user.pinia'),
         import('@/services/user'),
-      ])
-      const userStore = useUserStore()
-      const currentUser = await getUser()
+      ]);
+      const userStore = useUserStore();
+      const currentUser = await getUser();
       if (currentUser) {
-        const token = localStorage.getItem('auth_token') || ''
-        userStore.setAuthenticatedUser(currentUser, token)
+        const token = localStorage.getItem('auth_token') || '';
+        userStore.setAuthenticatedUser(currentUser, token);
       }
     } catch (e) {
-      console.warn('Failed to fetch user after completeRegistration:', e)
+      console.warn('Failed to fetch user after completeRegistration:', e);
     }
-    return data
+    
+    return data;
   } catch (error: any) {
-    throw error.response?.data?.message || "Failed to complete registration"
+    throw error.response?.data?.message || "Failed to complete registration";
   }
 }
 
 // Sign in with email/phone and password
 export async function signIn(
   params: ISignInParams,
-  locale: string = 'en',
 ): Promise<ISignInResponse | null> {
   try {
     // First get CSRF cookie for Sanctum
     try {
-      const { getCurrentLocale } = await import('@/services/user');
       const { getLocalizedApiUrl } = await import('@/utils/config/env');
-      const locale = getCurrentLocale();
-      await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', locale));
+      await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
     } catch (e) {
-      await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', locale));
+      await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
     }
     const response = await AxiosJSON.post<ISignInResponse>(
-      buildApiUrl('auth.signIn', locale),
+      getLocalizedApiUrl('auth/login'),
       params,
     );
     
@@ -317,10 +152,8 @@ export async function signIn(
       
       // Ensure CSRF cookie is set before calling /me
       try {
-        const { getCurrentLocale } = await import('@/services/user');
         const { getLocalizedApiUrl } = await import('@/utils/config/env');
-        const locale = getCurrentLocale();
-        await AxiosJSON.get(getLocalizedApiUrl('/sanctum/csrf-cookie', locale));
+        await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
       } catch (csrfErr) {
         try { await AxiosJSON.get('/sanctum/csrf-cookie'); } catch {}
       }
@@ -343,7 +176,7 @@ export async function signIn(
     const errorMessage = error.response?.data?.message || "Sign in failed";
     
     console.error('❌ Sign in error:', {
-      url: buildApiUrl('auth.signIn', locale),
+      url: getLocalizedApiUrl('auth/login'),
       status: error.response?.status,
       message: error.message,
       data: error.response?.data,
@@ -369,12 +202,12 @@ export async function signOut(): Promise<{ success: boolean; message: string }> 
     // Try to call the server-side sign out endpoint
     try {
       await AxiosJSON.post(
-        buildApiUrl('auth.signOut'),
+        getLocalizedApiUrl('auth/logout'),
         {},
         { timeout: 5000 } // 5 second timeout to prevent hanging
       );
-    } catch (serverError) {
-      console.warn('⚠️ Server sign out failed, continuing with client cleanup...', serverError);
+    } catch (error) {
+      console.warn('⚠️ Server sign out failed, continuing with client cleanup...', error);
       // Continue with client-side cleanup even if server sign out fails
     }
     
@@ -393,25 +226,19 @@ export async function signOut(): Promise<{ success: boolean; message: string }> 
       console.warn('Failed to clear axios auth header:', e);
     }
     
-    // Clear auth store if available
+    // Clear auth store
     try {
       const { useAuthStore } = await import('@/pinia/auth.pinia');
       const authStore = useAuthStore();
-      if (typeof authStore.clearToken === 'function') {
-        authStore.clearToken();
-      }
+      authStore.clearToken();
     } catch (e) {
       console.warn('Failed to clear auth store:', e);
     }
     
-    console.log('✅ Sign out completed successfully');
-    return { success: true, message: 'Successfully signed out' };
+    console.log('✅ Signed out successfully');
+    return { success: true, message: 'Signed out successfully' };
   } catch (error: any) {
-    console.error('❌ Sign out error:', {
-      message: error.message,
-      response: error.response?.data
-    });
-    
+    console.error('❌ Sign out error:', error);
     // Still try to clear local state even if there's an error
     try {
       localStorage.removeItem('auth_token');
@@ -422,17 +249,79 @@ export async function signOut(): Promise<{ success: boolean; message: string }> 
       console.error('Failed to clean up auth state during sign out error:', cleanupError);
     }
     
-    throw error.response?.data?.message || "Sign out failed";
+    throw error.response?.data?.message || 'An error occurred during sign out';
   }
-}
-function getLocalizedApiUrl(path: string, locale: string): string {
-  // If the path already contains a locale prefix, return as is
-  if (path.startsWith(`/${locale}/`)) {
-    return path;
-  }
-  // Remove leading slash if present
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  // Prepend locale to the path
-  return `/${locale}/${cleanPath}`;
 }
 
+// Resend email verification code
+export async function resendEmailVerificationCode(email: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await AxiosJSON.post(getLocalizedApiUrl('email/verification-notification'), {
+      email,
+      redirect_url: window.location.origin
+    });
+    
+    return {
+      success: true,
+      message: response.data?.message || 'Verification email sent successfully'
+    };
+  } catch (error: any) {
+    console.error('❌ Failed to resend verification email:', error);
+    throw error.response?.data?.message || 'Failed to resend verification email';
+  }
+}
+
+// Verify email with verification code
+export async function verifyCode(email: string, code: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await AxiosJSON.post(getLocalizedApiUrl('email/verify'), {
+      email,
+      code,
+      redirect_url: window.location.origin
+    });
+    
+    // If verification is successful, update auth state
+    if (response.data?.success) {
+      // If the response includes tokens, process them
+      if (response.data.token || response.data.access_token) {
+        await setTokenFromResponseData(response.data);
+      }
+      return { 
+        success: true,
+        message: response.data?.message || 'Email verified successfully'
+      };
+    }
+    
+    throw new Error(response.data?.message || 'Verification failed');
+  } catch (error: any) {
+    console.error('❌ Email verification failed:', error);
+    throw new Error(error.response?.data?.message || 'Failed to verify email');
+  }
+}
+
+// Verify phone number with verification code
+export async function verifyPhone(phone: string, code: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await AxiosJSON.post(getLocalizedApiUrl('phone/verify'), {
+      phone,
+      code
+    });
+    
+    // If verification is successful, update auth state
+    if (response.data?.success) {
+      // If the response includes tokens, process them
+      if (response.data.token || response.data.access_token) {
+        await setTokenFromResponseData(response.data);
+      }
+      return {
+        success: true,
+        message: response.data?.message || 'Phone number verified successfully'
+      };
+    }
+    
+    throw new Error(response.data?.message || 'Phone verification failed');
+  } catch (error: any) {
+    console.error('❌ Phone verification failed:', error);
+    throw new Error(error.response?.data?.message || 'Failed to verify phone number');
+  }
+}
