@@ -38,13 +38,21 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     css: {
+      postcss: {
+        plugins: [
+          tailwind(),
+          autoprefixer()
+        ]
+      },
       preprocessorOptions: {
         scss: {
           additionalData: `@import "@/assets/scss/variables";`
+        },
+        css: {
+          postcss: {
+            plugins: [tailwind(), autoprefixer()]
+          }
         }
-      },
-      postcss: {
-        plugins: [tailwind(), autoprefixer()]
       }
     },
     plugins: [vue()],

@@ -78,17 +78,19 @@
 
 @layer base {
     * {
-        @apply border-border;
+        border-color: var(--border);
     }
 
     body {
-        @apply bg-background text-foreground;
+        background-color: var(--background);
+        color: var(--foreground);
     }
 }
 
 * {
-    @apply text-customBlack;
+    color: var(--custom-black, #000);
     -webkit-user-select: none;
+    -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
@@ -98,7 +100,9 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     text-overflow: ellipsis;
+    max-height: 3em; /* Fallback for non-WebKit browsers */
 }
 
 
