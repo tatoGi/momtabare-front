@@ -9,10 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { IGetProductsQuery } from "@/ts/services/products.types.ts"
-import { cities } from "@/constants/cities.ts"
-import { Directive, computed, ref, watch } from "vue"
+import { IGetProductsQuery } from "@/ts/services/products.types"
+import { cities } from "@/constants/cities"
+import { computed, ref, watch } from "vue"
 import { useRouter } from "vue-router"
+import { searchProducts, type ISearchQuery, type ISearchResponse } from "@/services/search"
 
 const router = useRouter()
 const searchQuery = ref<string>("")
@@ -22,6 +23,11 @@ const startDate = ref<Date | null>(new Date())
 const endDate = ref<Date | null>(null)
 const datePickerOpen = ref<boolean>(false)
 const selectedCity = ref<string>()
+
+// Search state
+const searchResults = ref<ISearchResponse | null>(null)
+const isSearching = ref<boolean>(false)
+const searchError = ref<string | null>(null)
 
 const attributes = computed(() => {
   if (!startDate.value || !endDate.value) return []
@@ -33,45 +39,45 @@ const attributes = computed(() => {
   ]
 })
 
-function findProducts() {
-  const query: IGetProductsQuery = {}
+async function findProducts() {
+  try {
+    isSearching.value = true
+    searchError.value = null
+    
+    const searchParams: ISearchQuery = {}
 
-  if (searchQuery.value) query.search = searchQuery.value
-  if (startDate.value)
-    query.start_date = startDate.value.toISOString().slice(0, 10)
-  if (endDate.value) query.end_date = endDate.value.toISOString().slice(0, 10)
-  if (selectedCity.value) query.location = selectedCity.value
+    if (searchQuery.value) searchParams.search = searchQuery.value
+    if (startDate.value)
+      searchParams.start_date = startDate.value.toISOString().slice(0, 10)
+    if (endDate.value) searchParams.end_date = endDate.value.toISOString().slice(0, 10)
+    if (selectedCity.value) searchParams.location = selectedCity.value
 
-  router.push({ name: "products", query })
+    // Perform search using the new API endpoint
+    const response = await searchProducts(searchParams)
+    searchResults.value = response
+    
+    if (response.success) {
+      // Navigate to products page with search results
+      const query: IGetProductsQuery = {}
+      if (searchQuery.value) query.search = searchQuery.value
+      if (startDate.value) query.start_date = searchParams.start_date
+      if (endDate.value) query.end_date = searchParams.end_date
+      if (selectedCity.value) query.location = searchParams.location
+
+      router.push({ name: "products", query: query as any })
+    } else {
+      searchError.value = "Search failed. Please try again."
+    }
+  } catch (error) {
+    console.error('Search error:', error)
+    searchError.value = "An error occurred during search. Please try again."
+  } finally {
+    isSearching.value = false
+  }
 }
 
-const vClickOutside: Directive = {
-  mounted(el: HTMLElement, binding: { value: () => void }) {
-    const handler = (event: MouseEvent) => {
-      const clickedElement = event.target as Node
 
-      // Check if the clicked element is inside the element or its children
-      if (!el.contains(clickedElement)) {
-        // Additional check to prevent closing if clicked on the trigger
-        const triggerElement = el.previousElementSibling
-        if (!triggerElement?.contains(clickedElement)) {
-          binding.value()
-        }
-      }
-    }
-
-    document.addEventListener("mousedown", handler)
-
-    el.clickOutsideHandler = handler
-  },
-  unmounted(el: HTMLElement) {
-    if (el.clickOutsideHandler) {
-      document.removeEventListener("mousedown", el.clickOutsideHandler)
-    }
-  },
-}
-
-watch(selectedDate, (newDate) => {
+watch(selectedDate, (newDate: Date | null) => {
   if (!newDate) return
 
   if (startDate.value && endDate.value) {
@@ -183,10 +189,30 @@ watch(selectedDate, (newDate) => {
     <BaseButton
       :height="52"
       :width="52"
-      class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-customRed"
+      :disabled="isSearching"
+      class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-customRed disabled:opacity-50"
       @click="findProducts"
     >
-      <BaseIcon :size="24" class="text-white" name="search" />
+      <BaseIcon 
+        v-if="!isSearching"
+        :size="24" 
+        class="text-white" 
+        name="search" 
+      />
+      <BaseIcon 
+        v-else
+        :size="24" 
+        class="text-white animate-spin" 
+        name="loader" 
+      />
     </BaseButton>
+    
+    <!-- Error message display -->
+    <div 
+      v-if="searchError"
+      class="absolute top-full left-0 right-0 mt-2 rounded-lg bg-red-100 border border-red-300 p-3 text-red-700 text-sm"
+    >
+      {{ searchError }}
+    </div>
   </div>
 </template>
