@@ -16,8 +16,9 @@ export default async function handler(req, res) {
     'https://momtabare-front.vercel.app',
     'https://momtabare-front-git-main.vercel.app',
     'https://momtabare-front-git-develop.vercel.app',
-    // Add your custom domain here when you have one
-    // 'https://yourdomain.com'
+    // Production domain
+    'https://www.momtabare.com',
+    'https://momtabare.com'
   ]
   
   // Check if origin is allowed or if we're in development

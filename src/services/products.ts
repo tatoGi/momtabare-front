@@ -4,6 +4,7 @@ import type { IGetProductsResponse, IGetProductsQuery } from '@/ts/services/prod
 import type { IProductListItem } from '@/ts/models/product.types'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
+import { getApiUrl } from '@/utils/api/url'
 import NProgress from 'nprogress'
 
 const API_BASE_URL = ENV.BACKEND_URL
@@ -22,7 +23,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = `${API_BASE_URL}/api/products`
+    const apiUrl = getApiUrl('products', API_BASE_URL)
     
     
     // Use API endpoint with locale in headers: /api/products
@@ -104,7 +105,7 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
     }
 
     // Get detailed product data using the ID with locale
-    const detailApiUrl = `${API_BASE_URL}/api/products/${product.id}`
+    const detailApiUrl = getApiUrl(`products/${product.id}`, API_BASE_URL)
     
     const response = await axios.get(detailApiUrl)
     const backendProduct = response.data.data
@@ -165,7 +166,9 @@ export async function getProductBySeller() {
 export async function getProductsByUser(userId: number): Promise<{ data: IProductListItem[] }> {
   try {
     NProgress.start()
-    const response = await axios.get(`${API_BASE_URL}/api/retailer/user/products`, {
+    const apiUrl = getApiUrl('retailer/user/products', API_BASE_URL)
+    
+    const response = await axios.get(apiUrl, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -223,7 +226,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
 export async function getPopularProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = `${API_BASE_URL}/api/products`
+    const apiUrl = getApiUrl('products', API_BASE_URL)
     
     // Get all products and filter for popular products (is_popular = 1)
     const response = await axios.get(apiUrl, { 
@@ -294,7 +297,7 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
 export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = `${API_BASE_URL}/api/products`
+    const apiUrl = getApiUrl('products', API_BASE_URL)
     
     // Get all products and filter for favorites (is_favorite = 1)
     const response = await axios.get(apiUrl, { 
@@ -371,11 +374,11 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     
     if (currentFavoriteStatus) {
       // Product is currently favorite, so remove it
-      apiUrl = `${API_BASE_URL}/api/remove-from-wishlist`
+      apiUrl = getApiUrl('remove-from-wishlist', API_BASE_URL)
       requestData = { product_id: productId }
     } else {
       // Product is not favorite, so add it
-      apiUrl = `${API_BASE_URL}/api/add-to-wishlist`
+      apiUrl = getApiUrl('add-to-wishlist', API_BASE_URL)
       requestData = { product_id: productId }
     }
     
@@ -415,10 +418,10 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
         let requestData: any
         
         if (currentFavoriteStatus) {
-          apiUrl = `${API_BASE_URL}/api/remove-from-wishlist`
+          apiUrl = getApiUrl('remove-from-wishlist', API_BASE_URL)
           requestData = { product_id: productId }
         } else {
-          apiUrl = `${API_BASE_URL}/api/add-to-wishlist`
+          apiUrl = getApiUrl('add-to-wishlist', API_BASE_URL)
           requestData = { product_id: productId }
         }
         

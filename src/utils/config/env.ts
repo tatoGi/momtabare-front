@@ -9,8 +9,8 @@ const isProductionDomain = typeof window !== 'undefined' &&
 const getBackendUrl = (): string => {
   // Always use full URL in production to avoid CORS issues
   if (isProduction || isVercel || isProductionDomain || window.location.hostname === 'www.momtabare.com') {
-
-    return 'https://admin.momtabare.com';
+    // For production, use the Vercel proxy to avoid CORS issues
+    return '';
   }
 
   // Development environment
@@ -39,10 +39,13 @@ const getBackendUrl = (): string => {
 // Helper function to get API URL with proper domain handling
 export const getApiUrl = (endpoint: string): string => {
   let baseUrl = getBackendUrl();
-  // Ensure we're using the correct domain for API calls
-  if (typeof window !== 'undefined' && window.location.hostname === 'www.momtabare.com') {
-    baseUrl = baseUrl.replace('//www.', '//');
+  
+  // For production, use the Vercel proxy
+  if (isProduction || isVercel || isProductionDomain) {
+    return `/api/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`;
   }
+  
+  // Development environment
   return `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 };
 
@@ -93,6 +96,13 @@ const cleanUrl = (url: string): string => {
 
 // Update all API calls to use the cleaned URL
 export const getLocalizedApiUrl = (endpoint: string): string => {
+  // For production, use the Vercel proxy
+  if (isProduction || isVercel || isProductionDomain) {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    return `/api/${cleanEndpoint}`;
+  }
+  
+  // Development environment
   const base = getApiUrl('');
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   return cleanUrl(`${base}api/${cleanEndpoint}`);
