@@ -6,16 +6,21 @@ import type { ISignInParams } from "@/ts/services/auth.types.ts"
 import {signIn} from "@/services/auth.ts"
 import { getUser } from "@/services/user"
 import {useUserStore} from "@/pinia/user.pinia.ts"
-import {ref} from "vue"
+import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 
 const userStore = useUserStore()
 // Router no longer needed for login
 
-const emit = defineEmits(["nextStep", "close"])
+const emit = defineEmits(["nextStep", "close", "loading"])
 
-const isLoading = ref<boolean>(false)
+const isLoading: Ref<boolean> = ref(false)
+
+// Watch for loading state changes and emit them to parent
+watch(isLoading, (newVal: boolean) => {
+  emit('loading', newVal)
+}, { immediate: true })
 
 const emailOrPhone = ref<string>("")
 const password = ref<string>("")
@@ -26,6 +31,8 @@ async function handleSignIn(): Promise<void> {
     isLoading.value = true
     const payload: ISignInParams = {
       password: password.value,
+      email: emailOrPhone.value.includes('@') ? emailOrPhone.value : undefined,
+      phone_number: !emailOrPhone.value.includes('@') ? emailOrPhone.value : undefined
     }
 
     if (emailOrPhone.value.includes("@")) {

@@ -93,8 +93,18 @@ function moveToStep(payload: AuthStepPayload & { verification_code?: string }): 
 
 const closeAuthDialog = () => {
   userStore.setAuthDialog(false)
-  resetAuthSteps()
+  // Add a small delay to allow the animation to complete
+  setTimeout(() => {
+    resetAuthSteps()
+  }, 300)
 }
+
+// Handle escape key press
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isOpen.value) {
+    closeAuthDialog()
+  }
+})
 
 </script>
 
@@ -113,6 +123,7 @@ const closeAuthDialog = () => {
         'animate-slide-down': isOpen,
         'animate-slide-up': !isOpen
       }"
+      @click.self="closeAuthDialog"
     >
       <!-- Close Button -->
       <div class="flex justify-end p-4">
@@ -172,7 +183,7 @@ const closeAuthDialog = () => {
 
   <!-- Desktop Modal -->
   <div class="hidden lg:block">
-    <Dialog v-model:open="isOpen">
+    <Dialog v-model:open="isOpen" @update:open="(val: boolean) => !val && closeAuthDialog()">
       <div @click="userStore.setAuthDialog(true)">
         <slot />
       </div>
@@ -181,6 +192,7 @@ const closeAuthDialog = () => {
         :class="dialogStyleBySteps"
         class="overflow-hidden dark:bg-customBlack"
         @reset-steps="resetAuthSteps"
+        @pointer-down-outside="(e: PointerEvent) => e.preventDefault()"
       >
         <VisuallyHidden>
           <DialogTitle />

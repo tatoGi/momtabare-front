@@ -1,15 +1,19 @@
 <script lang="ts" setup>
+import { ref, onMounted, watch } from "vue"
 import TheFooter from "@/layouts/TheFooter.vue"
 import TheHeader from "@/layouts/TheHeader.vue"
+import AppSkeleton from "@/components/skeletons/AppSkeleton.vue"
 import { useAppStore } from "@/pinia/app.pinia.ts"
 import { useCartStore } from "@/pinia/cart.pinia.ts"
 import { useCategoryStore } from "@/pinia/category.pinia"
 import { useOrderStore } from "@/pinia/order.pinia"
-import { onMounted, watch } from "vue"
+
 const appStore = useAppStore()
 const categoryStore = useCategoryStore()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
+
+const isLoading = ref(true)
 
 onMounted(async () => {
   const theme = localStorage.getItem("theme")
@@ -17,10 +21,20 @@ onMounted(async () => {
   if (theme) {
     appStore.darkMode = true
   }
-  // Authentication is initialized in main.ts - no need to call again
-  await categoryStore.fetchCategories()
-  await cartStore.fetchCart()
-  await orderStore.fetchOrders()
+  
+  try {
+    // Run all initial data fetching in parallel
+    await Promise.all([
+      categoryStore.fetchCategories(),
+      cartStore.fetchCart(),
+      orderStore.fetchOrders()
+    ])
+  } catch (error) {
+    console.error("Error initializing app:", error)
+  } finally {
+    // Always set loading to false when done
+    isLoading.value = false
+  }
 })
 
 watch(
@@ -40,11 +54,21 @@ watch(
 <template>
   <div class="py-6">
     <main class="max-w-[1360px] mx-auto flex-col">
-      <TheHeader />
-      
-      <RouterView :key="$route.fullPath" />
-      
-      <TheFooter />
+      <template v-if="isLoading">
+        <AppSkeleton />
+      </template>
+      <template v-else>
+        <TheHeader />
+        <RouterView v-slot="{ Component }">
+          <Suspense>
+            <component :is="Component" :key="$route.fullPath" />
+            <template #fallback>
+              <AppSkeleton />
+            </template>
+          </Suspense>
+        </RouterView>
+        <TheFooter />
+      </template>
     </main>
   </div>
 </template>
