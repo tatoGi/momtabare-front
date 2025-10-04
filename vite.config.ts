@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     css: {
+      devSourcemap: true,
       postcss: {
         plugins: [
           tailwind(),
@@ -47,12 +48,12 @@ export default defineConfig(({ mode }) => {
       preprocessorOptions: {
         scss: {
           additionalData: `@import "@/assets/scss/variables";`
-        },
-        css: {
-          postcss: {
-            plugins: [tailwind(), autoprefixer()]
-          }
         }
+      },
+      modules: {
+        generateScopedName: isDevelopment 
+          ? '[name]__[local]__[hash:base64:5]' 
+          : '[hash:base64:5]'
       }
     },
     plugins: [vue()],
@@ -83,16 +84,27 @@ export default defineConfig(({ mode }) => {
       proxy: proxyConfig
     },
     build: {
+      cssCodeSplit: true,
+      cssTarget: 'es2015',
       rollupOptions: {
         output: {
           // Split vendor and app code
           manualChunks: {
-            vendor: ['vue', 'vue-router', 'pinia']
+            vendor: ['vue', 'vue-router', 'pinia'],
+            styles: ['@/assets/css/main.css']
           },
           // File naming for production builds
           chunkFileNames: 'assets/js/[name]-[hash].js',
           entryFileNames: 'assets/js/[name]-[hash].js',
-          assetFileNames: 'assets/[ext]/[name]-[hash][ext]'
+          assetFileNames: (assetInfo) => {
+            if (!assetInfo.name) {
+              return 'assets/[ext]/[name]-[hash][ext]';
+            }
+            const ext = assetInfo.name.split('.').pop() || '';
+            return ext.toLowerCase() === 'css' 
+              ? 'assets/css/[name]-[hash][extname]' 
+              : 'assets/[ext]/[name]-[hash][ext]';
+          }
         }
       },
       // Ensure build is optimized for production
@@ -104,7 +116,12 @@ export default defineConfig(({ mode }) => {
         }
       },
       // Enable source maps in development
-      sourcemap: isDevelopment ? 'inline' : false
+      sourcemap: isDevelopment ? 'inline' : false,
+      // Ensure CSS is properly extracted in production
+      manifest: true,
+      // Enable brotli compression for better performance
+      brotliSize: true,
+      chunkSizeWarningLimit: 1000
     }
   };
 });
