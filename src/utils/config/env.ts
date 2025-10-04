@@ -2,12 +2,14 @@
 const isProduction = import.meta.env.PROD;
 const isDevelopment = import.meta.env.DEV;
 const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-const isProductionDomain = typeof window !== 'undefined' && window.location.hostname === 'momtabare.com';
+const isProductionDomain = typeof window !== 'undefined' && 
+  (window.location.hostname === 'momtabare.com' || window.location.hostname === 'www.momtabare.com');
 
 // Get the appropriate backend URL based on environment
 const getBackendUrl = (): string => {
   // Always use full URL in production to avoid CORS issues
-  if (isProduction || isVercel || isProductionDomain) {
+  if (isProduction || isVercel || isProductionDomain || window.location.hostname === 'www.momtabare.com') {
+
     return 'https://admin.momtabare.com';
   }
 
@@ -34,6 +36,16 @@ const getBackendUrl = (): string => {
   return devUrl;
 };
 
+// Helper function to get API URL with proper domain handling
+export const getApiUrl = (endpoint: string): string => {
+  let baseUrl = getBackendUrl();
+  // Ensure we're using the correct domain for API calls
+  if (typeof window !== 'undefined' && window.location.hostname === 'www.momtabare.com') {
+    baseUrl = baseUrl.replace('//www.', '//');
+  }
+  return `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+};
+
 // Environment configuration
 export const ENV = {
   // Backend API base URL
@@ -49,51 +61,42 @@ export const ENV = {
   IS_PRODUCTION: isProduction,
   IS_DEVELOPMENT: isDevelopment,
   IS_VERCEL: isVercel,
-  IS_PRODUCTION_DOMAIN: isProductionDomain,
   
   // Default locale
-  DEFAULT_LOCALE: 'ka', // Georgian
-  
-  // Helper function to get full API URL
-  getApiUrl: (endpoint: string): string => {
-    // Remove leading slash if present
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-    return `${ENV.BACKEND_URL}/api/${cleanEndpoint}`;
-  },
-  
-  // Helper to get pages URL
-  getPagesUrl: (): string => {
-    return `${ENV.BACKEND_URL}/api/pages`;
-  }
+  DEFAULT_LOCALE: 'ka' // Georgian
 } as const;
 
 // Export getAssetUrl as a standalone function for easier imports
 export const getAssetUrl = (path: string): string => {
+  if (!path) return '';
   if (path.startsWith('http')) return path;
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   return `${ENV.ASSET_URL}${cleanPath ? '/' + cleanPath : ''}`;
 };
 
 // Log environment info for debugging
-console.log('🌐 Environment Configuration:', {
-  BACKEND_URL: ENV.BACKEND_URL,
-  NODE_ENV: import.meta.env.MODE,
-  isDevelopment,
-  isVercel,
-  isProductionDomain
-});
-
-/**
- * Get API URL without locale prefix
- * @param endpoint - The API endpoint (e.g., 'categories', 'auth/login')
- * @returns Full API URL with the endpoint
- */
-export function getLocalizedApiUrl(endpoint: string): string {
-  // Remove any leading slashes from endpoint
-  const cleanEndpoint = endpoint.replace(/^\/+/, '');
-  // Return URL without locale prefix
-  return `${getBackendUrl()}/api/${cleanEndpoint}`;
+if (typeof window !== 'undefined') {
+  console.log('🌐 Environment Configuration:', {
+    BACKEND_URL: ENV.BACKEND_URL,
+    NODE_ENV: import.meta.env.MODE,
+    isDevelopment,
+    isVercel,
+    isProductionDomain,
+    currentHostname: window.location.hostname
+  });
 }
+
+// Clean up any double slashes in URLs
+const cleanUrl = (url: string): string => {
+  return url.replace(/([^:]\/)\/+/g, '$1');
+};
+
+// Update all API calls to use the cleaned URL
+export const getLocalizedApiUrl = (endpoint: string): string => {
+  const base = getApiUrl('');
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  return cleanUrl(`${base}api/${cleanEndpoint}`);
+};
 
 // Environment info for debugging
 export const getEnvironmentInfo = () => {

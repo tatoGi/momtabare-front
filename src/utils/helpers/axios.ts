@@ -9,34 +9,57 @@ type ApiErrorResponse = {
   debug?: any;
 };
 
+// Helper function to get the current domain
+const getCurrentDomain = (): string => {
+  if (typeof window === 'undefined') return '';
+  return window.location.origin;
+};
+
 // Axios instance
 const AxiosJSON: AxiosInstance = axios.create({
   baseURL: ENV.BACKEND_URL,
-  withCredentials: true,
+  withCredentials: true, // Important for cookies, authorization headers with HTTPS
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+    'X-Requested-With': 'XMLHttpRequest'
   },
-  timeout: 30000,
+  timeout: 30000
 });
 
 // CSRF
-AxiosJSON.defaults.xsrfCookieName = 'XSRF-TOKEN';
 AxiosJSON.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
 // Request interceptor
 AxiosJSON.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (config.method?.toLowerCase() === 'options') return config;
+    // Handle preflight requests
+    if (config.method?.toLowerCase() === 'options') {
+      config.headers['Access-Control-Allow-Origin'] = getCurrentDomain();
+      config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+      config.headers['Access-Control-Allow-Headers'] = 'X-Requested-With, Content-Type, Authorization';
+      config.headers['Access-Control-Allow-Credentials'] = 'true';
+      return config;
+    }
 
+    // Add auth token if available
     const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
-    if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
+    // Add locale headers
     const locale = getCurrentLocale();
     if (locale && config.headers) {
       config.headers['Accept-Language'] = locale;
-      config.headers['X-Localization'] = locale;
+      config.headers['X-Locale'] = locale;
+    }
+
+    // Ensure CORS headers are set for all requests
+    if (config.headers) {
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+      config.headers['Access-Control-Allow-Origin'] = getCurrentDomain();
+      config.headers['Access-Control-Allow-Credentials'] = 'true';
     }
 
     if (config.method?.toLowerCase() !== 'get' && typeof document !== 'undefined') {
