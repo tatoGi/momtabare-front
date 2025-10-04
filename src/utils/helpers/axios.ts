@@ -3,69 +3,22 @@ import axios, {
   AxiosError, 
   AxiosResponse, 
   InternalAxiosRequestConfig,
-  AxiosRequestConfig
+  AxiosInstance
 } from 'axios';
 import { ENV } from '../config/env';
 import { getCurrentLocale } from '@/services/user';
-import { isProduction } from './environment';
 
-// CORS preflight setup
-const setupCorsPreflight = async (): Promise<void> => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    await axios.options(ENV.BACKEND_URL, {
-      withCredentials: true,
-      headers: {
-        'Access-Control-Request-Method': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Request-Headers': 'X-Requested-With, Content-Type, Authorization, X-XSRF-TOKEN'
-      }
-    });
-  } catch (error) {
-    console.warn('CORS preflight check failed:', error);
-  }
-};
-
-// Initialize CORS preflight on app start
-if (typeof window !== 'undefined') {
-  setupCorsPreflight().catch(console.error);
-}
-
-// Configure base URL with proper protocol handling for different environments
-let normalizedBaseUrl = ENV.BACKEND_URL;
-
-// Only adjust protocol for local development
-if (!isProduction) {
-  try {
-    const isLocalhost = typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || 
-       window.location.hostname === '127.0.0.1');
-    
-    if (isLocalhost && normalizedBaseUrl.startsWith('https://')) {
-      normalizedBaseUrl = normalizedBaseUrl.replace('https://', 'http://');
-      console.warn('Adjusted backend URL for local development to HTTP:', normalizedBaseUrl);
-    }
-  } catch (e) {
-    console.error('Error normalizing base URL:', e);
-  }
-}
-
-const AxiosJSON = axios.create({
-  baseURL: normalizedBaseUrl,
+// Create axios instance with base URL
+const AxiosJSON: AxiosInstance = axios.create({
+  baseURL: ENV.BACKEND_URL,
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-    ...(isProduction && {
-      'Access-Control-Allow-Origin': 'https://www.momtabare.com',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-XSRF-TOKEN',
-      'Access-Control-Allow-Credentials': 'true'
-    })
+    'X-Requested-With': 'XMLHttpRequest'
   },
-  timeout: 30000, // 30 seconds
-})
+  timeout: 30000 // 30 seconds
+});
 
 // Configure CSRF token handling
 AxiosJSON.defaults.withCredentials = true
