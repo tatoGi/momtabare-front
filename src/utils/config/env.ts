@@ -6,13 +6,8 @@ const isProductionDomain = typeof window !== 'undefined' && window.location.host
 
 // Get the appropriate backend URL based on environment
 const getBackendUrl = (): string => {
-  // Production environment with custom domain
-  if (isProduction && isProductionDomain) {
-    return '/api'; // Uses Vercel rewrite
-  }
-  
-  // Vercel preview environment
-  if (isVercel) {
+  // Always use full URL in production to avoid CORS issues
+  if (isProduction || isVercel || isProductionDomain) {
     return 'https://admin.momtabare.com';
   }
 

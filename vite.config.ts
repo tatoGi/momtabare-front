@@ -5,7 +5,7 @@ import tailwind from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   // Load environment variables based on the current mode (development/production)
   const env = loadEnv(mode, process.cwd(), '');
   
@@ -83,28 +83,48 @@ export default defineConfig(({ mode }) => {
       proxy: proxyConfig
     },
     build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      emptyOutDir: true,
       rollupOptions: {
         output: {
-          // Split vendor and app code
           manualChunks: {
-            vendor: ['vue', 'vue-router', 'pinia']
+            vendor: ['vue', 'vue-router', 'pinia', 'vue-i18n'],
+            styles: ['@/assets/css/main.css']
           },
-          // File naming for production builds
           chunkFileNames: 'assets/js/[name]-[hash].js',
           entryFileNames: 'assets/js/[name]-[hash].js',
-          assetFileNames: 'assets/[ext]/[name]-[hash][ext]'
+          assetFileNames: (assetInfo) => {
+            const info = assetInfo.name?.split('.') || [];
+            const ext = info[info.length - 1]?.toLowerCase() || '';
+            
+            if (ext === 'css') {
+              return 'assets/css/[name]-[hash][extname]';
+            }
+            
+            if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+              return 'assets/images/[name]-[hash][extname]';
+            }
+            
+            if (['woff', 'woff2', 'eot', 'ttf', 'otf'].includes(ext)) {
+              return 'assets/fonts/[name]-[hash][extname]';
+            }
+            
+            return 'assets/[ext]/[name]-[hash][extname]';
+          }
         }
       },
-      // Ensure build is optimized for production
-      minify: 'terser',
-      terserOptions: {
+      minify: command === 'build' ? 'terser' : false,
+      terserOptions: command === 'build' ? {
         compress: {
-          drop_console: !isDevelopment,
-          drop_debugger: !isDevelopment
+          drop_console: true,
+          drop_debugger: true
         }
-      },
-      // Enable source maps in development
-      sourcemap: isDevelopment ? 'inline' : false
+      } : {},
+      sourcemap: command === 'serve',
+      cssCodeSplit: true,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 1000
     }
   };
 });
