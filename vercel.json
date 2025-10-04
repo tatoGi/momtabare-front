@@ -14,12 +14,12 @@
   ],
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://admin.momtabare.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://admin.momtabare.com/api/:path*"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/sanctum/:path*",
+      "destination": "https://admin.momtabare.com/sanctum/:path*"
     }
   ]
 }

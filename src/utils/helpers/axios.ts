@@ -1,217 +1,109 @@
 // src/utils/helpers/axios.ts
-import axios, { 
-  AxiosError, 
-  AxiosResponse, 
-  InternalAxiosRequestConfig,
-  AxiosInstance
-} from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENV } from '../config/env';
 import { getCurrentLocale } from '@/services/user';
 
-// Create axios instance with base URL
+type ApiErrorResponse = {
+  message?: string;
+  errors?: Record<string, any>;
+  debug?: any;
+};
+
+// Axios instance
 const AxiosJSON: AxiosInstance = axios.create({
   baseURL: ENV.BACKEND_URL,
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest'
+    'X-Requested-With': 'XMLHttpRequest',
   },
-  timeout: 30000 // 30 seconds
+  timeout: 30000,
 });
 
-// Configure CSRF token handling
-AxiosJSON.defaults.withCredentials = true
-AxiosJSON.defaults.xsrfCookieName = 'XSRF-TOKEN'
-AxiosJSON.defaults.xsrfHeaderName = 'X-XSRF-TOKEN'
+// CSRF
+AxiosJSON.defaults.xsrfCookieName = 'XSRF-TOKEN';
+AxiosJSON.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 
-// Request interceptor with enhanced CORS and CSRF handling
+// Request interceptor
 AxiosJSON.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Skip for CORS preflight
-    if (config.method?.toLowerCase() === 'options') {
-      return config;
-    }
+    if (config.method?.toLowerCase() === 'options') return config;
 
     const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
+    if (token && config.headers) config.headers.Authorization = `Bearer ${token}`;
+
     const locale = getCurrentLocale();
-
-    if (config.headers) {
-      // Add authorization header if token exists
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      
-      // Add localization headers
-      if (locale) {
-        config.headers['Accept-Language'] = locale;
-        config.headers['X-Localization'] = locale;
-      }
-
-      // Add CSRF token for non-GET requests
-      if (config.method?.toLowerCase() !== 'get' && typeof document !== 'undefined') {
-        const csrfToken = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('XSRF-TOKEN='))
-          ?.split('=')[1];
-          
-        if (csrfToken) {
-          config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken);
-        }
-      }
+    if (locale && config.headers) {
+      config.headers['Accept-Language'] = locale;
+      config.headers['X-Localization'] = locale;
     }
-    
+
+    if (config.method?.toLowerCase() !== 'get' && typeof document !== 'undefined') {
+      const csrfToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('XSRF-TOKEN='))
+        ?.split('=')[1];
+      if (csrfToken && config.headers) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken);
+    }
+
     return config;
   },
-  (error: AxiosError) => {
-    console.error('Request interceptor error:', error);
-    return Promise.reject(error);
-  }
-)
+  (error: AxiosError) => Promise.reject(error)
+);
 
-// Response interceptor with enhanced error handling
+// Response interceptor
 AxiosJSON.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // Handle successful responses
-    if (response?.data?.debug) {
-      console.log('Debug Information:', response.data.debug);
-    }
-    return response;
-  },
-  async (error: any) => {
-    // Handle CORS errors
-    if (error.code === 'ERR_NETWORK' && error.message.includes('CORS')) {
-      console.error('CORS Error:', {
-        message: 'CORS policy blocked the request',
-        url: error.config?.url,
-        method: error.config?.method,
-        withCredentials: error.config?.withCredentials
-      });
-      
+  (response: AxiosResponse) => response,
+  async (error: unknown) => {
+    const axiosError = error as AxiosError;
+    const originalRequest = axiosError.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // CORS / network errors
+    if (axiosError.code === 'ERR_NETWORK' && axiosError.message.includes('CORS')) {
       return Promise.reject({
-        ...error,
+        ...axiosError,
         isCorsError: true,
-        message: 'Network error: Could not connect to the server. Please check your connection or try again later.'
+        message: 'Network error: Could not connect to the server. Please check your connection or try again.'
       });
     }
 
-    const originalRequest = error.config;
-
-    // Handle 401 Unauthorized errors (token refresh)
-    if (error.response?.status === 401 && !originalRequest?._retry) {
+    // 401 Unauthorized → refresh token
+    if (axiosError.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          const response = await axios.post(
-            `${ENV.BACKEND_URL}/api/auth/refresh`, 
-            { refresh_token: refreshToken },
-            { withCredentials: true }
-          );
-          
-          const { token, refresh_token } = response.data;
-          
-          // Update tokens in storage
+          const res = await axios.post(`${ENV.BACKEND_URL}/api/auth/refresh`, { refresh_token: refreshToken }, { withCredentials: true });
+          const { token, refresh_token } = res.data;
           localStorage.setItem('auth_token', token);
-          if (refresh_token) {
-            localStorage.setItem('refresh_token', refresh_token);
-          }
-          
-          // Update the original request with new token
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-          
-          // Retry the original request
+          if (refresh_token) localStorage.setItem('refresh_token', refresh_token);
+
+          if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${token}`;
           return AxiosJSON(originalRequest);
         }
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
-        
-        // Clear auth state
-        try {
-          const { useAuthStore } = await import('@/pinia/auth.pinia');
-          const authStore = useAuthStore();
-          authStore.clearToken();
-        } catch (e) {
-          console.error('Failed to clear auth store:', e);
-        }
-        
-        // Clear all auth-related storage
-        ['auth_token', 'refresh_token', 'user_auth_token'].forEach(key => {
-          localStorage.removeItem(key);
-        });
-        
+      } catch (refreshError: unknown) {
+        const errorObj = typeof refreshError === 'object' && refreshError !== null ? refreshError : {};
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_auth_token');
+
         return Promise.reject({
-          ...refreshError,  // Error: Spread types may only be created from object types
+          ...errorObj,
           isAuthError: true,
-          message: 'Your session has expired. Please log in again.'
+          message: 'Session expired. Please log in again.'
         });
       }
     }
 
-    // Handle other error responses
-    if (error.response) {
-      // Validation errors (422)
-      if (error.response.status === 422) {
-        console.group('Validation Errors');
-        console.log('Status:', error.response.status);
-        console.log('Errors:', error.response.data?.errors);
-        if (error.response.data?.debug) {
-          console.log('Debug:', error.response.data.debug);
-        }
-        console.groupEnd();
-      } 
-      // Forbidden (403)
-      else if (error.response.status === 403) {
-        console.error('Access Forbidden:', {
-          url: originalRequest?.url,
-          message: error.response.data?.message || 'You do not have permission to perform this action'
-        });
-      }
-      // Not Found (404)
-      else if (error.response.status === 404) {
-        console.error('Resource Not Found:', {
-          url: originalRequest?.url,
-          message: error.response.data?.message || 'The requested resource was not found'
-        });
-      }
-      // Server Error (500+)
-      else if (error.response.status >= 500) {
-        console.error('Server Error:', {
-          status: error.response.status,
-          url: originalRequest?.url,
-          message: error.response.data?.message || 'An unexpected server error occurred'
-        });
-      }
-      
-      // Add error type for easier handling
-      error.isApiError = true;
-      error.statusCode = error.response.status;
-    } 
-    // Network errors (no response)
-    else if (error.request) {
-      console.error('Network Error:', {
-        message: 'No response received from server',
-        url: originalRequest?.url,
-        method: originalRequest?.method
-      });
-      
-      error.isNetworkError = true;
-      error.message = 'Unable to connect to the server. Please check your internet connection.';
-    } 
-    // Request setup errors
-    else {
-      console.error('Request Setup Error:', error.message);
-      error.isRequestError = true;
+    // Other HTTP errors
+    if (axiosError.response) {
+      const responseData = axiosError.response.data as ApiErrorResponse;
+      console.error(`HTTP Error ${axiosError.response.status}:`, responseData.message || 'Unknown error');
     }
 
-    return Promise.reject(error);
+    return Promise.reject(axiosError);
   }
 );
 
-// Export the setup function for app initialization
-export { setupCorsPreflight };
-
-export default AxiosJSON
+export default AxiosJSON;
