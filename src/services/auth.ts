@@ -124,7 +124,7 @@ export async function signIn(
       await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
     }
     const response = await AxiosJSON.post<ISignInResponse>(
-      getLocalizedApiUrl('auth/login'),
+      getLocalizedApiUrl('/login'),
       params,
     );
     
