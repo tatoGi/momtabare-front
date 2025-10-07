@@ -11,12 +11,18 @@ export const isProductionEnvironment = (): boolean => {
 export const getApiUrl = (endpoint: string, baseUrl?: string): string => {
   const isProduction = isProductionEnvironment()
   
+  // Remove leading slashes to prevent double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint
+  
   if (isProduction) {
-    // Use relative URL for production (Vercel proxy)
-    return `/api/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`
+    // For production, check if endpoint already has /api/
+    if (cleanEndpoint.startsWith('api/')) {
+      return `/${cleanEndpoint}`
+    }
+    return `/api/${cleanEndpoint}`
   } else {
-    // Use full URL for development
+    // For development, use the full URL
     const base = baseUrl || 'http://localhost:8000'
-    return `${base}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`
+    return `${base}${base.endsWith('/') ? '' : '/'}${cleanEndpoint}`
   }
 }
