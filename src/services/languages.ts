@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ENV } from '@/utils/config/env'
 import type { IBackendLanguage } from '@/ts/models/language.types'
+import { getApiUrl } from '@/utils/api/url'
 
 // Axios instance for languages API
 const LanguagesAxios = axios.create({
@@ -68,4 +69,24 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
   // Fallback to cache if available
   if (cachedLanguages) return cachedLanguages
   return null
+}
+
+// Sync current locale with backend session (Laravel route: POST /api/locale/sync)
+export async function syncLocale(locale: string = 'en'): Promise<{ current_locale?: string } | null> {
+  try {
+    const url = getApiUrl('/api/locale/sync', ENV.BACKEND_URL)
+    const response = await LanguagesAxios.post(url, {}, {
+      withCredentials: true,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Language': locale,
+        'Accept-Language': locale,
+      }
+    })
+    return response.data || null
+  } catch (e) {
+    // Non-fatal; just return null and allow app to continue
+    return null
+  }
 }

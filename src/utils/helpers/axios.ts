@@ -2,6 +2,7 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENV } from '../config/env';
 import { getCurrentLocale } from '@/services/user';
+import { logError, logInfo, logWarning } from '../console';
 
 type ApiErrorResponse = {
   message?: string;
@@ -42,10 +43,17 @@ AxiosJSON.interceptors.request.use(
       return config;
     }
 
-    // Add auth token if available
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Add auth token if available - always ensure Authorization header is set
+    if (config.headers) {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
+      if (token && token.trim()) {
+        config.headers.Authorization = `Bearer ${token}`;
+                logInfo('Setting Authorization header', `Bearer ${token.substring(0, 20)}...`);
+      } else {
+        // Remove any existing Authorization header if no token
+        delete config.headers.Authorization;
+        logWarning('No valid token found, removing Authorization header');
+      }
     }
 
     // Add locale headers
@@ -122,7 +130,7 @@ AxiosJSON.interceptors.response.use(
     // Other HTTP errors
     if (axiosError.response) {
       const responseData = axiosError.response.data as ApiErrorResponse;
-      console.error(`HTTP Error ${axiosError.response.status}:`, responseData.message || 'Unknown error');
+      logError(`HTTP Error ${axiosError.response.status}`, responseData.message || 'Unknown error', 'axios-interceptor');
     }
 
     return Promise.reject(axiosError);

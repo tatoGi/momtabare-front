@@ -2,7 +2,12 @@ import axios from 'axios'
 import { getLocalizedApiUrl } from '@/utils/config/env'
 import { ENV } from '@/utils/config/env'
 import AxiosJSON from '@/utils/helpers/axios'
+import { useAppStore } from '@/pinia/app.pinia'
+import { ELanguages } from '@/ts/pinia/app.types'
+import { syncLocale } from '@/services/languages'
+
 import type { IPage, INavigationItem, IPageTranslation, IBanner, IBannerTranslation } from '@/ts/models/page.types'
+
 
 // Create axios instance for pages API
 const PagesAxios = axios.create({
@@ -10,39 +15,56 @@ const PagesAxios = axios.create({
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
+    
   },
   timeout: 30000, // 30 second timeout (increased from 10s)
 })
 
-// Cache for pages data to avoid multiple API calls
-let cachedPages: IPage[] | null = null
-let cacheTimestamp: number = 0
+// Cache for pages data per-locale to avoid multiple API calls
+type PagesCacheEntry = { pages: IPage[]; timestamp: number }
+const pagesCache: Record<string, PagesCacheEntry> = {}
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-// Get all pages data (contains all translations)
-export async function getAllPages(): Promise<IPage[] | null> {
-  // Check if we have valid cached data
+// Resolve current locale from store with safe fallback
+function getCurrentLocale(): string {
+  try {
+    const appStore = useAppStore()
+    return appStore.language === ELanguages.KA ? 'ka' : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+// Get all pages data for a locale (backend returns all translations; we select based on locale)
+export async function getAllPages(locale?: string): Promise<IPage[] | null> {
+  const targetLocale = (locale || getCurrentLocale() || 'en').toLowerCase()
+  const cacheKey = targetLocale
   const now = Date.now()
-  if (cachedPages && (now - cacheTimestamp) < CACHE_DURATION) {
-    return cachedPages
+  const cacheEntry = pagesCache[cacheKey]
+  
+  // Use cache if available and not expired
+  if (cacheEntry && (now - cacheEntry.timestamp) < CACHE_DURATION) {
+    return cacheEntry.pages
   }
 
   // Retry logic for network issues
   const maxRetries = 3
   let lastError: any = null
+  
+  // Ensure backend session/app locale matches before fetching pages
+  try { await syncLocale(targetLocale) } catch {}
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-     
-      
       // Fetch from /api/pages - locale is sent in headers
       const endpoint = '/api/pages'
       
       const response = await PagesAxios.get(endpoint, {
         headers: {
-          'Accept-Language': 'en',
-          'X-Localization': 'en'
+          'Accept-Language': targetLocale,
+          'X-Localization': targetLocale,
+          'X-Language': targetLocale
         }
       })
       
@@ -50,12 +72,13 @@ export async function getAllPages(): Promise<IPage[] | null> {
       const data = response.data
       const pages = data.data || data.pages || (Array.isArray(data) ? data : [])
     
-      cachedPages = pages
-      cacheTimestamp = now
+      // Cache the pages for this locale
+      pagesCache[cacheKey] = { pages, timestamp: now }
       
       return pages
     } catch (error) {
       lastError = error
+      console.warn(`⚠️ Attempt ${attempt}/${maxRetries} failed for locale ${targetLocale}:`, error instanceof Error ? error.message : String(error))
       
       // If this isn't the last attempt, wait before retrying
       if (attempt < maxRetries) {
@@ -66,19 +89,28 @@ export async function getAllPages(): Promise<IPage[] | null> {
   }
 
   // All attempts failed
-  
-  
-  // Return cached data if available, even if expired
-  if (cachedPages) {
-    return cachedPages
+  console.error('❌ Failed to load pages after retries:', lastError)
+  // Return cached data for this locale if available, even if expired
+  if (pagesCache[cacheKey]) {
+    return pagesCache[cacheKey].pages
   }
   
   return null
 }
 
+// Clear cached pages for a specific locale or all locales
+export function clearPagesCache(locale?: string): void {
+  if (!locale) {
+    Object.keys(pagesCache).forEach(k => delete pagesCache[k])
+    return
+  }
+  const key = locale.toLowerCase()
+  if (pagesCache[key]) delete pagesCache[key]
+}
+
 // Get pages data with locale support (now processes translations client-side)
-export async function getPages(_locale: string = 'en'): Promise<IPage[] | null> {
-  const allPages = await getAllPages()
+export async function getPages(locale: string = 'en'): Promise<IPage[] | null> {
+  const allPages = await getAllPages(locale)
   return allPages // Return all pages, translation selection happens in convertPagesToNavigation
 }
 
@@ -86,11 +118,12 @@ export async function getPages(_locale: string = 'en'): Promise<IPage[] | null> 
 export async function getLocalizedData(endpoint: string, locale: string = 'ka') {
   try {
     // This will call: /api/{endpoint} with locale in headers
-    const url = getLocalizedApiUrl(endpoint, locale)
+    const url = getLocalizedApiUrl(endpoint)
     const response = await fetch(url, {
       headers: {
         'Accept-Language': locale,
         'X-Localization': locale,
+        'X-Language': locale,
       }
     })
     return await response.json()
@@ -148,13 +181,16 @@ function getFallbackNavigation(locale: string): INavigationItem[] {
 }
 
 // Convert pages to navigation items
-export function convertPagesToNavigation(pages: IPage[], locale: string = 'ka'): INavigationItem[] {
+export function convertPagesToNavigation(pages: IPage[], locale: string): INavigationItem[] {
+ 
+  
   const navigationItems: INavigationItem[] = []
   
   // Filter active pages and sort by sort field or id
   const activePages = pages
     .filter(page => page.active === 1)
     .sort((a, b) => (a.sort || a.id) - (b.sort || b.id))
+  
   
   // Group pages by parent_id
   const pagesByParent = activePages.reduce((acc, page) => {
@@ -173,7 +209,10 @@ export function convertPagesToNavigation(pages: IPage[], locale: string = 'ka'):
     // Add children if they exist
     const children = pagesByParent[page.id]
     if (children && children.length > 0) {
-      navItem.children = children.map(child => createNavigationItem(child, locale))
+      navItem.children = children.map(child => {
+        const childNavItem = createNavigationItem(child, locale)
+        return childNavItem
+      })
     }
     
     navigationItems.push(navItem)
@@ -187,9 +226,10 @@ function createNavigationItem(page: IPage, locale: string): INavigationItem {
   const translation = getPageTranslation(page, locale)
   const englishTranslation = getPageTranslation(page, 'en') // Always get English for routing
   
+ 
   return {
     id: page.id,
-    title: translation.title, // Use localized title for display
+    title: translation.title, // Use localized title from backend translation
     slug: translation.slug,   // Keep localized slug for reference
     path: `/${englishTranslation.slug}`, // Always use English slug for routing
     active: page.active === 1,
@@ -200,18 +240,39 @@ function createNavigationItem(page: IPage, locale: string): INavigationItem {
 
 // Get page translation for specific locale
 export function getPageTranslation(page: IPage, locale: string): IPageTranslation {
-  
-  // Try to find translation for requested locale
-  const translation = page.translations.find(t => t.locale === locale)
-  
-  // Fallback to English if requested locale not found
-  if (!translation) {
-    const englishTranslation = page.translations.find(t => t.locale === 'en')
-    if (englishTranslation) return englishTranslation
+  // Normalize requested locale
+  const requested = (locale || 'en').toLowerCase()
+  const primary = requested.slice(0, 2)
+
+
+  // 1) Exact match
+  let found = page.translations.find(t => (t.locale || '').toLowerCase() === requested)
+  if (found) {
+    return found
   }
-  
-  // Fallback to first available translation
-  return translation || page.translations[0]
+
+  // 2) Primary subtag match (e.g., ka_GE -> ka)
+  found = page.translations.find(t => (t.locale || '').toLowerCase().startsWith(primary))
+  if (found) {
+    return found
+  }
+
+  // 2b) Common alias: some backends use 'ge' instead of 'ka'
+  if (primary === 'ka') {
+    found = page.translations.find(t => (t.locale || '').toLowerCase().startsWith('ge'))
+    if (found) {
+      return found
+    }
+  }
+
+  // 3) English fallback
+  found = page.translations.find(t => (t.locale || '').toLowerCase().startsWith('en'))
+  if (found) {
+    return found
+  }
+
+  // 4) First available translation
+  return page.translations[0]
 }
 
 // Get page by slug
@@ -242,6 +303,7 @@ export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
       headers: {
         'Accept-Language': locale,
         'X-Localization': locale,
+        'X-Language': locale,
       }
     })
     return response.data

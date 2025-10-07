@@ -135,6 +135,7 @@ export interface INavigationItem {
   path: string
   active: boolean
   icon?: string
+  translate?: IPageTranslation[]
   children?: INavigationItem[]
   parent_id?: number | null
 }

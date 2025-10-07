@@ -1,120 +1,150 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useAppStore } from '@/pinia/app.pinia'
 import { getNavigation } from '@/services/pages'
+import { syncLocale } from '@/services/languages'
 import type { INavigationItem } from '@/ts/models/page.types'
+import { ELanguages } from '@/ts/pinia/app.types'
 
-// Global navigation state
+// Navigation state
 const navigationItems = ref<INavigationItem[]>([])
-const isLoading = ref(true) // Start as loading
+const isLoading = ref(false)
 const error = ref<string | null>(null)
-const lastProcessedLocale = ref<string | null>(null)
+const currentLocale = ref<string>('en')
+
+// Cache for different locales
+const navigationCache = new Map<string, INavigationItem[]>()
 
 export function useNavigation() {
   const appStore = useAppStore()
   
   // Get current locale from app store
-  const currentLocale = computed(() => appStore.getLanguage)
-  
+  const getCurrentLocale = (): string => {
+    try {
+      const value = appStore.getLanguage
+      return value === ELanguages.KA ? 'ka' : 'en'
+    } catch {
+      return 'en'
+    }
+  }
+
   // Load navigation data
-  const loadNavigation = async (locale?: string) => {
-    const targetLocale = locale || currentLocale.value
+  const loadNavigation = async (forceReload = false) => {
+    // Always use the current language from app store
+    const locale = appStore.language
     
-    // If we already have navigation for this locale, don't reload
-    if (lastProcessedLocale.value === targetLocale && navigationItems.value.length > 0) {
+    // Don't reload if we already have the data for this locale and not forcing reload
+    if (!forceReload && navigationCache.has(locale) && navigationItems.value.length > 0) {
       return
     }
-    
-    // If currently loading and we have some data, skip
-    if (isLoading.value && navigationItems.value.length > 0) {
+
+    // If we already have cached data for this locale, use it
+    if (!forceReload && navigationCache.has(locale)) {
+      navigationItems.value = navigationCache.get(locale) || []
       return
     }
-    
+
     isLoading.value = true
     error.value = null
-    
+
     try {
-      const nav = await getNavigation(targetLocale)
+      console.log(`🌐 Loading navigation for locale: ${locale}`)
+      
+      // First sync the locale with backend
+      await syncLocale(locale)
+      
+      // Then fetch the navigation
+      const nav = await getNavigation(locale)
       
       if (nav && nav.length > 0) {
+        // Update cache and current items
+        navigationCache.set(locale, nav)
         navigationItems.value = nav
-        lastProcessedLocale.value = targetLocale
+        currentLocale.value = locale
+        console.log(`✅ Navigation loaded for locale: ${locale}`, nav)
       } else {
-        error.value = 'Failed to load navigation'
+        throw new Error('No navigation items returned')
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-      console.error('❌ Navigation loading error:', err)
+      error.value = err instanceof Error ? err.message : 'Failed to load navigation'
+      console.error('❌ Navigation loading error:', error.value)
+      // If we have cached data, use it as fallback
+      if (navigationCache.has(locale)) {
+        navigationItems.value = navigationCache.get(locale) || []
+      } else {
+        navigationItems.value = []
+      }
     } finally {
       isLoading.value = false
     }
   }
-  
-  // Watch for locale changes and reload navigation
-  watch(currentLocale, (newLocale, oldLocale) => {
-    if (newLocale && newLocale !== oldLocale) {
-      loadNavigation(newLocale)
+
+  // Watch for locale changes
+  watch(() => appStore.language, async (newLang: ELanguages, oldLang: ELanguages) => {
+    if (newLang !== oldLang) {
+      console.log(`🔄 Language changed from ${oldLang} to ${newLang}`)
+      await loadNavigation(true) // Force reload on language change
     }
-  }, { immediate: true })
-  
+  })
+
+  // Initial load
+  onMounted(async () => {
+    await loadNavigation()
+  })
+
   // Get navigation items by parent
-  const getNavigationByParent = (parentId: number | null = null) => {
-    return navigationItems.value.filter(item => 
-      item.parent_id === parentId
-    )
+  const getNavigationByParent = (parentId: number | null = null): INavigationItem[] => {
+    return navigationItems.value.filter(item => item.parent_id === parentId)
   }
-  
-  // Get root navigation items (no parent)
-  const rootNavigationItems = computed(() => {
-    if (!navigationItems.value || navigationItems.value.length === 0) {
-      return []
-    }
+
+  // Get root navigation items
+  const rootNavigationItems = computed((): INavigationItem[] => {
     return getNavigationByParent(null)
   })
-  
+
   // Find navigation item by slug
   const findNavigationBySlug = (slug: string): INavigationItem | null => {
     const findInItems = (items: INavigationItem[]): INavigationItem | null => {
       for (const item of items) {
-        if (item.slug === slug) {
-          return item
-        }
-        if (item.children) {
+        if (item.slug === slug) return item
+        if (item.children && item.children.length > 0) {
           const found = findInItems(item.children)
           if (found) return found
         }
       }
       return null
     }
-    
     return findInItems(navigationItems.value)
   }
-  
+
   // Find navigation item by path
   const findNavigationByPath = (path: string): INavigationItem | null => {
     const cleanPath = path.startsWith('/') ? path.slice(1) : path
     return findNavigationBySlug(cleanPath)
   }
-  
-  // Check if navigation item is active (matches current route)
+
+  // Check if navigation item is active
   const isNavigationActive = (item: INavigationItem, currentPath: string): boolean => {
-    return item.path === currentPath || 
-           currentPath.startsWith(item.path + '/') ||
-           Boolean(item.children && item.children.some(child => 
+    if (!currentPath) return false
+    const itemPath = item.path || ''
+    return currentPath === itemPath || 
+           currentPath.startsWith(`${itemPath}/`) ||
+           Boolean(item.children?.some(child => 
              isNavigationActive(child, currentPath)
            ))
   }
-  
+
   // Refresh navigation data
-  const refreshNavigation = () => {
-    loadNavigation()
+  const refreshNavigation = async () => {
+    await loadNavigation(true)
   }
-  
+
   return {
     // State
     navigationItems: computed(() => navigationItems.value),
     rootNavigationItems,
     isLoading: computed(() => isLoading.value),
     error: computed(() => error.value),
+    currentLocale: computed(() => currentLocale.value),
     
     // Methods
     loadNavigation,

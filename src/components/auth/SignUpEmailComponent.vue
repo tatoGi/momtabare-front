@@ -47,7 +47,12 @@ async function sendVerificationCode(): Promise<void> {
     })
 
     if (response && response.user_id) {
-      // Emit the user_id and email to parent component for verification step
+      // Emit the next step with user ID and email for verification
+      emit('nextStep', {
+        nextStep: EAuthStep.VERIFY_EMAIL,
+        user_id: response.user_id,
+        email: email.value
+      })
       emit("nextStep", {
         nextStep: EAuthStep.VERIFY_EMAIL,
         user_id: response.user_id,

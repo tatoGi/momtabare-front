@@ -56,7 +56,6 @@ const canRequestRetailer = computed(() => !isApprovedRetailer.value && !isPendin
 onMounted(async () => {
   // Fetch cart data if user is authenticated
   if (userStore.authenticated && userStore.user) {
-    console.log('🛒 Initializing cart for authenticated user:', userStore.user.first_name)
     await cartStore.fetchCart()
   }
 })
@@ -64,10 +63,8 @@ onMounted(async () => {
 // Watch for user authentication changes
 watch(() => userStore.authenticated, async (isAuthenticated: boolean) => {
   if (isAuthenticated && userStore.user) {
-    console.log('🛒 User authenticated, fetching cart data')
     await cartStore.fetchCart()
   } else {
-    console.log('🛒 User logged out, clearing cart')
     cartStore.clearCart()
   }
 })
@@ -333,12 +330,7 @@ function selectCity(city: string) {
             </button>
             
             <!-- Rent Product Button (for non-retailers or approved retailers) -->
-            <button 
-              v-if="!isApprovedRetailer"
-              class="mb-3 w-full rounded-xl bg-customRed py-2 text-white font-semibold text-sm"
-            >
-              გააქირავე პროდუქცია
-            </button>
+          
             <ul class="space-y-1 text-sm">
               <li>
                 <button class="w-full rounded-lg px-2 py-2 text-left hover:bg-gray-100" @click="router.push('/user')">ჩემი პროფილი</button>
@@ -434,13 +426,7 @@ function selectCity(city: string) {
           >
             <img :src="usersvg" alt="user" class="w-5 h-5" />
           </BaseButton>
-          
-          <!-- Desktop: Use dialog -->
-          <AuthDialog class="hidden md:block">
-            <BaseButton :height="40" :width="40" class="rounded-full bg-customRed">
-              <img :src="usersvg" alt="user" class="w-5 h-5" />
-            </BaseButton>
-          </AuthDialog>
+      
         </template>
       </div>
       

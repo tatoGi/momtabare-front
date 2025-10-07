@@ -31,8 +31,6 @@ const getBackendUrl = (): string => {
       console.warn('Adjusted dev backend URL to HTTP:', devUrl);
     }
   }
-  
-  console.log('🔧 Using backend URL:', devUrl);
   return devUrl;
 };
 
@@ -49,6 +47,15 @@ export const getApiUrl = (endpoint: string): string => {
   return `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 };
 
+// Helper to get production backend base for assets
+const getProductionBackendBase = (): string => {
+  const configured = (import.meta as any).env?.VITE_BACKEND_URL_PRODUCTION as string | undefined
+  if (configured && typeof configured === 'string' && configured.length > 0) {
+    return configured.replace(/\/$/, '')
+  }
+  return 'https://admin.momtabare.com'
+}
+
 // Environment configuration
 export const ENV = {
   // Backend API base URL
@@ -58,7 +65,7 @@ export const ENV = {
   API_BASE_URL: getBackendUrl(),
   
   // Asset URLs (for images, files, etc.)
-  ASSET_URL: getBackendUrl(),
+  ASSET_URL: (isProduction || isVercel || isProductionDomain) ? getProductionBackendBase() : getBackendUrl(),
   
   // Environment flags
   IS_PRODUCTION: isProduction,
@@ -74,20 +81,11 @@ export const getAssetUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  return `${ENV.ASSET_URL}${cleanPath ? '/' + cleanPath : ''}`;
+  const base = (isProduction || isVercel || isProductionDomain) ? getProductionBackendBase() : getBackendUrl();
+  return `${base}${cleanPath ? '/' + cleanPath : ''}`;
 };
 
-// Log environment info for debugging
-if (typeof window !== 'undefined') {
-  console.log('🌐 Environment Configuration:', {
-    BACKEND_URL: ENV.BACKEND_URL,
-    NODE_ENV: import.meta.env.MODE,
-    isDevelopment,
-    isVercel,
-    isProductionDomain,
-    currentHostname: window.location.hostname
-  });
-}
+
 
 // Clean up any double slashes in URLs
 const cleanUrl = (url: string): string => {

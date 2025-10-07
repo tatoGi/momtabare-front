@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import * as BaseNoData from "@/components/base/BaseNoData.vue"
-import * as CartDetailsComponent from "@/components/cart/CartDetailsComponent.vue"
-import * as CartOwnerList from "@/components/cart/CartOwnerList.vue"
+import BaseNoData from "@/components/base/BaseNoData.vue"
+import CartDetailsComponent from "@/components/cart/CartDetailsComponent.vue"
+import CartOwnerList from "@/components/cart/CartOwnerList.vue"
 import { ICart } from "@/ts/models/cart.types"
 import { useCartStore } from "@/pinia/cart.pinia"
 import { computed, onMounted } from "vue"

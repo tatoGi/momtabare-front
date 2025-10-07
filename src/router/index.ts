@@ -92,7 +92,6 @@ async function loadPageDataBeforeEnter(to: any, _from: any, next: any) {
           if (translation.slug.toLowerCase().includes(routeName.toLowerCase()) ||
               routeName.toLowerCase().includes(translation.slug.toLowerCase())) {
             targetPage = page
-            console.log(`✅ Found similar page for route '${routeName}' with slug '${translation.slug}'`)
             break
           }
         }
@@ -102,9 +101,6 @@ async function loadPageDataBeforeEnter(to: any, _from: any, next: any) {
 
     if (targetPage) {
       to.meta.pageData = targetPage
-    } else {
-      console.warn('⚠️ No page data found for route:', routeName)
-      console.log('📋 Available pages:', allPages.map(p => p.translations.map(t => t.slug)).flat())
     }
 
     // Hide loading state on success

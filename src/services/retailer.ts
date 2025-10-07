@@ -2,21 +2,79 @@ import AxiosJSON from "../utils/helpers/axios.ts"
 import { getCurrentLocale } from './user'
 import { getLocalizedApiUrl } from '@/utils/config/env'
 
+/**
+ * Requests retailer permission for the currently authenticated user
+ * @returns Promise with success status and response data/message
+ */
 export async function requestRetailerPermission(): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
-    const locale = getCurrentLocale()
-    const response = await AxiosJSON.post(getLocalizedApiUrl('/profile/retailer-request', locale))
+    // First ensure we have a CSRF cookie
+    await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
+    
+    // Token is now handled by axios interceptor automatically
+    const url = getLocalizedApiUrl(`/profile/retailer-request`);
+    
+    console.log('Requesting retailer permission with automatic token handling');
+    
+    const response = await AxiosJSON.post(
+      url,
+      {}, // Empty data object since it's a POST request
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true // Important for sending cookies with cross-origin requests
+      }
+    );
+    
     return {
       success: true,
-      data: response.data.data,
-      message: response.data.message
+      data: response.data?.data || response.data,
+      message: response.data?.message || 'Retailer permission requested successfully'
+    };
+  } catch (error: any) {
+    console.error("❌ Failed to request retailer permission:", error);
+    
+    // More detailed error handling
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+      console.error('Response headers:', error.response.headers);
+      
+      if (error.response.status === 401) {
+        // Check if this is a backend issue vs token issue
+        const backendMessage = error.response.data?.message;
+        const token = localStorage.getItem('auth_token');
+        
+        // If we have a token and backend says "Unauthenticated", 
+        // this is likely a backend issue, not a token issue
+        if (token && backendMessage === 'Unauthenticated.') {
+          console.warn('⚠️ Backend retailer endpoint issue - keeping token for retry');
+          // Don't clear tokens - this is a backend issue
+        } else if (backendMessage === 'Token has expired' || !token) {
+          console.warn('Clearing expired/invalid tokens');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_auth_token');
+          sessionStorage.removeItem('auth_token');
+          sessionStorage.removeItem('user_auth_token');
+        }
+        
+        return { 
+          success: false,
+          message: 'Your session has expired. Please log in again.',
+          data: { requiresLogin: true }
+        };
+      }
     }
-  } catch (error) {
-    console.error("Failed to request retailer permission:", error)
+    
     return { 
       success: false,
-      message: 'Failed to submit retailer request'
-    }
+      message: error.response?.data?.message || 'Failed to submit retailer request',
+      data: error.response?.data
+    };
   }
 }
 
@@ -39,7 +97,7 @@ export interface IApiResponse {
 export async function saveRetailerShop(shopData: IRetailerShopData): Promise<IApiResponse> {
   try {
     // Get fresh CSRF token for authenticated requests
-    await AxiosJSON.get('/sanctum/csrf-cookie')
+    await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'))
     
     const locale = getCurrentLocale()
     const formData = new FormData()
@@ -59,7 +117,7 @@ export async function saveRetailerShop(shopData: IRetailerShopData): Promise<IAp
     }
     
     const response = await AxiosJSON.post(
-      getLocalizedApiUrl('retailer/retailer-shop/store', locale),
+      getLocalizedApiUrl(`retailer/retailer-shop/store?locale=${locale}`),
       formData,
       {
         headers: {
@@ -88,20 +146,17 @@ export async function saveRetailerShop(shopData: IRetailerShopData): Promise<IAp
 export async function addProduct(payload: FormData): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
         // Get fresh CSRF token for authenticated requests
-        await AxiosJSON.get('/sanctum/csrf-cookie')
+        await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'))
         
-        const locale = getCurrentLocale()
-        const url = getLocalizedApiUrl('/retailer/products', locale)
+        const url = getLocalizedApiUrl(`/retailer/products`)
         console.log(url)
         
-        // Ensure we have the auth token
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
-        console.log('Using auth token for retailer request:', token ? 'Present' : 'Missing')
+        // Token is now handled by axios interceptor automatically
+        console.log('Submitting product with automatic token handling')
         
         const response = await AxiosJSON.post(url, payload, {
             headers: {
                 'Content-Type': 'multipart/form-data',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             }
         })
         
@@ -141,16 +196,14 @@ export async function addProduct(payload: FormData): Promise<{ success: boolean;
 
 export async function updateProduct(productId: number, payload: FormData): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
-    await AxiosJSON.get('/sanctum/csrf-cookie')
-    const locale = getCurrentLocale()
-    const url = getLocalizedApiUrl(`/retailer/products/${productId}`, locale)
+    await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'))
+    const url = getLocalizedApiUrl(`/retailer/products/${productId}`)
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
+    // Token is now handled by axios interceptor automatically
 
     const response = await AxiosJSON.post(url, payload, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         'X-HTTP-Method-Override': 'PUT'
       }
     })
@@ -171,13 +224,11 @@ export async function updateProduct(productId: number, payload: FormData): Promi
 
 export async function deleteProduct(productId: number): Promise<{ success: boolean; message?: string }> {
   try {
-    const locale = getCurrentLocale()
-    const url = getLocalizedApiUrl(`/retailer/products/${productId}`, locale)
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token')
+      const url = getLocalizedApiUrl(`/retailer/products/${productId}`)
+    // Token is now handled by axios interceptor automatically
 
     const response = await AxiosJSON.delete(url, {
       headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         'Accept': 'application/json'
       }
     })
@@ -191,8 +242,7 @@ export async function deleteProduct(productId: number): Promise<{ success: boole
 
 export async function getRetailerProduct(productId: number): Promise<{ success: boolean; data?: any; message?: string }> {
   try {
-    const locale = getCurrentLocale()
-    const url = getLocalizedApiUrl(`/retailer/products/${productId}`, locale)
+    const url = getLocalizedApiUrl(`/retailer/products/${productId}`)
     const response = await AxiosJSON.get(url)
     return {
       success: true,
@@ -207,9 +257,8 @@ export async function getRetailerProduct(productId: number): Promise<{ success: 
 
 export async function getRetailerShopCount(): Promise<number> {
   try {
-    const locale = getCurrentLocale()
     const response = await AxiosJSON.get(
-      getLocalizedApiUrl('retailer/retailer-shop/count', locale)
+      getLocalizedApiUrl(`retailer/retailer-shop/count`)
     )
     
     // Handle different response structures
@@ -249,9 +298,8 @@ export interface IRetailerShop {
 // Get current user's retailer shop (without specific ID)
 export async function getRetailerShop(): Promise<{ success: boolean; data?: IRetailerShop; message?: string }> {
   try {
-    const locale = getCurrentLocale()
     // Use general endpoint to get user's shop
-    const endpoint = getLocalizedApiUrl('retailer/retailer-shop', locale)
+    const endpoint = getLocalizedApiUrl(`retailer/retailer-shop`)
     
     const response = await AxiosJSON.get(endpoint)
     
@@ -272,9 +320,7 @@ export async function getRetailerShop(): Promise<{ success: boolean; data?: IRet
 // Get specific retailer shop by ID
 export async function getRetailerShopById(shopId: number): Promise<{ success: boolean; data?: IRetailerShop; message?: string }> {
   try {
-    const locale = getCurrentLocale()
-    const endpoint = getLocalizedApiUrl(`/retailer/retailer-shop/${shopId}`, locale)
-    
+    const endpoint = getLocalizedApiUrl(`retailer/retailer-shop/${shopId}`)
     const response = await AxiosJSON.get(endpoint)
     
     return {

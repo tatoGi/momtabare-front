@@ -55,13 +55,7 @@ watch(() => props.isMobileNavOpen, (newVal: boolean) => {
 // Use dynamic navigation from backend
 const { rootNavigationItems, isLoading: navLoading, error: navError } = useNavigation();
 
-// For debugging navigation loading
-watch(
-  [rootNavigationItems, navLoading, navError],
-  ([items, loading, error]: [any[], boolean, string | null]) => {
-    console.log('Navigation state:', { items, loading, error });
-  }
-);
+
 
 // Dynamic languages from backend -> ILanguageDisplay
 const languages = ref<ILanguageDisplay[]>([])

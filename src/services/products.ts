@@ -3,9 +3,18 @@ import { ENV } from '@/utils/config/env'
 import type { IGetProductsResponse, IGetProductsQuery } from '@/ts/services/products.types'
 import type { IProductListItem } from '@/ts/models/product.types'
 import { useAppStore } from '@/pinia/app.pinia'
-import { ELanguages } from '@/ts/pinia/app.types'
 import { getApiUrl } from '@/utils/api/url'
+import { ELanguages } from '@/ts/pinia/app.types'
 import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+
+// Helper function to get cookie value by name
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null
+  return null
+}
 
 const API_BASE_URL = ENV.BACKEND_URL
 
@@ -23,7 +32,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = getApiUrl('products', API_BASE_URL)
+    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
     
     
     // Use API endpoint with locale in headers: /api/products
@@ -105,7 +114,7 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
     }
 
     // Get detailed product data using the ID with locale
-    const detailApiUrl = getApiUrl(`products/${product.id}`, API_BASE_URL)
+    const detailApiUrl = getApiUrl(`/api/products/${product.id}`, API_BASE_URL)
     
     const response = await axios.get(detailApiUrl)
     const backendProduct = response.data.data
@@ -171,8 +180,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
     const response = await axios.get(apiUrl, {
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        'Content-Type': 'application/json'
       },
       params: { user_id: userId }
     })
@@ -374,18 +382,20 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     
     if (currentFavoriteStatus) {
       // Product is currently favorite, so remove it
-      apiUrl = getApiUrl('remove-from-wishlist', API_BASE_URL)
+      apiUrl = getApiUrl('/api/remove-from-wishlist', API_BASE_URL)
       requestData = { product_id: productId }
     } else {
       // Product is not favorite, so add it
-      apiUrl = getApiUrl('add-to-wishlist', API_BASE_URL)
+      apiUrl = getApiUrl('/api/add-to-wishlist', API_BASE_URL)
       requestData = { product_id: productId }
     }
     
-    // Prepare headers - include auth token if available
+    // Prepare headers with credentials
     const headers: any = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') // Get CSRF token from cookies
     }
     
     const authToken = localStorage.getItem('auth_token')
@@ -393,8 +403,11 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
       headers['Authorization'] = `Bearer ${authToken}`
     }
     
-    // Make API call to add/remove favorite
-    const response = await axios.post(apiUrl, requestData, { headers })
+    // Make API call to add/remove favorite with credentials
+    const response = await axios.post(apiUrl, requestData, { 
+      headers,
+      withCredentials: true // Important for sessions and cookies
+    })
     
     NProgress.done()
     const newFavoriteStatus = currentFavoriteStatus ? false : true
@@ -418,10 +431,10 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
         let requestData: any
         
         if (currentFavoriteStatus) {
-          apiUrl = getApiUrl('remove-from-wishlist', API_BASE_URL)
+          apiUrl = getApiUrl('/api/remove-from-wishlist', API_BASE_URL)
           requestData = { product_id: productId }
         } else {
-          apiUrl = getApiUrl('add-to-wishlist', API_BASE_URL)
+          apiUrl = getApiUrl('/api/add-to-wishlist', API_BASE_URL)
           requestData = { product_id: productId }
         }
         

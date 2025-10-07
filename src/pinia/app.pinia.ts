@@ -1,6 +1,7 @@
 import type { IAppState } from "../ts/pinia/app.types"
 import { ELanguages } from "../ts/pinia/app.types"
 import {defineStore} from "pinia"
+import { syncLocale } from '@/services/languages'
 
 export const useAppStore = defineStore("app", {
     state: (): IAppState => ({
@@ -20,6 +21,12 @@ export const useAppStore = defineStore("app", {
         },
         setLanguage(language: ELanguages) {
             this.language = language
+            // Fire-and-forget backend locale sync to keep session/app locale aligned
+            try {
+                const locale = language === ELanguages.KA ? 'ka' : 'en'
+                // do not await to keep UI responsive
+                void syncLocale(locale)
+            } catch {}
         },
     },
     getters: {

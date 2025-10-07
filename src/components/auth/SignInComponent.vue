@@ -7,7 +7,6 @@ import {signIn} from "@/services/auth.ts"
 import { getUser } from "@/services/user"
 import {useUserStore} from "@/pinia/user.pinia.ts"
 import { ref, watch, type Ref } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 
 const userStore = useUserStore()
@@ -24,7 +23,6 @@ watch(isLoading, (newVal: boolean) => {
 
 const emailOrPhone = ref<string>("")
 const password = ref<string>("")
-const { locale } = useI18n()
 
 async function handleSignIn(): Promise<void> {
   try {
@@ -41,7 +39,7 @@ async function handleSignIn(): Promise<void> {
       payload.phone_number = emailOrPhone.value
     }
 
-    const data = await signIn(payload, locale.value)
+    const data = await signIn(payload)
     
     // If backend returns success: false, surface the message
     if (!data || data.success === false) {

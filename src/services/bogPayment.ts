@@ -40,7 +40,7 @@ class BogPaymentService {
 
   async getToken(): Promise<string | null> {
     try {
-      const response = await AxiosJSON.get('/bog/token');
+      const response = await AxiosJSON.get('/api/bog/token');
       return response.data.access_token;
     } catch (error) {
       console.error('Failed to get BOG token:', error);
@@ -50,7 +50,6 @@ class BogPaymentService {
 
   async createOrder(orderData: IBogOrderPayload): Promise<IBogOrderResponse> {
     try {
-      const locale = getCurrentLocale();
       const orderId = orderData.external_order_id || `order_${Date.now()}`;
       const baseUrl = window.location.origin;
       const requestPayload = {
@@ -63,7 +62,7 @@ class BogPaymentService {
       };
 
   const response = await AxiosJSON.post(
-    getLocalizedApiUrl('/bog/orders', locale),
+    getLocalizedApiUrl('/bog/orders'),
     requestPayload,
     {
       headers: {
@@ -101,8 +100,7 @@ class BogPaymentService {
 
   async getOrderDetails(orderId: string): Promise<IBogOrderResponse> {
     try {
-      const locale = getCurrentLocale();
-      const url = getLocalizedApiUrl(`/bog/orders/${encodeURIComponent(orderId)}`, locale);
+      const url = getLocalizedApiUrl(`/api/bog/orders/${encodeURIComponent(orderId)}`);
       const response = await AxiosJSON.get(url);
       const responseData = response.data;
 
@@ -213,7 +211,7 @@ class BogPaymentService {
 
   async getSavedCards(): Promise<ISavedCardSummary[]> {
     try {
-      const response = await AxiosJSON.get('/bog/cards');
+      const response = await AxiosJSON.get('/api/bog/cards');
       return response.data.data || [];
     } catch (error) {
       console.error('Error fetching saved cards:', error);
@@ -227,7 +225,7 @@ class BogPaymentService {
       
       console.log('Attempting to save card for order:', orderId, 'with idempotency key:', idempotencyKey);
       
-      const response = await AxiosJSON.post(`/bog/orders/${orderId}/save-card`, {}, {
+      const response = await AxiosJSON.post(`/api/bog/orders/${orderId}/save-card`, {}, {
         headers: { 'Idempotency-Key': idempotencyKey }
       });
       
@@ -247,7 +245,7 @@ class BogPaymentService {
   async payWithSavedCard(parentOrderId: string, paymentData: IBogPaymentDetails): Promise<IBogCardOperation> {
     try {
       const locale = getCurrentLocale();
-      const url = getLocalizedApiUrl(`/bog/ecommerce/orders/${encodeURIComponent(parentOrderId)}/pay`, locale);
+      const url = getLocalizedApiUrl(`/api/bog/ecommerce/orders/${encodeURIComponent(parentOrderId)}/pay`);
       const response = await AxiosJSON.post(url, paymentData);
       return response.data;
     } catch (error: any) {
@@ -445,7 +443,7 @@ export function useBogPayment() {
 
       // Prepare callback URLs
       const locale = getCurrentLocale() || 'ka';
-      const callbackUrl = `${secureCallbackBase.replace(/\/+$/, '')}/bog/callback`;
+      const callbackUrl = `${secureCallbackBase.replace(/\/+$/, '')}/api/bog/callback`;
       const successUrl = `${window.location.origin}/payment/success`;
       const failUrl = `${window.location.origin}/payment/fail`;
 

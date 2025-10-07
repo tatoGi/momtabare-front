@@ -41,37 +41,33 @@ export function getCurrentLocale(): string {
     return 'ka'
   }
 }
-/**
- * Get current authenticated user
- * Handles both session and token-based authentication
- */
+
 export async function getUser(): Promise<IUser | null> {
   try {
     const locale = getCurrentLocale();
     const token = localStorage.getItem('auth_token') || localStorage.getItem('user_auth_token');
     
-    // Prepare headers
-    const headers: Record<string, string> = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-Localization': locale,
-      'Accept-Language': locale
-    };
-
-    // Add authorization header if token exists
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (!token) {
+      console.warn('No authentication token found');
+      return null;
     }
 
-    // Try with the localized API URL first
     try {
+      // Ensure CSRF cookie is set
+      await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'), { withCredentials: true });
+      
+      // Fetch user data - axios interceptor will handle Authorization header automatically
       const response = await AxiosJSON.get(getLocalizedApiUrl('me'), {
         withCredentials: true,
-        headers
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Localization': locale,
+          'Accept-Language': locale
+        }
       });
 
-      // Handle successful response
       const data = response.data;
       
       // Handle different response formats
@@ -83,21 +79,43 @@ export async function getUser(): Promise<IUser | null> {
         return data as IUser;
       }
       
-      console.warn('Unexpected response format from /me endpoint:', data);
       return null;
     } catch (error: any) {
-      console.error('Error fetching user:', error);
+      console.error('Error fetching user:', {
+        status: error.response?.status,
+        message: error.message,
+        url: error.config?.url,
+        headers: error.config?.headers,
+        responseData: error.response?.data
+      });
       
-      // If we get a 401, clear any invalid tokens
+      // If we get a 401, be more careful about clearing tokens
       if (error.response?.status === 401) {
-        localStorage.removeItem('auth_token');
-        delete AxiosJSON.defaults.headers.common['Authorization'];
+        console.warn('Authentication failed');
+        console.warn('Backend response:', error.response?.data);
+        
+        // Check if this is a backend issue vs token issue
+        const backendMessage = error.response?.data?.message;
+        const token = localStorage.getItem('auth_token');
+        
+        // If we have a token and backend says "Unauthenticated", 
+        // this is likely a backend /me endpoint issue, not a token issue
+        if (token && backendMessage === 'Unauthenticated.') {
+          console.warn('⚠️ Backend /me endpoint issue - keeping token for retry');
+          console.warn('🔧 Please fix your backend /me endpoint to use $request->user("sanctum")');
+          // Don't clear tokens - this is a backend issue
+        } else if (backendMessage === 'Token has expired' || !token) {
+          console.warn('Clearing expired/invalid tokens');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_auth_token');
+          delete AxiosJSON.defaults.headers.common['Authorization'];
+        }
       }
       
       return null;
     }
   } catch (error) {
-    console.error('❌ Unexpected error in getUser:', error);
+    console.error('Unexpected error in getUser:', error);
     return null;
   }
 }
@@ -105,7 +123,7 @@ export async function getUser(): Promise<IUser | null> {
 // Update current user profile (Laravel: PUT /profile)
 export async function updateUserProfile(payload: Partial<IUser>): Promise<IUser | null> {
   try {
-    const locale = getCurrentLocale()
+  
     
     // For profile updates, we need CSRF token + session auth
     await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));

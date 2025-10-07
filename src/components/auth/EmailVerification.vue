@@ -61,26 +61,42 @@ async function checkVerificationCode(): Promise<void> {
     isLoading.value = true
     verificationCodeError.value = ""
 
-    const response = await verifyCode({
-      ...(props.userId > 0 ? { user_id: props.userId } : { identifier: props.email }),
-      verification_code: verificationCode.value,
-    })
+    if (!verificationCode.value || verificationCode.value.length !== 6) {
+      verificationCodeError.value = 'გთხოვთ შეიყვანოთ 6-ნიშნა კოდი';
+      return;
+    }
 
-    if (response) {
+    const response = await verifyCode(
+      props.email,
+      verificationCode.value,
+      props.userId
+    )
+
+    if (response && response.success) {
+      // Emit next step with user ID for completing registration
       emit("nextStep", {
         nextStep: EAuthStep.SIGN_UP_USER_INFO,
         user_id: response.user_id || props.userId,
         verification_code: verificationCode.value,
+        email: props.email
       })
     }
   } catch (error: any) {
-    console.error('Verification error:', error)
-    if (error.includes('The verification code field is required.'))
-      verificationCodeError.value = 'კოდის შევსება სავალდებულოა'
-    if (error.includes('Invalid verification code.'))
-      verificationCodeError.value = 'დამადასტურებელი კოდი არასწორია'
-    if (error.includes('code has expired'))
-      verificationCodeError.value = 'დამადასტურებელი კოდის ვადა ამოიწურა'
+    console.error('Verification error:', error);
+    const errorMessage = error.message || error.toString();
+    
+    if (errorMessage.includes('The verification code field is required.') || 
+        errorMessage.includes('The token field is required.')) {
+      verificationCodeError.value = 'კოდის შევსება სავალდებულოა';
+    } else if (errorMessage.includes('Invalid verification code.') || 
+               errorMessage.includes('Invalid token.')) {
+      verificationCodeError.value = 'დამადასტურებელი კოდი არასწორია';
+    } else if (errorMessage.includes('code has expired') || 
+               errorMessage.includes('token has expired')) {
+      verificationCodeError.value = 'დამადასტურებელი კოდის ვადა ამოიწურა';
+    } else {
+      verificationCodeError.value = 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ თავიდან';
+    }
   } finally {
     isLoading.value = false
   }

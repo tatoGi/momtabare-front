@@ -61,7 +61,6 @@ async function fetchHomePageDynamic() {
     // Handle popular products response structure
     if (popularProductsData?.products && Array.isArray(popularProductsData.products)) {
       popularProducts = popularProductsData.products
-      console.log('Popular products loaded:', popularProducts.length)
     } else if (Array.isArray(popularProductsData)) {
       popularProducts = popularProductsData
     } else {

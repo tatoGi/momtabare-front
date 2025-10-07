@@ -35,7 +35,7 @@ interface WishlistResponse {
 }
 export async function ensureCsrfToken(): Promise<boolean> {
   try {
-    await AxiosJSON.get('/sanctum/csrf-cookie')
+    await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'))
     return true
   } catch (error) {
     console.error('Failed to get CSRF token:', error)
@@ -95,8 +95,23 @@ export async function getCart(): Promise<ICart> {
       total_price: backendCart.subtotal || 0,
       owner: backendCart.owner || null
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch cart:', error)
+    
+    // If it's a 401 error, check if it's a backend issue vs token issue
+    if (error.response?.status === 401) {
+      const backendMessage = error.response.data?.message;
+      const token = localStorage.getItem('auth_token');
+      
+      if (token && backendMessage === 'Unauthenticated.') {
+        console.warn('⚠️ Backend cart endpoint issue - keeping token for retry');
+      } else if (backendMessage === 'Token has expired' || !token) {
+        console.warn('Clearing expired/invalid tokens');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_auth_token');
+      }
+    }
+    
     // Return empty cart on error
     return {
       items: [],

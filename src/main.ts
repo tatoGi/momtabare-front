@@ -7,6 +7,9 @@ import clickOutside from './directives/clickOutside';
 import VueTopProgress from 'vue-top-progress';
 import { createPinia } from 'pinia';
 import router from './router';
+
+// Import dev tools for debugging
+import './utils/dev-tools';
 import { useAppStore } from '@/store/app';
 import Toast from '@/components/ui/toast/Toast.vue';
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
@@ -46,34 +49,33 @@ app.use(VueTopProgress, {
 // Initialize authentication before mounting the app
 async function initializeApp() {
   try {
+    
+    // Initialize auth store first
+    const { useAuthStore } = await import('@/pinia/auth.pinia');
+    const authStore = useAuthStore();
+    await authStore.initialize();
+    
+    // Then initialize user store
     const { useUserStore } = await import('@/pinia/user.pinia');
     const userStore = useUserStore();
 
-    console.log('🚀 Starting app initialization...')
-
-    // Initialize authentication state
-    await userStore.initializeAuth();
+    // Initialize authentication state with timeout
+    const authInitPromise = userStore.initializeAuth();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Auth initialization timeout')), 10000)
+    );
+    
+    await Promise.race([authInitPromise, timeoutPromise]);
 
     // Mount the app after auth is initialized
     app.mount("#app");
 
-    // Log initialization status for debugging
-    console.log('✅ App initialized successfully')
-    console.log('🔐 Authentication state:', {
-      isAuthenticated: userStore.authenticated,
-      isInitialized: userStore.initialized,
-      hasUser: !!userStore.user,
-      userId: userStore.user?.id
-    });
-
   } catch (error) {
-    console.error('❌ Failed to initialize app:', error);
+    console.error('❌ Failed to initialize app:', error); 
 
     // Still mount the app even if auth initialization fails
     // This prevents the app from being completely broken
     app.mount("#app");
-
-    console.log('⚠️ App mounted despite authentication error - user will need to log in manually')
   }
 }
 

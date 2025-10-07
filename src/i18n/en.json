@@ -17,6 +17,16 @@
   "allBlog": "All Blog",
   "routes": "Routes",
   "navigation": "Navigation",
+  "navigationItems": {
+    "home": "Home",
+    "blog": "Blog",
+    "routes": "Routes",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "about": "About",
+    "products": "Products",
+    "categories": "Categories"
+  },
   "blogs": "Blogs",
   "blog": "Blog",
   "blogShow": "Blog Show",
@@ -38,7 +48,7 @@
     "discount": "Discount",
     "productsCost": "Products cost",
     "totalAmount": "Total amount",
-      "placeOrder": "Place order"
+    "placeOrder": "Place order"
   },
   "payment": {
     "success": {

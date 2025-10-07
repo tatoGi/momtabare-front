@@ -25,21 +25,29 @@ async function setTokenFromResponseData(data: any) {
       localStorage.setItem('auth_token', token);
       
       if (refreshToken) {
-        console.log('🔄 Storing refresh token');
         localStorage.setItem('refresh_token', refreshToken);
+        console.log('🔄 Storing refresh token');
       } else {
         console.warn('⚠️ No refresh token found in response');
       }
       
-      // Update axios defaults
+      // Update axios defaults with the new token IMMEDIATELY
       AxiosJSON.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // Set the token in the auth store
+      // Ensure the token is set in the auth store
       authStore.setToken(token);
+      
+      // Force a synchronous update of the axios instance
+      console.log('🔧 Setting axios default Authorization header:', `Bearer ${token.substring(0, 20)}...`);
       
       console.log('✅ Tokens processed and stored successfully');
       
-      return { token, refreshToken };
+      // Return the token data
+      return { 
+        token, 
+        refreshToken,
+        user: data?.data?.user || data?.user 
+      };
     } else {
       throw new Error('No access token found in response');
     }
@@ -64,7 +72,7 @@ export async function register(
     );
 
     const response = await AxiosJSON.post<IRegisterResponse>(
-      getLocalizedApiUrl('auth/register'),
+      getLocalizedApiUrl('/send-registration-email'),
       requestData
     )
     const data = response.data
@@ -84,25 +92,25 @@ export async function completeRegistration(
   try {
     const { locale = 'en', ...restParams } = params;
     const response = await AxiosJSON.post<ICompleteRegistrationResponse>(
-      getLocalizedApiUrl('auth/complete-registration'),
+      getLocalizedApiUrl('/complete-registration'),
       restParams
     );
-    const data = response.data;
-    await setTokenFromResponseData(data);
     
-    try {
-      const [{ useUserStore }, { getUser }] = await Promise.all([
-        import('@/pinia/user.pinia'),
-        import('@/services/user'),
-      ]);
-      const userStore = useUserStore();
-      const currentUser = await getUser();
-      if (currentUser) {
-        const token = localStorage.getItem('auth_token') || '';
-        userStore.setAuthenticatedUser(currentUser, token);
+    const data = response.data;
+    
+    // Process the token and user data from the response
+    const { token, user } = await setTokenFromResponseData(data);
+    
+    if (user) {
+      try {
+        const { useUserStore } = await import('@/pinia/user.pinia');
+        const userStore = useUserStore();
+        userStore.setAuthenticatedUser(user, token || '');
+      } catch (e) {
+        console.error('❌ Failed to set user in store after registration:', e);
       }
-    } catch (e) {
-      console.warn('Failed to fetch user after completeRegistration:', e);
+    } else {
+      console.warn('⚠️ No user data found in registration response');
     }
     
     return data;
@@ -126,6 +134,7 @@ export async function signIn(
     const response = await AxiosJSON.post<ISignInResponse>(
       getLocalizedApiUrl('/login'),
       params,
+      { withCredentials: true }
     );
     
     // Extract response data (handle different response formats)
@@ -142,6 +151,10 @@ export async function signIn(
       throw new Error('No access token received');
     }
     
+    // Debug: Log the received token
+    console.log('🔑 Received token from login:', token.substring(0, 20) + '...');
+    console.log('📋 Full response data:', responseData);
+    
     // Fetch current user and persist into user store so role/retailer flags are up-to-date
     try {
       const [{ useUserStore }, { getUser }] = await Promise.all([
@@ -155,8 +168,11 @@ export async function signIn(
         const { getLocalizedApiUrl } = await import('@/utils/config/env');
         await AxiosJSON.get(getLocalizedApiUrl('sanctum/csrf-cookie'));
       } catch (csrfErr) {
-        try { await AxiosJSON.get('/sanctum/csrf-cookie'); } catch {}
+        console.warn('CSRF cookie fetch failed, continuing...', csrfErr);
       }
+      
+      // Add a small delay to ensure axios headers are properly set
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const currentUser = await getUser()
       if (currentUser) {
@@ -168,7 +184,11 @@ export async function signIn(
 
     // Clear console and refresh page after successful login
     console.clear();
-    window.location.reload();
+    
+    // Add a small delay to ensure token is properly set before reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
     
     // Return the complete response data
     return response.data;
@@ -234,8 +254,6 @@ export async function signOut(): Promise<{ success: boolean; message: string }> 
     } catch (e) {
       console.warn('Failed to clear auth store:', e);
     }
-    
-    console.log('✅ Signed out successfully');
     return { success: true, message: 'Signed out successfully' };
   } catch (error: any) {
     console.error('❌ Sign out error:', error);
@@ -254,12 +272,25 @@ export async function signOut(): Promise<{ success: boolean; message: string }> 
 }
 
 // Resend email verification code
-export async function resendEmailVerificationCode(email: string): Promise<{ success: boolean; message: string }> {
+export async function resendEmailVerificationCode(
+  emailOrParams: string | { user_id: number }
+): Promise<{ success: boolean; message: string }> {
   try {
-    const response = await AxiosJSON.post(getLocalizedApiUrl('email/verification-notification'), {
-      email,
-      redirect_url: window.location.origin
-    });
+    let requestData: any = {};
+    
+    // Handle both string and object parameters
+    if (typeof emailOrParams === 'string') {
+      requestData.email = emailOrParams;
+    } else if (emailOrParams.user_id) {
+      requestData.user_id = emailOrParams.user_id;
+    } else {
+      throw new Error('Email or user_id is required');
+    }
+
+    const response = await AxiosJSON.post(
+      getLocalizedApiUrl('/resend-email-verification'),
+      requestData
+    );
     
     return {
       success: true,
@@ -272,30 +303,57 @@ export async function resendEmailVerificationCode(email: string): Promise<{ succ
 }
 
 // Verify email with verification code
-export async function verifyCode(email: string, code: string): Promise<{ success: boolean; message: string }> {
+export async function verifyCode(
+  email: string,
+  code: string,
+  userId?: number
+): Promise<{ success: boolean; message: string; user_id?: number }> {
+  if (!code) {
+    throw new Error('The verification code field is required.');
+  }
+  
+  if (!userId) {
+    throw new Error('User ID is required for verification');
+  }
+
   try {
-    const response = await AxiosJSON.post(getLocalizedApiUrl('email/verify'), {
-      email,
-      code,
-      redirect_url: window.location.origin
-    });
+    const requestData: any = {
+      user_id: userId,
+      verification_code: code
+    };
+    console.log('📤 Sending verification data:', requestData);
+
+    // Add email if available (though user_id should be sufficient)
+    if (email) {
+      requestData.email = email;
+    }
+
+    // Update the endpoint to match your backend route
+    const response = await AxiosJSON.post(
+      getLocalizedApiUrl('/verify-email-code'),
+      requestData
+    );
     
-    // If verification is successful, update auth state
-    if (response.data?.success) {
-      // If the response includes tokens, process them
-      if (response.data.token || response.data.access_token) {
+    // Handle successful verification
+    // Check for both success flag and direct message indicating success
+    if (response.data?.success || response.data?.message?.includes('successfully')) {
+      if (response.data.token) {
         await setTokenFromResponseData(response.data);
       }
       return { 
         success: true,
-        message: response.data?.message || 'Email verified successfully'
+        message: response.data?.message || 'Email verified successfully',
+        user_id: response.data?.user_id || userId
       };
     }
     
+    // Only throw error if we don't have a success case
     throw new Error(response.data?.message || 'Verification failed');
   } catch (error: any) {
     console.error('❌ Email verification failed:', error);
-    throw new Error(error.response?.data?.message || 'Failed to verify email');
+    // Return a more detailed error message including the original error
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to verify email';
+    throw new Error(errorMessage);
   }
 }
 
