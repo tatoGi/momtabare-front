@@ -1,13 +1,24 @@
 import axios from 'axios'
 import type { IBackendCategory, ICategoryDisplay, ICategoryTranslation } from '@/ts/models/category.types'
 import { getLocalizedApiUrl } from '@/utils/config/env'
+import { useAppStore } from '@/pinia/app.pinia'
+import { ELanguages } from '@/ts/pinia/app.types'
 
 // Fetch categories from backend API
-export async function getBackendCategories(locale: string = 'en'): Promise<IBackendCategory[]> {
+export async function getBackendCategories(locale?: string): Promise<IBackendCategory[]> {
   try {
-    const response = await axios.get(getLocalizedApiUrl('categories', locale))
-   
-    return response.data || []
+    const currentLocale = locale || getCurrentLocale()
+    const response = await axios.get(getLocalizedApiUrl('categories'), {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Language': currentLocale,
+        'X-Localization': currentLocale
+      },
+      withCredentials: true
+    })
+    
+    return response.data?.data || response.data || []
   } catch (error) {
     console.error('Error fetching categories:', error)
     return []
@@ -15,22 +26,56 @@ export async function getBackendCategories(locale: string = 'en'): Promise<IBack
 }
 
 // Get category translation for specific locale
-export function getCategoryTranslation(category: IBackendCategory, locale: string): ICategoryTranslation {
-  // Try to find translation for requested locale
-  const translation = category.translations.find(t => t.locale === locale)
+export function getCategoryTranslation(category: IBackendCategory, locale?: string): ICategoryTranslation {
+  const currentLocale = locale || getCurrentLocale()
+  const normalizedLocale = currentLocale?.toLowerCase() === 'ka' ? 'ka' : 'en'
   
-  // Fallback to English if requested locale not found
-  if (!translation) {
-    const englishTranslation = category.translations.find(t => t.locale === 'en')
-    if (englishTranslation) return englishTranslation
+  const translation = category.translations.find(t => t.locale === normalizedLocale)
+  if (translation) return translation
+  
+  const englishTranslation = category.translations.find(t => t.locale === 'en')
+  if (englishTranslation) return englishTranslation
+  
+  return category.translations[0]
+}
+
+// Normalize category icon to a relative /storage path (frontend will prefix appropriately)
+function normalizeCategoryIconPath(icon: string | null): string | null {
+  if (!icon) return null
+
+  let path = icon
+  // If absolute URL, extract pathname
+  if (/^https?:\/\//i.test(icon)) {
+    try {
+      const url = new URL(icon)
+      path = url.pathname || icon
+    } catch {
+      // Keep original if URL parsing fails
+      path = icon
+    }
   }
-  
-  // Fallback to first available translation
-  return translation || category.translations[0]
+
+  // Ensure it points to /storage
+  if (path.startsWith('/storage/')) return path
+  if (path.startsWith('storage/')) return `/${path}`
+
+  // Some backends return just a filename or category path like categories/xxx.png
+  const trimmed = path.startsWith('/') ? path.slice(1) : path
+  return `/storage/${trimmed}`
+}
+
+// Get current locale from the store
+function getCurrentLocale(): string {
+  try {
+    const appStore = useAppStore()
+    return appStore.language === ELanguages.KA ? 'ka' : 'en'
+  } catch {
+    return 'en'
+  }
 }
 
 // Convert backend categories to display format
-export function processCategories(categories: IBackendCategory[], locale: string): ICategoryDisplay[] {
+export function processCategories(categories: IBackendCategory[], locale?: string): ICategoryDisplay[] {
   return categories.map(category => {
     const translation = getCategoryTranslation(category, locale)
     
@@ -39,10 +84,9 @@ export function processCategories(categories: IBackendCategory[], locale: string
       title: translation.title,
       slug: translation.slug,
       description: translation.description,
-      icon: category.icon,
+      icon: normalizeCategoryIconPath(category.icon),
       parent_id: category.parent_id,
       active: category.active === 1,
-      // Pass through product count if backend provided products array
       product_count: Array.isArray((category as any).products) ? (category as any).products.length : 0,
       children: []
     }
@@ -80,8 +124,9 @@ export function buildCategoryTree(categories: ICategoryDisplay[]): ICategoryDisp
 }
 
 // Get categories with hierarchy for specific locale
-export async function getCategoriesForLocale(locale: string): Promise<ICategoryDisplay[]> {
+export async function getCategoriesForLocale(): Promise<ICategoryDisplay[]> {
   try {
+    const locale = getCurrentLocale()
     const backendCategories = await getBackendCategories(locale)
     const processedCategories = processCategories(backendCategories, locale)
     return buildCategoryTree(processedCategories)
@@ -92,8 +137,9 @@ export async function getCategoriesForLocale(locale: string): Promise<ICategoryD
 }
 
 // Get single category by slug
-export async function getCategoryBySlug(slug: string, locale: string): Promise<ICategoryDisplay | null> {
+export async function getCategoryBySlug(slug: string): Promise<ICategoryDisplay | null> {
   try {
+    const locale = getCurrentLocale()
     const categories = await getBackendCategories(locale)
     
     for (const category of categories) {
@@ -104,7 +150,7 @@ export async function getCategoryBySlug(slug: string, locale: string): Promise<I
           title: translation.title,
           slug: translation.slug,
           description: translation.description,
-          icon: category.icon,
+          icon: normalizeCategoryIconPath(category.icon),
           parent_id: category.parent_id,
           active: category.active === 1
         }

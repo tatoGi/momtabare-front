@@ -47,7 +47,7 @@ async function fetchCategories() {
           ...category,
           // Use backend icon if available, otherwise fallback image
           image: category.icon 
-            ? getAssetUrl(`storage/${category.icon}`)
+            ? getAssetUrl(`/${category.icon}`)
             : fallbackImages[index % fallbackImages.length]
         }
       })

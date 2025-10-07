@@ -226,7 +226,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
 export async function getPopularProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = getApiUrl('products', API_BASE_URL)
+    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
     
     // Get all products and filter for popular products (is_popular = 1)
     const response = await axios.get(apiUrl, { 
@@ -297,7 +297,7 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
 export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = getApiUrl('products', API_BASE_URL)
+    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
     
     // Get all products and filter for favorites (is_favorite = 1)
     const response = await axios.get(apiUrl, { 
