@@ -32,7 +32,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
+    const apiUrl = getApiUrl('/products', API_BASE_URL)
     
     
     // Use API endpoint with locale in headers: /api/products
