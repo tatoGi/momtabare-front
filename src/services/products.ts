@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ENV } from '@/utils/config/env'
+import { ENV, getLocalizedApiUrl } from '@/utils/config/env'
 import type { IGetProductsResponse, IGetProductsQuery } from '@/ts/services/products.types'
 import type { IProductListItem } from '@/ts/models/product.types'
 import { useAppStore } from '@/pinia/app.pinia'
@@ -32,7 +32,7 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = getApiUrl('products', API_BASE_URL)
+    const apiUrl = getLocalizedApiUrl('products')
     
     
     // Use API endpoint with locale in headers: /api/products
@@ -175,7 +175,8 @@ export async function getProductBySeller() {
 export async function getProductsByUser(userId: number): Promise<{ data: IProductListItem[] }> {
   try {
     NProgress.start()
-    const apiUrl = getApiUrl('retailer/user/products', API_BASE_URL)
+       const apiUrl = getLocalizedApiUrl('/retailer/user/products')
+
     
     const response = await axios.get(apiUrl, {
       headers: {

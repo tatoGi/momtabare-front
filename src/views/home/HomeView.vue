@@ -48,10 +48,14 @@ async function fetchHomePageDynamic() {
   try {
     const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
     const fallbackLocale = currentLocale === 'ka' ? 'en' : 'ka'
+    
+    console.log('🏠 Fetching home page data for locale:', currentLocale)
     const homePageData = await getHomePageData(currentLocale)
+    console.log('🏠 Home page data received:', homePageData)
    
   // Banners
   homeBanners.value = homePageData?.banners ?? []
+  console.log('🏠 Banners set:', homeBanners.value.length, homeBanners.value)
   
   // Fetch popular products for popular products section
   try {
@@ -228,7 +232,30 @@ async function fetchHomePageDynamic() {
   })
 
   } catch (error) {
-    console.error('Error fetching home page data:', error)
+    console.error('❌ Error fetching home page data:', error)
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      locale: appStore.language
+    })
+    
+    // Set fallback banners if API fails
+    if (homeBanners.value.length === 0) {
+      console.log('🏠 No banners loaded, using fallback')
+      homeBanners.value = [
+        {
+          id: 'fallback-1',
+          title: appStore.language === ELanguages.KA 
+            ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
+            : 'Discover your next adventure with MOMTABARE.',
+          desc: appStore.language === ELanguages.KA 
+            ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
+            : 'Rent sports equipment and make your dreams come true.',
+          image: '/img/banner-fallback.jpg',
+          translations: []
+        }
+      ]
+    }
   }
 }
 

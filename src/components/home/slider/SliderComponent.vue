@@ -55,7 +55,10 @@ interface BannerDisplay {
 
 // Process banners for display
 const processedBanners = computed((): BannerDisplay[] => {
+  console.log('🖼️ SliderComponent: Processing banners. Props banners:', props.banners?.length || 0)
+  
   if (!props.banners || props.banners.length === 0) {
+    console.log('🔄 Using fallback banners')
     // Fallback to static images if no banners provided
     return [
       {
@@ -81,6 +84,7 @@ const processedBanners = computed((): BannerDisplay[] => {
   }
   
   // Process backend banners - create slides from banner images
+  console.log('🔄 Processing backend banners:', props.banners.length)
   const slides: BannerDisplay[] = []
   
   props.banners.forEach((banner: IBanner) => {
@@ -114,6 +118,7 @@ const processedBanners = computed((): BannerDisplay[] => {
     }
   })
   
+  console.log('🖼️ Final processed banners:', slides.length, slides)
   return slides
 })
 
