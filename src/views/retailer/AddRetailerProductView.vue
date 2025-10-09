@@ -146,15 +146,22 @@ async function triggerAddRetailerProduct() {
         type: 'success',
         message: result.message || (isEditMode.value ? 'პროდუქცია განახლებულია' : 'პროდუქცია წარმატებით დაემატა! ადმინისტრაციის მიერ განხილვის შემდეგ გამოქვეყნდება.')
       }
-      // Reset form after successful submission
+      // Redirect to user profile with success message after successful submission
       setTimeout(() => {
         if (isEditMode.value) {
           router.push({ name: 'my-listings' })
         } else {
-          resetForm()
+          // Redirect to user profile with success message
+          router.push({ 
+            name: 'user', 
+            query: { 
+              success: 'true',
+              message: 'პროდუქცია წარმატებით დაემატა! ადმინისტრაციის მიერ განხილვის შემდეგ გამოქვეყნდება.'
+            }
+          })
         }
         submitStatus.value = { type: null, message: '' }
-      }, 3000) // Clear message after 3 seconds
+      }, 2000) // Redirect after 2 seconds to show success message
     } else {
       submitStatus.value = {
         type: 'error',

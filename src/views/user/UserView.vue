@@ -6,19 +6,23 @@ import type { IUser } from "@/ts/models/user-types"
 import type { IUserCard } from "@/ts/models/user-types"
 import { signOut } from "@/services/auth.js"
 import { useUserStore } from "@/pinia/user.pinia.js"
-import { computed, ref, onMounted, watch } from "vue"
-import { useRouter } from "vue-router"
-import { requestRetailerPermission, getRetailerShopCount } from "@/services/retailer.ts"
+import { computed, ref, onMounted } from "vue"
+import { useRouter, useRoute } from "vue-router"
+import { requestRetailerPermission, getRetailerShopCount } from "@/services/retailer"
 import { getUserProductsCount } from "@/services/userProducts"
-import type { Ref } from "vue"
 
 const router = useRouter()
+const route = useRoute()
 
 const userStore = useUserStore()
 
 // State for product counts
 const productCount = ref(0)
 const shopCount = ref(0)
+
+// Success message state
+const showSuccessMessage = ref(false)
+const successMessage = ref('')
 
 const retailerCards = computed<IUserCard[]>(() => {
   const count = productCount.value;
@@ -216,9 +220,29 @@ const fetchAndUpdateProductCount = async () => {
   }
 }
 
+// Check for success message from query parameters
+const checkSuccessMessage = () => {
+  const { success, message } = route.query
+  
+  if (success === 'true' && message) {
+    showSuccessMessage.value = true
+    successMessage.value = message as string
+    
+    // Clear the query parameters from URL
+    router.replace({ name: 'user' })
+    
+    // Hide message after 5 seconds
+    setTimeout(() => {
+      showSuccessMessage.value = false
+      successMessage.value = ''
+    }, 5000)
+  }
+}
+
 // Initial fetch
 onMounted(() => {
   fetchAndUpdateProductCount()
+  checkSuccessMessage()
 })
 
 // No need for the watch anymore since we're using a computed property
@@ -285,6 +309,26 @@ function handleCardClick(name: string): void {
 <template>
   <main class="pb-20 flex flex-col gap-3">
     <BaseBreadcrumbs :path="['ჩემი პროფილი']" disable-route/>
+    
+    <!-- Success Message -->
+    <div
+      v-if="showSuccessMessage"
+      class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"
+    >
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-green-800">
+            {{ successMessage }}
+          </p>
+        </div>
+      </div>
+    </div>
+    
     <div class="flex flex-col gap-10">
       <div class="flex items-center justify-between">
         <div class="flex flex-col gap-1.5">
