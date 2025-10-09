@@ -83,9 +83,9 @@ const processedBanners = computed((): BannerDisplay[] => {
   // Process backend banners - create slides from banner images
   const slides: BannerDisplay[] = []
   
-  props.banners.forEach(banner => {
+  props.banners.forEach((banner: IBanner) => {
+    console.log(banner);
     const translation = getBannerTranslation(banner, currentLocale.value)
-    
     if (banner.images && banner.images.length > 0) {
       // Create a slide for each banner image
       banner.images.forEach((bannerImage, index) => {
