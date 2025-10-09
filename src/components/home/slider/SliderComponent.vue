@@ -55,36 +55,48 @@ interface BannerDisplay {
 
 // Process banners for display
 const processedBanners = computed((): BannerDisplay[] => {
-  console.log('🖼️ SliderComponent: Processing banners. Props banners:', props.banners?.length || 0)
+  // Always ensure we have banners to display
+  const hasValidBanners = props.banners && props.banners.length > 0 && 
+    props.banners.some(banner => banner.images && banner.images.length > 0)
   
-  if (!props.banners || props.banners.length === 0) {
-    console.log('🔄 Using fallback banners')
-    // Fallback to static images if no banners provided
+  if (!hasValidBanners) {
+    // Fallback to static images if no banners provided or banners have no images
     return [
       {
         id: 'fallback-1',
-        title: 'Slide 1',
-        desc: '',
+        title: currentLocale.value === 'ka' 
+          ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
+          : 'Discover your next adventure with MOMTABARE.',
+        desc: currentLocale.value === 'ka' 
+          ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
+          : 'Rent sports equipment and make your dreams come true.',
         image: new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href,
         character: new URL("@/assets/img/slider/slide1/Character.png", import.meta.url).href
       },
       {
         id: 'fallback-2',
-        title: 'Slide 2',
-        desc: '',
+        title: currentLocale.value === 'ka' 
+          ? 'ყველაზე კარგი ფასები სპორტული ინვენტარისთვის'
+          : 'Best prices for sports equipment',
+        desc: currentLocale.value === 'ka' 
+          ? 'იპოვე იდეალური ნივთი შენი შემდეგი თავგადასავლისთვის'
+          : 'Find the perfect item for your next adventure',
         image: new URL("@/assets/img/slider/slide2.png", import.meta.url).href
       },
       {
         id: 'fallback-3',
-        title: 'Slide 3',
-        desc: '',
+        title: currentLocale.value === 'ka' 
+          ? 'დაიწყე შენი თავგადასავალი დღესვე'
+          : 'Start your adventure today',
+        desc: currentLocale.value === 'ka' 
+          ? 'შემოუერთდი ათასობით მომხმარებელს რომელიც უკვე აქირავებს'
+          : 'Join thousands of users who are already renting',
         image: new URL("@/assets/img/slider/slide3.png", import.meta.url).href
       }
     ]
   }
   
   // Process backend banners - create slides from banner images
-  console.log('🔄 Processing backend banners:', props.banners.length)
   const slides: BannerDisplay[] = []
   
   props.banners.forEach((banner: IBanner) => {
@@ -118,8 +130,20 @@ const processedBanners = computed((): BannerDisplay[] => {
     }
   })
   
-  console.log('🖼️ Final processed banners:', slides.length, slides)
-  return slides
+  // Ensure we always return at least one slide
+  return slides.length > 0 ? slides : [
+    {
+      id: 'emergency-fallback',
+      title: currentLocale.value === 'ka' 
+        ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
+        : 'Discover your next adventure with MOMTABARE.',
+      desc: currentLocale.value === 'ka' 
+        ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
+        : 'Rent sports equipment and make your dreams come true.',
+      image: new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href,
+      character: new URL("@/assets/img/slider/slide1/Character.png", import.meta.url).href
+    }
+  ]
 })
 
 const api = ref<CarouselApi>()

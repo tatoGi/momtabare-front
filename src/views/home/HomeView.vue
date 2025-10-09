@@ -49,13 +49,10 @@ async function fetchHomePageDynamic() {
     const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
     const fallbackLocale = currentLocale === 'ka' ? 'en' : 'ka'
     
-    console.log('🏠 Fetching home page data for locale:', currentLocale)
     const homePageData = await getHomePageData(currentLocale)
-    console.log('🏠 Home page data received:', homePageData)
    
-  // Banners
+  // Banners - always ensure we have an array
   homeBanners.value = homePageData?.banners ?? []
-  console.log('🏠 Banners set:', homeBanners.value.length, homeBanners.value)
   
   // Fetch popular products for popular products section
   try {
@@ -67,22 +64,20 @@ async function fetchHomePageDynamic() {
       popularProducts = popularProductsData.products
     } else if (Array.isArray(popularProductsData)) {
       popularProducts = popularProductsData
-    } else {
-      console.warn('No popular products found in response:', popularProductsData)
     }
     
     // Store popular products initially
     products.value = popularProducts
     
   } catch (error) {
-    console.error('Error fetching popular products:', error)
     products.value = []
   }
   
   // Fetch blog posts from dedicated API
-  const blogPostsData = await getBlogPosts()
-  // Blog Posts
-  if (blogPostsData?.posts && Array.isArray(blogPostsData.posts)) {
+  try {
+    const blogPostsData = await getBlogPosts()
+    // Blog Posts
+    if (blogPostsData?.posts && Array.isArray(blogPostsData.posts)) {
     blogPosts.value = blogPostsData.posts.map((post: any) => {
       
       // Extract localized attributes
@@ -110,6 +105,9 @@ async function fetchHomePageDynamic() {
       }
     })
   } else {
+    blogPosts.value = []
+  }
+  } catch (error) {
     blogPosts.value = []
   }
 
@@ -232,30 +230,8 @@ async function fetchHomePageDynamic() {
   })
 
   } catch (error) {
-    console.error('❌ Error fetching home page data:', error)
-    console.error('❌ Error details:', {
-      message: error.message,
-      stack: error.stack,
-      locale: appStore.language
-    })
-    
-    // Set fallback banners if API fails
-    if (homeBanners.value.length === 0) {
-      console.log('🏠 No banners loaded, using fallback')
-      homeBanners.value = [
-        {
-          id: 'fallback-1',
-          title: appStore.language === ELanguages.KA 
-            ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
-            : 'Discover your next adventure with MOMTABARE.',
-          desc: appStore.language === ELanguages.KA 
-            ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
-            : 'Rent sports equipment and make your dreams come true.',
-          image: '/img/banner-fallback.jpg',
-          translations: []
-        }
-      ]
-    }
+    // Ensure banners array is always available for SliderComponent
+    homeBanners.value = []
   }
 }
 
@@ -268,7 +244,6 @@ onMounted(async () => {
 watch(
   () => appStore.language,
   async () => {
-    console.log('Language changed, re-fetching banner data...')
     await fetchHomePageDynamic()
   }
 )
