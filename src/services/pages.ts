@@ -43,6 +43,12 @@ export async function getAllPages(locale?: string): Promise<IPage[] | null> {
   const now = Date.now()
   const cacheEntry = pagesCache[cacheKey]
   
+  
+  // Log cache hit and return if valid
+  if (cacheEntry && (now - cacheEntry.timestamp) < CACHE_DURATION) {
+    return cacheEntry.pages
+  }
+  
   // Use cache if available and not expired
   if (cacheEntry && (now - cacheEntry.timestamp) < CACHE_DURATION) {
     return cacheEntry.pages
@@ -68,9 +74,12 @@ export async function getAllPages(locale?: string): Promise<IPage[] | null> {
         }
       })
       
-      // Handle different response structures
       const data = response.data
       const pages = data.data || data.pages || (Array.isArray(data) ? data : [])
+      
+      if (pages.length > 0) {
+        
+      }
     
       // Cache the pages for this locale
       pagesCache[cacheKey] = { pages, timestamp: now }
@@ -279,12 +288,33 @@ export function getPageTranslation(page: IPage, locale: string): IPageTranslatio
 export async function getPageBySlug(slug: string, locale: string = 'ka'): Promise<IPage | null> {
   try {
     const pages = await getPages(locale)
-    if (!pages) return null
+    if (!pages) {
+      console.warn('No pages returned from getPages')
+      return null
+    }
+  
+    // Normalize the search slug to lowercase for case-insensitive comparison
+    const normalizedSearchSlug = slug.toLowerCase()
     
-    return pages.find(page => {
+    const foundPage = pages.find(page => {
       const translation = getPageTranslation(page, locale)
-      return translation.slug === slug
-    }) || null
+      if (!translation?.slug) return false
+      
+      // Compare normalized slugs (case-insensitive)
+      const matches = translation.slug.toLowerCase() === normalizedSearchSlug
+      
+      if (matches) {
+      
+      }
+      return matches
+    })
+    
+    if (!foundPage) {
+      console.warn(`❌ No page found with slug: ${slug} for locale: ${locale}`)
+     
+    }
+    
+    return foundPage || null
   } catch (error) {
     console.error('Error fetching page by slug:', error)
     return null
@@ -314,42 +344,83 @@ export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
 }
 
 // Get home page data with banners
-export async function getHomePageData(locale: string = 'ka'): Promise<IPage | null> {
+export async function getHomePageData(locale?: string): Promise<IPage | null> {
+  if (!locale) {
+    const appStore = useAppStore()
+    locale = appStore.language === ELanguages.KA ? 'ka' : 'en'
+  }
+  
   try {
-    // Try with the locale-specific home slug first
-    const homeSlug = locale === 'ka' ? 'მთავარი' : 'home'
-    let homePage = await getPageBySlug(homeSlug, locale)
+    await syncLocale(locale)
     
-    // If not found in requested locale, try the other locale as fallback
-    if (!homePage && locale === 'en') {
-      homePage = await getPageBySlug('მთავარი', 'ka')
-    } else if (!homePage) {
-      homePage = await getPageBySlug('home', 'en')
+    // Try both 'home' and 'Home' to handle case sensitivity
+    const homeSlugs = locale === 'ka' ? ['მთავარი'] : ['home', 'Home']
+    
+    for (const slug of homeSlugs) {
+      const homePage = await getPageBySlug(slug, locale)
+      
+      if (homePage) {
+      
+        
+        return homePage
+      }
+      
     }
     
-    if (!homePage) {
-      console.warn(`No home page found for locale ${locale} or fallback locale`)
-      return null
-    }
-    
-    return homePage
+    console.warn(`⚠️ No home page found for locale ${locale} with any of these slugs: ${homeSlugs.join(', ')}`)
+    return null
   } catch (error) {
-    console.error('Error fetching home page data:', error)
+    console.error('Error in getHomePageData:', error)
     return null
   }
 }
 
 // Get banner translation for specific locale
 export function getBannerTranslation(banner: IBanner, locale: string): IBannerTranslation {
+  const now = new Date().toISOString()
+  const defaultTranslation: Omit<IBannerTranslation, 'id' | 'banner_id'> = {
+    locale: locale,
+    title: 'No translation available',
+    slug: '',
+    desc: '',
+    created_at: now,
+    updated_at: now
+  }
+
+  // Ensure translations array exists
+  if (!banner.translations?.length) {
+    console.warn('Banner has no translations:', banner.id)
+    return {
+      id: 0,
+      banner_id: banner.id,
+      ...defaultTranslation
+    }
+  }
+  
   // Try to find translation for requested locale
   const translation = banner.translations.find(t => t.locale === locale)
+  if (translation) return translation
   
   // Fallback to English if requested locale not found
-  if (!translation) {
+  if (locale !== 'en') {
     const englishTranslation = banner.translations.find(t => t.locale === 'en')
     if (englishTranslation) return englishTranslation
   }
   
   // Fallback to first available translation
-  return translation || banner.translations[0]
+  if (banner.translations.length > 0) {
+    return banner.translations[0]
+  }
+  
+  // Last resort fallback - create a translation from banner data
+  return {
+    id: 0,
+    banner_id: banner.id,
+    locale: locale,
+    title: banner.title || 'Untitled Banner',
+    slug: banner.slug || '',
+    desc: banner.desc || '',
+    created_at: banner.created_at || now,
+    updated_at: banner.updated_at || now
+  }
 }
