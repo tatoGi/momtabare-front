@@ -316,8 +316,23 @@ export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
 // Get home page data with banners
 export async function getHomePageData(locale: string = 'ka'): Promise<IPage | null> {
   try {
+    // Try with the locale-specific home slug first
     const homeSlug = locale === 'ka' ? 'მთავარი' : 'home'
-    return await getPageBySlug(homeSlug, locale)
+    let homePage = await getPageBySlug(homeSlug, locale)
+    
+    // If not found in requested locale, try the other locale as fallback
+    if (!homePage && locale === 'en') {
+      homePage = await getPageBySlug('მთავარი', 'ka')
+    } else if (!homePage) {
+      homePage = await getPageBySlug('home', 'en')
+    }
+    
+    if (!homePage) {
+      console.warn(`No home page found for locale ${locale} or fallback locale`)
+      return null
+    }
+    
+    return homePage
   } catch (error) {
     console.error('Error fetching home page data:', error)
     return null

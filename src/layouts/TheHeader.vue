@@ -1,14 +1,17 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { useAppStore } from "@/pinia/app.pinia.ts";
+import { useAppStore } from "@/pinia/app.pinia";
 
 import TopHeaderComponent from "@/components/header/TopHeaderComponent.vue";
 import BottomHeaderComponent from "@/components/header/BottomHeaderComponent.vue";
 import type { ICategory } from "@/types/category";
 import categoriesData from "@/data/categories";
 import { useNavigation } from '@/composables/useNavigation';
+import { getBackendCategories, processCategories, buildCategoryTree } from '@/services/categories';
+import { ELanguages } from '@/ts/pinia/app.types';
+import type { ICategoryDisplay } from '@/ts/models/category.types';
 
 const isMobileNavOpen = ref(false);
 const route = useRoute();
@@ -19,9 +22,54 @@ const appStore = useAppStore();
 // Use navigation composable for pages
 const { rootNavigationItems, isLoading: navLoading } = useNavigation();
 
-const categories = ref<ICategory[]>(categoriesData);
-const computedLanguage = computed(() => appStore.getLanguage);
+const categories = ref<ICategory[]>(categoriesData); // Start with static data as fallback
+const categoriesLoading = ref(false);
+const computedLanguage = computed(() => {
+  const lang = appStore.getLanguage;
+  return lang;
+});
 const expandedCategories = ref<Set<number>>(new Set());
+
+// Function to convert ICategoryDisplay to ICategory
+function convertToICategory(displayCategories: ICategoryDisplay[], locale: string = 'en'): ICategory[] {
+  return displayCategories.map(cat => ({
+    id: cat.id,
+    name: {
+      en: cat.title || `Category ${cat.id}`,
+      ka: cat.title || `კატეგორია ${cat.id}`
+    },
+    slug: cat.slug || `category-${cat.id}`,
+    parent: cat.parent_id,
+    children: cat.children ? convertToICategory(cat.children, locale) : []
+  }));
+}
+
+// Function to fetch dynamic categories
+async function fetchCategories() {
+  categoriesLoading.value = true;
+  try {
+    const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en';
+    const backendCategories = await getBackendCategories(currentLocale);
+    const processedCategories = processCategories(backendCategories, currentLocale);
+    const categoryTree = buildCategoryTree(processedCategories);
+    
+    
+    
+    if (categoryTree.length > 0) {
+      const convertedCategories = convertToICategory(categoryTree, currentLocale);
+      console.log('Converted categories:', convertedCategories.length);
+      categories.value = convertedCategories;
+    } else {
+      console.log('No categories from backend, keeping static fallback');
+    }
+    // If no categories from backend, keep the static fallback
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    // Keep static categories as fallback if backend fails
+  } finally {
+    categoriesLoading.value = false;
+  }
+}
 
 const toggleMobileNav = () => {
   isMobileNavOpen.value = !isMobileNavOpen.value;
@@ -63,6 +111,19 @@ function toggleCategoryExpansion(categoryId: number): void {
     expandedCategories.value.add(categoryId);
   }
 }
+
+// Fetch categories on component mount
+onMounted(() => {
+  fetchCategories();
+});
+
+// Watch for language changes and re-fetch categories
+watch(
+  () => appStore.language,
+  async () => {
+    await fetchCategories();
+  }
+);
 </script>
 
 <template>
@@ -123,7 +184,20 @@ function toggleCategoryExpansion(categoryId: number): void {
       <div class="border-t border-gray-200 dark:border-gray-700">
         <nav class="container py-4">
           <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{t('categories')}}</h3>
-          <div class="grid grid-cols-1 gap-2">
+          
+          <!-- Loading state for categories -->
+          <div v-if="categoriesLoading" class="flex items-center justify-center py-4">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+            <span class="ml-2 text-gray-600 dark:text-gray-400">Loading categories...</span>
+          </div>
+          
+          <!-- Categories list -->
+          <div v-else class="grid grid-cols-1 gap-2">
+            <!-- Debug info (remove in production) -->
+            <div v-if="categories.length === 0" class="text-center py-4 text-red-500">
+              No categories loaded
+            </div>
+           
             <div v-for="category in categories" :key="category.id" class="category-group">
               <button
                 :class="[
@@ -132,7 +206,7 @@ function toggleCategoryExpansion(categoryId: number): void {
                 ]"
                 @click="category.children?.length ? toggleCategoryExpansion(category.id) : moveToCategory(category)"
               >
-                <span class="text-left">{{ category.name[computedLanguage] }}</span>
+                <span class="text-left">{{ category.name[computedLanguage] || category.name.en || category.name.ka || `Category ${category.id}` }}</span>
                 
                 <!-- Dropdown Arrow for categories with children -->
                 <svg
@@ -160,9 +234,14 @@ function toggleCategoryExpansion(categoryId: number): void {
                   ]"
                   @click="moveToCategory(subcategory)"
                 >
-                  {{ subcategory.name[computedLanguage] }}
+                  {{ subcategory.name[computedLanguage] || subcategory.name.en || subcategory.name.ka || `Subcategory ${subcategory.id}` }}
                 </button>
               </div>
+            </div>
+            
+            <!-- Fallback when no categories -->
+            <div v-if="!categoriesLoading && categories.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+              No categories available
             </div>
           </div>
         </nav>

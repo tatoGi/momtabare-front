@@ -10,7 +10,7 @@ import type { IProductListItem } from "@/ts/models/product.types.js"
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import BlogList from "@/components/blog/BlogList.vue"
 import { getHomePageData, getBlogPosts } from "@/services/pages"
-import { getProducts, getFavoriteProducts, getPopularProducts } from "@/services/products"
+import { getPopularProducts } from "@/services/products"
 import type { IBanner } from "@/ts/models/page.types"
 import { useAppStore } from "@/pinia/app.pinia"
 import { ELanguages } from "@/ts/pinia/app.types"

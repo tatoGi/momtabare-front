@@ -17,15 +17,6 @@ const navigationCache = new Map<string, INavigationItem[]>()
 export function useNavigation() {
   const appStore = useAppStore()
   
-  // Get current locale from app store
-  const getCurrentLocale = (): string => {
-    try {
-      const value = appStore.getLanguage
-      return value === ELanguages.KA ? 'ka' : 'en'
-    } catch {
-      return 'en'
-    }
-  }
 
   // Load navigation data
   const loadNavigation = async (forceReload = false) => {
@@ -47,7 +38,7 @@ export function useNavigation() {
     error.value = null
 
     try {
-      console.log(`🌐 Loading navigation for locale: ${locale}`)
+      
       
       // First sync the locale with backend
       await syncLocale(locale)
@@ -60,7 +51,6 @@ export function useNavigation() {
         navigationCache.set(locale, nav)
         navigationItems.value = nav
         currentLocale.value = locale
-        console.log(`✅ Navigation loaded for locale: ${locale}`, nav)
       } else {
         throw new Error('No navigation items returned')
       }
