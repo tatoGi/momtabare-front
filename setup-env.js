@@ -23,7 +23,7 @@ const PRODUCTION_ENV_CONTENT = `# Production Environment Variables
 # These should be set in Vercel Dashboard, not in a file
 
 # Backend API URLs
-VITE_BACKEND_URL_PRODUCTION=https://system.momtabare.com
+VITE_BACKEND_URL_PRODUCTION=https://admin.momtabare.com
 
 # Default locale for API calls
 VITE_DEFAULT_LOCALE=ka
@@ -48,7 +48,7 @@ function showVercelInstructions() {
   console.log('3. Go to Settings → Environment Variables')
   console.log('4. Add these variables:')
   console.log('   - Name: VITE_BACKEND_URL_PRODUCTION')
-  console.log('   - Value: https://system.momtabare.com')
+  console.log('   - Value: https://admin.momtabare.com')
   console.log('   - Environment: Production ✅')
   console.log('5. Redeploy your application')
   console.log('\n📝 Note: You cannot upload .env files to Vercel!')

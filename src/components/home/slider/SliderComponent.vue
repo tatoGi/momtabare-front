@@ -12,7 +12,7 @@ import type { IBanner } from '@/ts/models/page.types'
 import { getBannerTranslation } from '@/services/pages'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
-import { ENV } from '@/utils/config/env'
+import { getStorageUrl } from '@/utils/config/env'
 
 // Props
 const props = defineProps<{
@@ -68,7 +68,7 @@ const processedBanners = computed((): BannerDisplay[] => {
     // Only process banners with images
     if (banner.images?.length) {
       banner.images.forEach((bannerImage, index) => {
-        const imageUrl = `${ENV.BACKEND_URL}/storage/${bannerImage.image_name}`
+        const imageUrl = getStorageUrl(bannerImage.image_name)
         
         slides.push({
           id: `${banner.id}-${index}`,

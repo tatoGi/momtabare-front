@@ -126,3 +126,25 @@ export const getBackendUrlWithFallback = (preferHttps: boolean = true): string =
   const domain = 'admin.momtabare.com';
   return preferHttps ? `https://${domain}` : `http://${domain}`;
 };
+
+/**
+ * Get the correct storage URL for images and other assets
+ * Handles both local development and production environments
+ */
+export const getStorageUrl = (path: string): string => {
+  // Remove any leading slashes from the path
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  
+  // In production, use the production storage URL
+  if (isProduction || isVercel || isProductionDomain) {
+    // If the path already has a full URL, return it as is
+    if (path.startsWith('http')) {
+      return path;
+    }
+    return `https://admin.momtabare.com/storage/${cleanPath}`;
+  }
+  
+  // In development, use the local backend URL
+  const backendUrl = getBackendUrl();
+  return `${backendUrl}/storage/${cleanPath}`;
+};
