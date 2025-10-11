@@ -7,13 +7,13 @@ import SliderComponent from "@/components/home/slider/SliderComponent.vue"
 import PopularProductsSlider from "@/components/home/PopularProductsSlider.vue"
 import type { IProductListItem } from "@/ts/models/product.types.js"
 // @ts-ignore - TypeScript language server issue with Vue imports
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, reactive } from 'vue'
 import BlogList from "@/components/blog/BlogList.vue"
 import { getHomePageData, getBlogPosts } from "@/services/pages"
-import { getPopularProducts } from "@/services/products"
-import type { IBanner } from "@/ts/models/page.types"
-import { useAppStore } from "@/pinia/app.pinia"
-import { ELanguages } from "@/ts/pinia/app.types"
+import { getPopularProducts } from "@/services/products"  
+import { useAppStore } from '@/store/app'
+import { ELanguages } from '@/ts/pinia/app.types'
+import { syncLocale } from '@/services/languages'
 import { getAssetUrl } from "@/utils/config/env"
 
 // Static popular products data
@@ -47,8 +47,9 @@ const appStore = useAppStore()
 async function fetchHomePageDynamic() {
   try {
     const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
-    const fallbackLocale = currentLocale === 'ka' ? 'en' : 'ka'
     
+    // Sync locale with backend
+    await syncLocale(currentLocale)
     
     const homePageData = await getHomePageData(currentLocale)
    
@@ -67,6 +68,42 @@ async function fetchHomePageDynamic() {
       popularProducts = popularProductsData
     }
     
+    // Map popular products to match IProductListItem interface
+    popularProducts = popularProducts.map((product: any) => ({
+      id: product.id,
+      sku: product.product_identify_id || `product-${product.id}`,
+      slug: product.slug,
+      name: product.title,
+      price: product.price?.toString() || '0',
+      location: product.location || 'Tbilisi, Georgia',
+      rating: null,
+      ratings_amount: 0,
+      comments_amount: 0,
+      categories: product.category ? [{
+        id: product.category.id,
+        name: {
+          ka: product.category.title,
+          en: product.category.title
+        },
+        slug: product.category.slug,
+        parent: null,
+        children: []
+      }] : [],
+      images: product.images?.map((img: any) => {
+        if (!img.url) {
+          console.log('Backend image not provided:', img);
+        }
+        return {
+          id: img.id || 1,
+          url: img.url || getAssetUrl('storage/products/placeholder-image.jpg')
+        }
+      }) || [{
+        id: 1,
+        url: getAssetUrl('storage/products/placeholder-image.jpg')
+      }],
+      is_favorite: product.is_favorite === 1
+    }))
+    
     // Store popular products initially
     products.value = popularProducts
     
@@ -76,38 +113,102 @@ async function fetchHomePageDynamic() {
   
   // Fetch blog posts from dedicated API
   try {
-    const blogPostsData = await getBlogPosts()
+    const blogPostsData = await getBlogPosts(currentLocale)
     // Blog Posts
     if (blogPostsData?.posts && Array.isArray(blogPostsData.posts)) {
-    blogPosts.value = blogPostsData.posts.map((post: any) => {
-      
-      // Extract localized attributes
-      const getPostAttribute = (key: string) => {
-        const attr = post.attributes?.find((a: any) => 
-          a.attribute_key === key && (a.locale === currentLocale || a.locale === null)
-        )
-        if (attr) return attr.attribute_value
-        
-        // Fallback to other locale
-        const fallbackAttr = post.attributes?.find((a: any) => 
-          a.attribute_key === key && a.locale === fallbackLocale
-        )
-        return fallbackAttr?.attribute_value || ''
-      }
-      console.log(post);    
-      return {
-        id: post.id,
-        title: getPostAttribute('title'),
-        date: post.published_at ? new Date(post.published_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        image: getPostAttribute('featured_image') ? getAssetUrl(`storage/${getPostAttribute('featured_image')}`) : null,
-        slug: getPostAttribute('slug'),
-        content: getPostAttribute('content'),
-        author: getPostAttribute('author')
-      }
-    })
-  } else {
-    blogPosts.value = []
-  }
+      blogPosts.value = blogPostsData.posts.map((post: any) => {
+        // Create a reactive reference to the current post
+        const reactivePost = reactive({
+          id: post.id,
+          get title() {
+            // Get current locale dynamically from store
+            const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+            const fallbackLang = currentLang === 'ka' ? 'en' : 'ka'
+            
+            const attr = post.attributes?.find((a: any) => 
+              a.attribute_key === 'title' && (a.locale === currentLang || a.locale === null)
+            ) || 
+            post.attributes?.find((a: any) => 
+              a.attribute_key === 'title' && a.locale === fallbackLang
+            )
+            return attr?.attribute_value || 'No title'
+          },
+          get localizedTitle() {
+            const titles: Record<string, string> = {}
+            post.attributes?.forEach((a: any) => {
+              if (a.attribute_key === 'title' && a.locale) {
+                titles[a.locale] = a.attribute_value
+              } else if (a.attribute_key === 'title' && a.locale === null) {
+                // Handle default locale
+                titles['default'] = a.attribute_value
+              }
+            })
+            return titles
+          },
+          get content() {
+            // Get current locale dynamically from store
+            const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+            const fallbackLang = currentLang === 'ka' ? 'en' : 'ka'
+            
+            const attr = post.attributes?.find((a: any) => 
+              a.attribute_key === 'content' && (a.locale === currentLang || a.locale === null)
+            ) || 
+            post.attributes?.find((a: any) => 
+              a.attribute_key === 'content' && a.locale === fallbackLang
+            )
+            return attr?.attribute_value || ''
+          },
+          get localizedContent() {
+            const contents: Record<string, string> = {}
+            post.attributes?.forEach((a: any) => {
+              if (a.attribute_key === 'content' && a.locale) {
+                contents[a.locale] = a.attribute_value
+              } else if (a.attribute_key === 'content' && a.locale === null) {
+                // Handle default locale
+                contents['default'] = a.attribute_value
+              }
+            })
+            return contents
+          },
+          get image() {
+            // Get current locale dynamically from store
+            const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+            
+            const imgAttr = post.attributes?.find((a: any) => 
+              a.attribute_key === 'featured_image' && (a.locale === currentLang || a.locale === null)
+            )
+            return imgAttr?.attribute_value ? getAssetUrl(`storage/${imgAttr.attribute_value}`) : null
+          },
+          get slug() {
+            // Get current locale dynamically from store
+            const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+            const fallbackLang = currentLang === 'ka' ? 'en' : 'ka'
+            
+            const slugAttr = post.attributes?.find((a: any) => 
+              a.attribute_key === 'slug' && (a.locale === currentLang || a.locale === null)
+            ) || 
+            post.attributes?.find((a: any) => 
+              a.attribute_key === 'slug' && a.locale === fallbackLang
+            )
+            return slugAttr?.attribute_value || ''
+          },
+          get author() {
+            // Get current locale dynamically from store
+            const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+            
+            const authorAttr = post.attributes?.find((a: any) => 
+              a.attribute_key === 'author' && (a.locale === currentLang || a.locale === null)
+            )
+            return authorAttr?.attribute_value || ''
+          },
+          date: post.published_at ? new Date(post.published_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        })
+
+        return reactivePost
+      })
+    } else {
+      blogPosts.value = []
+    }
   } catch (error) {
     blogPosts.value = []
   }
@@ -137,10 +238,10 @@ async function fetchHomePageDynamic() {
       }] : [],
       images: backendProduct.images?.map((img: any) => ({
         id: img.id || 1,
-        url: img.image_name ? getAssetUrl(`/storage/products/${img.image_name}`) : getAssetUrl('storage/placeholder-image.jpg')
+        url: img.image_name ? getAssetUrl(`/storage/products/${img.image_name}`) : getAssetUrl('storage/products/placeholder-image.jpg')
       })) || [{
         id: 1,
-        url: getAssetUrl('storage/placeholder-image.jpg')
+        url: getAssetUrl('storage/products/placeholder-image.jpg')
       }],
       is_favorite: backendProduct.is_favorite === 1
     }))
@@ -169,14 +270,19 @@ async function fetchHomePageDynamic() {
   const getAttrMap = (post: any) => {
     const map: Record<string, string> = {}
     if (!post?.attributes) return map
+    
+    // Get current locale dynamically from store
+    const currentLang = appStore.language === ELanguages.KA ? 'ka' : 'en'
+    const fallbackLang = currentLang === 'ka' ? 'en' : 'ka'
+    
     // select preferred locale first, then fallback if missing
     for (const attr of post.attributes as any[]) {
-      if (!map[attr.attribute_key] && (attr.locale === currentLocale || attr.locale == null)) {
+      if (!map[attr.attribute_key] && (attr.locale === currentLang || attr.locale == null)) {
         map[attr.attribute_key] = String(attr.attribute_value)
       }
     }
     for (const attr of post.attributes as any[]) {
-      if (!map[attr.attribute_key] && (attr.locale === fallbackLocale)) {
+      if (!map[attr.attribute_key] && (attr.locale === fallbackLang)) {
         map[attr.attribute_key] = String(attr.attribute_value)
       }
     }
@@ -217,15 +323,15 @@ async function fetchHomePageDynamic() {
       const steps: { title: string; text: string }[] = []
       for (let i = 1; i <= 6; i++) {
         const t = attrs[`step_${i}_title`]
-        const d = attrs[`step_${i}_text`] || attrs[`step_${i}_desc`]
+        const d = attrs[`step_${i}_description`] || attrs[`step_${i}_text`] || attrs[`step_${i}_desc`]
         if (t && d) steps.push({ title: t, text: d })
       }
       rentalData.value = {
-        titleLine1: attrs['title_line_1'] || attrs['title1'] || attrs['title_line1'],
-        titleLine2: attrs['title_line_2'] || attrs['title2'] || attrs['title_line2'],
-        description: attrs['description'] || attrs['desc'],
+        titleLine1: attrs['rental_title_line_1'] || attrs['title_line_1'] || attrs['title1'] || attrs['title_line1'],
+        titleLine2: attrs['rental_title_line_2'] || attrs['title_line_2'] || attrs['title2'] || attrs['title_line2'],
+        description: attrs['rental_main_description'] || attrs['description'] || attrs['desc'],
         steps: steps.length ? steps : undefined,
-        imageMain: attrs['image_main'] ? getAssetUrl(`storage/${attrs['image_main']}`) : undefined,
+        imageMain: attrs['rental_main_image'] || attrs['image_main'] ? getAssetUrl(`storage/${attrs['rental_main_image'] || attrs['image_main']}`) : undefined,
       }
     }
   })
@@ -244,7 +350,7 @@ onMounted(async () => {
 // Watch for language changes and re-fetch banner data
 watch(
   () => appStore.language,
-  async (newLanguage: string, oldLanguage: string) => {
+  async () => {
     await fetchHomePageDynamic()
   }
 )

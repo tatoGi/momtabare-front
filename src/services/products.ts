@@ -56,6 +56,8 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       slug: product.slug,
       location: product.location,
       price: product.price,
+      brand: product.brand,
+      color: product.color,
       rating: null, // Not provided by backend yet
       ratings_amount: 0, // Not provided by backend yet
       comments_amount: 0, // Not provided by backend yet
@@ -269,10 +271,50 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
         },
         slug: product.category.slug
       }] : [],
-      images: product.images?.map((img: any) => ({
-        id: img.id,
-        url: img.url ? img.url.replace('/storage/', '/storage/') : `/storage/${img.image_name || 'placeholder.jpg'}`
-      })) || [],
+      images: (() => {
+        // If no images, return default placeholder
+        if (!product.images || product.images.length === 0) {
+          return [{
+            id: 0,
+            url: '/storage/products/placeholder.jpg'
+          }]
+        }
+        
+        return product.images.map((img: any) => {
+          // Handle case where image is already in the correct format
+          if (img.url) {
+            // If URL already has products directory or is external, use as is
+            if (img.url.includes('storage/products/') || img.url.startsWith('http')) {
+              return {
+                id: img.id,
+                url: img.url
+              }
+            }
+            
+            // Transform URL to include products directory
+            return {
+              id: img.id,
+              url: img.url.includes('storage/products') 
+                ? img.url.replace('storage/products', 'storage/products/')
+                : `/storage/products/${img.url.replace(/^\//, '')}` // Remove leading slash if present
+            }
+          }
+          
+          // Handle case where we only have image_name
+          if (img.image_name) {
+            return {
+              id: img.id,
+              url: `/storage/products/${img.image_name.replace(/^\//, '')}`
+            }
+          }
+          
+          // Fallback to default placeholder
+          return {
+            id: img.id,
+            url: '/storage/products/placeholder.jpg'
+          }
+        })
+      })(),
       is_favorite: product.is_favorite === 1 // Map actual favorite status from backend
     }))
 

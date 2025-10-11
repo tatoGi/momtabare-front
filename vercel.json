@@ -15,6 +15,50 @@
     {
       "source": "/sanctum/:path*",
       "destination": "https://admin.momtabare.com/sanctum/:path*"
+    },
+    {
+      "source": "/product/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/blog/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/retailer/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/chat/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/user/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/payment/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/მთავარი/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ბლოგი/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/მარშუტები/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/ხშირად-დასმული-კითხვები/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api|sanctum|assets|img|favicon.ico|robots.txt|sitemap.xml).*)",
+      "destination": "/index.html"
     }
   ],
   "functions": {

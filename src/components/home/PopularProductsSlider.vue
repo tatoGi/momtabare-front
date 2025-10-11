@@ -57,9 +57,18 @@ onMounted(() => {
 
   <!-- Desktop View -->
   <div class="hidden md:block">
-    <h2 class="text-2xl font-extrabold mb-4 dark:text-white">
-      {{ t('popularProducts') }}
-    </h2>
+    <div class="flex items-center justify-between w-full px-4 md:px-0">
+      <h2 class="text-3xl font-extrabold font-uppercase dark:text-white">
+        {{ t('popularProducts') }}
+      </h2>
+      <RouterLink 
+          :to="routeToPath || '/products'"
+          class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity"
+      >
+       {{ t('allProduct') }}
+      </RouterLink>
+    </div>
+    
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <ProductItem
         v-for="(product, index) in props.products"

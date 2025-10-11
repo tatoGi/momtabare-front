@@ -23,7 +23,7 @@ const heart = ref<boolean>(props.item.is_favorite)
 const computedImageUrl = computed<string>(() => {
   // Safely access images array with null checks
   let imageUrl = props.item.images?.[0]?.url || props.item.image || ''
-  
+ 
   // If no image URL, return a default placeholder
   if (!imageUrl) {
     return '/images/placeholder-product.jpg'
