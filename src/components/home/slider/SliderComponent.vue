@@ -63,7 +63,7 @@ const processedBanners = computed((): BannerDisplay[] => {
       banner.images.forEach((bannerImage, index) => {
         const imageUrl = `${ENV.BACKEND_URL}/storage/${bannerImage.image_name}`
         const currentTranslation = getBannerTranslation(banner, currentLocale.value)
-       
+        console.log('slider image url',imageUrl)
         slides.push({
           id: `${banner.id}-${index}`,
           title: currentTranslation.title,
