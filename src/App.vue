@@ -3,6 +3,8 @@ import { ref, onMounted, watch } from "vue"
 import TheFooter from "@/layouts/TheFooter.vue"
 import TheHeader from "@/layouts/TheHeader.vue"
 import AppSkeleton from "@/components/skeletons/AppSkeleton.vue"
+import { Alert } from '@/components/ui/alert/'
+import { CheckCircle } from "lucide-vue-next"
 import { useAppStore } from "@/pinia/app.pinia.ts"
 import { useCartStore } from "@/pinia/cart.pinia.ts"
 import { useCategoryStore } from "@/pinia/category.pinia"
@@ -14,6 +16,8 @@ const cartStore = useCartStore()
 const orderStore = useOrderStore()
 
 const isLoading = ref(true)
+const showSuccessAlert = ref(false)
+const successMessage = ref("")
 
 onMounted(async () => {
   const theme = localStorage.getItem("theme")
@@ -35,6 +39,21 @@ onMounted(async () => {
     // Always set loading to false when done
     isLoading.value = false
   }
+
+  // Listen for registration success events
+  window.addEventListener('registration-success', (event: any) => {
+    console.log("✅ Registration completed successfully!")
+    
+    successMessage.value = event.detail.message
+    showSuccessAlert.value = true
+    
+    // Auto-hide the alert after 5 seconds
+    setTimeout(() => {
+      showSuccessAlert.value = false
+      successMessage.value = ""
+    }, 5000)
+  })
+
 })
 
 watch(
@@ -53,6 +72,20 @@ watch(
 
 <template>
   <div class="py-6">
+
+    <!-- Global Success Alert -->
+    <div v-if="showSuccessAlert" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md mx-4">
+      <Alert variant="success" class="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+        <div class="flex items-start gap-3">
+          <CheckCircle class="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <div>
+            <p class="font-medium">{{ successMessage }}</p>
+            <p class="text-sm mt-1">თქვენ ახლა გადახვალთ მთავარ გვერდზე...</p>
+          </div>
+        </div>
+      </Alert>
+    </div>
+
     <main class="max-w-[1360px] mx-auto flex-col">
       <template v-if="isLoading">
         <AppSkeleton />

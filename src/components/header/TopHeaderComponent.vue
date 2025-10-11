@@ -24,36 +24,37 @@ async function showConfirmationDialog(options: {
   if (typeof window === 'undefined') {
     return false;
   }
-  return window.confirm(`${options.title}\n\n${options.message}`);
+  return window.confirm(options.message || options.title);
 }
 
 const router = useRouter();
 const route = useRoute();
 const { locale } = useI18n();
-
-const appStore = useAppStore()
-
-const isMenuOpen = ref(false)
+const appStore = useAppStore();
+const isMenuOpen = ref(false);
 
 const props = defineProps({
-  isMobileNavOpen: Boolean
-})
+  isMobileNavOpen: {
+    type: Boolean,
+    default: false
+  }
+});
 
-const emit = defineEmits(['toggleMobileNav'])
+const emit = defineEmits(['toggleMobileNav']);
 
 const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value
-  document.body.style.overflow = isMenuOpen.value ? 'hidden' : ''
-}
+  isMenuOpen.value = !isMenuOpen.value;
+  emit('toggleMobileNav', isMenuOpen.value);
+  document.body.style.overflow = isMenuOpen.value ? 'hidden' : '';
+};
 
-// Watch for changes to isMobileNavOpen prop
 watch(() => props.isMobileNavOpen, (newVal: boolean) => {
-  isMenuOpen.value = newVal
-  document.body.style.overflow = newVal ? 'hidden' : ''
-})
+  isMenuOpen.value = newVal;
+  document.body.style.overflow = newVal ? 'hidden' : '';
+});
 
 // Use dynamic navigation from backend
-const { rootNavigationItems, isLoading: navLoading, error: navError } = useNavigation();
+const { rootNavigationItems } = useNavigation();
 
 
 
@@ -289,17 +290,20 @@ watch(chosenLanguage, async () => {
 </script>
 
 <template>
-  <header class="flex items-center justify-between  py-2 md:grid md:grid-cols-4 container">
-    <img
-        :src="
-        appStore.darkMode
-          ? momtabareLogoWithTextDark
-          : momtabareLogoWithTextLight
-      "
-        alt="Momtabare"
-        class="cursor-pointer h-8 md:h-auto"
-        @click.left="moveToPage(getHomePath())"
-    />
+  <header class="flex items-center justify-between py-2 md:grid md:grid-cols-4 container">
+    <div class="logo-container">
+      <img
+          :key="'logo-' + (appStore.darkMode ? 'dark' : 'light')"
+          :src="
+            appStore.darkMode 
+              ? momtabareLogoWithTextDark 
+              : momtabareLogoWithTextLight
+          "
+          alt="Momtabare"
+          class="cursor-pointer h-8 md:h-auto transition-opacity duration-300"
+          @click.left="moveToPage(getHomePath())"
+      />
+    </div>
 
     <!-- Desktop Navigation -->
     <nav class="hidden md:flex justify-center md:justify-start md:col-span-2">

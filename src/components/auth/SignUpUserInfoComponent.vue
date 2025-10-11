@@ -1,29 +1,26 @@
 <script lang="ts" setup>
-import BaseButton from "@/components/base/BaseButton.vue"
-import { Input, PasswordInput } from "@/components/ui/input"
-import { completeRegistration } from "@/services/auth"
 import { ref } from "vue"
 import { useField, useForm } from "vee-validate"
 import * as yup from "yup"
+import BaseButton from "@/components/base/BaseButton.vue"
+import { Input, PasswordInput } from "@/components/ui/input"
+import { Alert } from '@/components/ui/alert/'
+import { CheckCircle } from "lucide-vue-next"
+import { completeRegistration } from "@/services/auth"
+import type { ICompleteRegistrationParams } from "@/services/auth.types"
 import { EAuthStep } from "@/ts/auth.types.js"
 
-
-const emit = defineEmits(["nextStep", "close"])
+const emit = defineEmits(["nextStep", "close", "registrationSuccess"])
 
 const props = defineProps<{
   userId: number | null
   verificationCode?: string
 }>()
 
-const isLoading = ref<boolean>(false)
-const apiError = ref<string>('')
+const isLoading = ref(false)
 const fieldErrors = ref<Record<string, string>>({})
-// const userInfo = reactive({
-//   firstName: "",
-//   lastName: "",
-//   password: "",
-//   confirmedPassword: "",
-// })
+const alertMessage = ref("")
+const alertType = ref<"success" | "error" | null>(null)
 
 const { handleSubmit } = useForm({
   validationSchema: yup.object({
@@ -46,123 +43,171 @@ const { value: password, errorMessage: passwordError } = useField("password")
 const { value: confirmedPassword, errorMessage: confirmedPasswordError } =
   useField("confirmedPassword")
 
-async function completeSignUp(): Promise<void> {
-  apiError.value = ''
-  fieldErrors.value = {}
-  isLoading.value = true
-  try {
-    const response = await completeRegistration({
-      user_id: props.userId as number,
-      first_name: typeof firstName.value === 'string' ? firstName.value.trim() : '',
-      surname: typeof surname.value === 'string' ? surname.value.trim() : '',
-      password: typeof password.value === 'string' ? password.value.trim() : '',
-      password_confirmation: typeof confirmedPassword.value === 'string' ? confirmedPassword.value.trim() : '',
-      verification_code: props.verificationCode || "",
-    })
+// This function is no longer needed as we moved its logic to onSubmit
 
-    if (response) {
-      // Registration completed successfully, redirect to login page
-      emit("nextStep", {
-        nextStep: EAuthStep.SIGN_IN
-      })
-      isLoading.value = false
+const onSubmit = handleSubmit(async () => {
+  // Clear previous errors and alerts
+  fieldErrors.value = {}
+  alertMessage.value = ""
+    
+  
+  // Show loading state
+  isLoading.value = true
+  
+  try {
+    if (!props.userId) {
+      throw new Error("User ID is missing")
     }
+    
+    // Prepare registration data
+    const registrationData: ICompleteRegistrationParams = {
+      user_id: props.userId,
+      first_name: String(firstName.value),
+      password: String(password.value),
+      password_confirmation: String(confirmedPassword.value),
+      verification_code: props.verificationCode || ''
+    }
+    
+    if (surname.value) {
+      registrationData.surname = String(surname.value)
+    }
+    
+    // Call completeRegistration
+    const result = await completeRegistration(registrationData)
+    if (result.success) {
+      const successPayload = {
+        message: result.message || "რეგისტრაცია წარმატებით დასრულდა!",
+        user: result.data?.user
+      }
+      
+      // Dispatch global event directly to window
+      const event = new CustomEvent('registration-success', {
+        detail: successPayload
+      })
+      
+      window.dispatchEvent(event)
+      
+      // Close the modal immediately
+      emit("close")
+    } else {
+      // Show error message from the response
+      alertMessage.value = result.message || "დაფიქსირდა შეცდომა რეგისტრაციის დროს"
+      alertType.value = "error"
+      
+      // If there are field errors, set them
+      if (result.data?.errors) {
+        fieldErrors.value = result.data.errors
+      }
+    }
+
   } catch (error: any) {
-    console.error(error)
+    console.error("Registration error:", error)
     
     // Handle field-specific validation errors
     if (error?.errors) {
-      // Map backend field errors to our field names
-      const errorMapping: Record<string, string> = {
+      const fieldMap: Record<string, string> = {
         first_name: 'firstName',
-        surname: 'surname', 
+        surname: 'surname',
         password: 'password',
-        password_confirmation: 'confirmedPassword'
+        password_confirmation: 'confirmedPassword',
       }
-      
-      Object.keys(error.errors).forEach(field => {
-        const frontendField = errorMapping[field] || field
-        const errorMessage = Array.isArray(error.errors[field]) ? error.errors[field][0] : error.errors[field]
-        fieldErrors.value[frontendField] = errorMessage
+
+      Object.entries(error.errors).forEach(([field, messages]) => {
+        const frontendField = fieldMap[field] || field
+        fieldErrors.value[frontendField] = Array.isArray(messages) ? messages[0] : messages
       })
-    } else {
-      // Fallback to general error message
-      apiError.value = error?.message || 'An error occurred. Please try again.'
     }
+
+    // Show error message
+    alertMessage.value = error?.message || "რეგისტრაცია ვერ განხორციელდა. სცადეთ თავიდან."
+    alertType.value = "error"
   } finally {
     isLoading.value = false
   }
-}
-
-const onSubmit = handleSubmit(async (values) => {
-  if (!values) return
-
-  await completeSignUp()
 })
 </script>
 
 <template>
-  <form class="flex flex-col" @submit.prevent="onSubmit">
-    <h2 class="font-uppercase text-xl font-extrabold dark:text-white">
-      პირადი ინფორმაცია
-    </h2>
-    <div class="flex flex-col gap-5 py-4">
-      <div class="flex items-center gap-5">
-        <div class="flex flex-col">
-          <Input 
-            v-model="firstName" 
-            placeholder="სახელი" 
-            :error="!!firstNameError || !!fieldErrors.firstName"
-          />
-          <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-            {{ fieldErrors.firstName || firstNameError }}
-          </p>
+  <div class="flex flex-col gap-4">
+
+    <!-- Error Alert (only for errors, success will be shown on main page) -->
+    <div v-if="alertMessage && alertType === 'error'" class="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+      <Alert variant="destructive" class="mb-4">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <div>
+            <p class="font-medium">{{ alertMessage }}</p>
+          </div>
         </div>
-        <div class="flex flex-col">
-          <Input 
-            v-model="surname" 
-            placeholder="გვარი" 
-            :error="!!surnameError || !!fieldErrors.surname"
-          />
-          <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-            {{ fieldErrors.surname || surnameError }}
-          </p>
-        </div>
-      </div>
-      <div class="flex flex-col">
-        <PasswordInput 
-          v-model="password" 
-          placeholder="პაროლი" 
-          :error="!!passwordError || !!fieldErrors.password"
-        />
-        <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-          {{ fieldErrors.password || passwordError }}
-        </p>
-      </div>
-      <div class="flex flex-col">
-        <PasswordInput
-          v-model="confirmedPassword"
-          placeholder="გაიმეორე პაროლი"
-          :error="!!confirmedPasswordError || !!fieldErrors.confirmedPassword"
-        />
-        <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
-          {{ fieldErrors.confirmedPassword || confirmedPasswordError }}
-        </p>
-      </div>
+      </Alert>
     </div>
 
-    <!-- General API Error -->
-    <p v-if="apiError" class="text-sm text-red-500 mt-2 mb-2">
+    <!-- Registration Form -->
+    <form @submit.prevent="onSubmit" class="flex flex-col gap-5">
 
-      {{ apiError }}
-    </p>
+      <h2 class="uppercase text-xl font-extrabold dark:text-white">პირადი ინფორმაცია</h2>
 
-    <BaseButton
-      :height="48"
-      :loader="isLoading"
-      class="mt-2 rounded-full bg-customRed"
-    >
-      <p class="font-uppercase text-sm font-bold text-white">რეგისტრაცია</p>
-    </BaseButton>
-  </form>
+      <div class="flex flex-col gap-5">
+
+        <!-- Name & Surname -->
+        <div class="flex items-center gap-5">
+          <div class="flex flex-col w-1/2">
+            <Input 
+              v-model="firstName" 
+              placeholder="სახელი" 
+              :error="!!firstNameError || !!fieldErrors.firstName"
+            />
+            <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
+              {{ fieldErrors.firstName || firstNameError }}
+            </p>
+          </div>
+          <div class="flex flex-col w-1/2">
+            <Input 
+              v-model="surname" 
+              placeholder="გვარი" 
+              :error="!!surnameError || !!fieldErrors.surname"
+            />
+            <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
+              {{ fieldErrors.surname || surnameError }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="flex flex-col">
+          <PasswordInput 
+            v-model="password" 
+            placeholder="პაროლი" 
+            :error="!!passwordError || !!fieldErrors.password"
+          />
+          <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
+            {{ fieldErrors.password || passwordError }}
+          </p>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="flex flex-col">
+          <PasswordInput
+            v-model="confirmedPassword"
+            placeholder="გაიმეორე პაროლი"
+            :error="!!confirmedPasswordError || !!fieldErrors.confirmedPassword"
+          />
+          <p class="text-xs text-customRed pl-1 pt-0.5 h-3">
+            {{ fieldErrors.confirmedPassword || confirmedPasswordError }}
+          </p>
+        </div>
+      </div>
+
+      <BaseButton
+        :height="48"
+        :loader="isLoading"
+        class="mt-2 rounded-full bg-customRed"
+      >
+        <p class="uppercase text-sm font-bold text-white">რეგისტრაცია</p>
+      </BaseButton>
+
+    </form>
+  </div>
 </template>

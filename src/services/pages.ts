@@ -355,16 +355,12 @@ export async function getHomePageData(locale?: string): Promise<IPage | null> {
     
     // Try both 'home' and 'Home' to handle case sensitivity
     const homeSlugs = locale === 'ka' ? ['მთავარი'] : ['home', 'Home']
-    
     for (const slug of homeSlugs) {
       const homePage = await getPageBySlug(slug, locale)
       
       if (homePage) {
-      
-        
         return homePage
       }
-      
     }
     
     console.warn(`⚠️ No home page found for locale ${locale} with any of these slugs: ${homeSlugs.join(', ')}`)

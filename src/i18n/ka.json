@@ -49,6 +49,14 @@
         "totalAmount": "ჯამური თანხა",
         "placeOrder": "შეკვეთის გაფორმება"
     },
+    "auth": {
+        "registration": {
+            "success": "რეგისტრაცია წარმატებით დასრულდა!"
+        },
+        "error": {
+            "registration_failed": "დაფიქსირდა შეცდომა რეგისტრაციის დროს"
+        }
+    },
     "payment": {
         "success": {
             "title": "გადახდა წარმატებით შესრულდა",

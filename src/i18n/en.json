@@ -17,6 +17,14 @@
   "allBlog": "All Blog",
   "routes": "Routes",
   "navigation": "Navigation",
+  "auth": {
+    "registration": {
+      "success": "Registration completed successfully!"
+    },
+    "error": {
+      "registration_failed": "An error occurred during registration"
+    }
+  },
   "navigationItems": {
     "home": "Home",
     "blog": "Blog",

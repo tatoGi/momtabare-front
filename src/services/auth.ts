@@ -8,6 +8,7 @@ import type {
 } from "../ts/services/auth.types"
 import AxiosJSON from "../utils/helpers/axios.ts"
 import { getLocalizedApiUrl } from "@/utils/config/env"
+import i18n from '@/i18n/i18n'
 
 // Helper: set tokens via Pinia auth store (persisted) if response contains them
 async function setTokenFromResponseData(data: any) {
@@ -85,39 +86,67 @@ export async function register(
     throw error.response?.data?.message || "Registration failed";
   }
 }
-
 export async function completeRegistration(
   params: ICompleteRegistrationParams,
-): Promise<ICompleteRegistrationResponse | null> {
+): Promise<{ success: boolean; data?: ICompleteRegistrationResponse; message: string }> {
+  console.log("🚀 completeRegistration called with params:", params);
+  
   try {
     const { locale = 'en', ...restParams } = params;
+    console.log("🚀 Making API call to complete-registration with data:", restParams);
+    
     const response = await AxiosJSON.post<ICompleteRegistrationResponse>(
       getLocalizedApiUrl('/complete-registration'),
       restParams
     );
-    
+
+    console.log("🚀 API response received:", response.data);
     const data = response.data;
     
-    // Process the token and user data from the response
+    console.log("🚀 Processing tokens from response data:", data);
     const { token, user } = await setTokenFromResponseData(data);
-    
+
+    // Try to save user in Pinia store, but don't block success
     if (user) {
       try {
+        console.log("🚀 Setting user in store:", user);
         const { useUserStore } = await import('@/pinia/user.pinia');
         const userStore = useUserStore();
         userStore.setAuthenticatedUser(user, token || '');
+        console.log("🚀 User set in store successfully");
       } catch (e) {
         console.error('❌ Failed to set user in store after registration:', e);
+        // Continue anyway — registration is completed
       }
     } else {
       console.warn('⚠️ No user data found in registration response');
+      // Continue anyway
     }
+
+    // Always return success if registration API succeeded
+    const result = {
+      success: true,
+      data,
+      message: i18n.global.t('auth.registration.success')
+    };
     
-    return data;
+    console.log("🚀 completeRegistration returning success result:", result);
+    return result;
   } catch (error: any) {
-    throw error.response?.data?.message || "Failed to complete registration";
+    const errorMessage = error.response?.data?.message || i18n.global.t('auth.error.registration_failed');
+    console.error('❌ Registration error:', error);
+    console.error('❌ Error message:', errorMessage);
+    
+    const errorResult = {
+      success: false,
+      message: errorMessage
+    };
+    
+    console.log("🚀 completeRegistration returning error result:", errorResult);
+    return errorResult;
   }
 }
+
 
 // Sign in with email/phone and password
 export async function signIn(

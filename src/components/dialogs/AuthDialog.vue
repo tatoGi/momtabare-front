@@ -24,6 +24,11 @@ const step = ref<string>(EAuthStep.SIGN_IN)
 const userStore = useUserStore()
 
 const isOpen = computed(() => userStore.authDialog)
+
+// Debug: Log when dialog state changes
+watch(isOpen, (newIsOpen: boolean) => {
+  console.log("AuthDialog isOpen changed:", newIsOpen)
+}, { immediate: true })
 const userId = ref<number | null>(null)
 const emailOrPhone = ref<string>("")
 const verificationCode = ref<string>("")
@@ -91,6 +96,32 @@ function moveToStep(payload: AuthStepPayload & { verification_code?: string }): 
   step.value = payload.nextStep
 }
 
+function handleRegistrationSuccess(payload: { message: string; user?: any }) {
+  console.log("🎉 AuthDialog: Registration success received:", payload)
+  console.log("🎉 AuthDialog: Payload type:", typeof payload)
+  console.log("🎉 AuthDialog: Payload keys:", Object.keys(payload))
+  
+  // Emit success event to parent components (like main layout)
+  // This will allow the main page to show the success alert
+  console.log("🎉 AuthDialog: Dispatching registration-success event")
+  const event = new CustomEvent('registration-success', {
+    detail: {
+      message: payload.message,
+      user: payload.user
+    }
+  })
+  
+  console.log("🎉 AuthDialog: Event object created:", event)
+  console.log("🎉 AuthDialog: Event detail:", event.detail)
+  
+  window.dispatchEvent(event)
+  console.log("🎉 AuthDialog: Event dispatched successfully")
+  
+  // Close the dialog
+  console.log("🎉 AuthDialog: Closing dialog")
+  closeAuthDialog()
+}
+
 const closeAuthDialog = () => {
   userStore.setAuthDialog(false)
   // Add a small delay to allow the animation to complete
@@ -111,7 +142,7 @@ document.addEventListener('keydown', (e) => {
 <template>
   <!-- Mobile Dropdown Overlay -->
   <div class="block lg:hidden">
-    <div @click="userStore.setAuthDialog(true)">
+    <div @click="() => { console.log('Mobile auth dialog trigger clicked'); userStore.setAuthDialog(true); }">
       <slot />
     </div>
 
@@ -175,6 +206,7 @@ document.addEventListener('keydown', (e) => {
             :user-id="userId"
             :verification-code="verificationCode"
             @close="closeAuthDialog"
+            @registration-success="(payload) => { console.log('🎉 AuthDialog: Received registration-success event:', payload); handleRegistrationSuccess(payload); }"
           />
         </div>
       </div>
@@ -184,7 +216,7 @@ document.addEventListener('keydown', (e) => {
   <!-- Desktop Modal -->
   <div class="hidden lg:block">
     <Dialog v-model:open="isOpen" @update:open="(val: boolean) => !val && closeAuthDialog()">
-      <div @click="userStore.setAuthDialog(true)">
+      <div @click="() => { console.log('Desktop auth dialog trigger clicked'); userStore.setAuthDialog(true); }">
         <slot />
       </div>
 
@@ -235,6 +267,7 @@ document.addEventListener('keydown', (e) => {
             :user-id="userId"
             :verification-code="verificationCode"
             @close="closeAuthDialog"
+            @registration-success="(payload) => { console.log('🎉 AuthDialog: Received registration-success event:', payload); handleRegistrationSuccess(payload); }"
           />
         </div>
       </DialogContent>

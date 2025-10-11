@@ -12,7 +12,7 @@ import type { IBanner } from '@/ts/models/page.types'
 import { getBannerTranslation } from '@/services/pages'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
-import { getStorageUrl } from '@/utils/config/env'
+import { ENV } from '@/utils/config/env'
 
 // Props
 const props = defineProps<{
@@ -53,22 +53,59 @@ interface BannerDisplay {
   character?: string
 }
 
-// Process banners for display - only show banners with valid images from backend
+// Process banners for display
 const processedBanners = computed((): BannerDisplay[] => {
-  if (!props.banners || props.banners.length === 0) {
-    return []
+  // Always ensure we have banners to display
+  const hasValidBanners = props.banners && props.banners.length > 0 && 
+    props.banners.some(banner => banner.images && banner.images.length > 0)
+  
+  if (!hasValidBanners) {
+    // Fallback to static images if no banners provided or banners have no images
+    return [
+      {
+        id: 'fallback-1',
+        title: currentLocale.value === 'ka' 
+          ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
+          : 'Discover your next adventure with MOMTABARE.',
+        desc: currentLocale.value === 'ka' 
+          ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
+          : 'Rent sports equipment and make your dreams come true.',
+        image: new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href,
+        character: new URL("@/assets/img/slider/slide1/Character.png", import.meta.url).href
+      },
+      {
+        id: 'fallback-2',
+        title: currentLocale.value === 'ka' 
+          ? 'ყველაზე კარგი ფასები სპორტული ინვენტარისთვის'
+          : 'Best prices for sports equipment',
+        desc: currentLocale.value === 'ka' 
+          ? 'იპოვე იდეალური ნივთი შენი შემდეგი თავგადასავლისთვის'
+          : 'Find the perfect item for your next adventure',
+        image: new URL("@/assets/img/slider/slide2.png", import.meta.url).href
+      },
+      {
+        id: 'fallback-3',
+        title: currentLocale.value === 'ka' 
+          ? 'დაიწყე შენი თავგადასავალი დღესვე'
+          : 'Start your adventure today',
+        desc: currentLocale.value === 'ka' 
+          ? 'შემოუერთდი ათასობით მომხმარებელს რომელიც უკვე აქირავებს'
+          : 'Join thousands of users who are already renting',
+        image: new URL("@/assets/img/slider/slide3.png", import.meta.url).href
+      }
+    ]
   }
   
+  // Process backend banners - create slides from banner images
   const slides: BannerDisplay[] = []
   
-  // Only process banners that have images
   props.banners.forEach((banner: IBanner) => {
     const translation = getBannerTranslation(banner, currentLocale.value)
-    
-    // Only process banners with images
-    if (banner.images?.length) {
+    if (banner.images && banner.images.length > 0) {
+      // Create a slide for each banner image
       banner.images.forEach((bannerImage, index) => {
-        const imageUrl = getStorageUrl(bannerImage.image_name)
+        const backendUrl = ENV.BACKEND_URL
+        const imageUrl = `${backendUrl}/storage/${bannerImage.image_name}`
         
         slides.push({
           id: `${banner.id}-${index}`,
@@ -77,10 +114,36 @@ const processedBanners = computed((): BannerDisplay[] => {
           image: imageUrl
         })
       })
+    } else {
+      // Fallback to thumb or default image if no banner images
+      const backendUrl = ENV.BACKEND_URL
+      const imageUrl = banner.thumb 
+        ? `${backendUrl}/storage/${banner.thumb}`
+        : new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href
+      
+      slides.push({
+        id: banner.id,
+        title: translation.title,
+        desc: translation.desc,
+        image: imageUrl
+      })
     }
   })
   
-  return slides
+  // Ensure we always return at least one slide
+  return slides.length > 0 ? slides : [
+    {
+      id: 'emergency-fallback',
+      title: currentLocale.value === 'ka' 
+        ? 'აღმოაჩინე შენი შემდეგი თავგადასავალი MOMTABARE-სთან ერთად.'
+        : 'Discover your next adventure with MOMTABARE.',
+      desc: currentLocale.value === 'ka' 
+        ? 'აქირავე სპორტული ინვენტარი და გააკეთე შენი ოცნებები რეალობად.'
+        : 'Rent sports equipment and make your dreams come true.',
+      image: new URL("@/assets/img/slider/slide1/slide1.png", import.meta.url).href,
+      character: new URL("@/assets/img/slider/slide1/Character.png", import.meta.url).href
+    }
+  ]
 })
 
 const api = ref<CarouselApi>()
@@ -91,7 +154,7 @@ function setApi(val: CarouselApi) {
   api.value = val
 }
 
-watchOnce(api, (api: CarouselApi) => {
+watchOnce(api, (api) => {
   if (!api) return
 
   totalSlides.value = api.scrollSnapList().length
@@ -104,7 +167,7 @@ watchOnce(api, (api: CarouselApi) => {
 </script>
 
 <template>
-  <div v-if="processedBanners.length > 0">
+  <div>
     <h2 class="header-text-style font-uppercase flex-wrap dark:text-white banner-title">
       {{ localizedTitle }}
     </h2>

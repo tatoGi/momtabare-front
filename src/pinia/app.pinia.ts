@@ -3,21 +3,65 @@ import { ELanguages } from "../ts/pinia/app.types"
 import {defineStore} from "pinia"
 import { syncLocale } from '@/services/languages'
 
+// Apply theme class to document
+const applyThemeClass = (isDark: boolean) => {
+  if (typeof document === 'undefined') return;
+  
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+
 export const useAppStore = defineStore("app", {
-    state: (): IAppState => ({
-        language: ELanguages.KA,
-        darkMode: false,
-    }),
+    state: (): IAppState => {
+        // Get theme from localStorage or system preference
+        const prefersDark = typeof window !== 'undefined' && 
+                          window.matchMedia && 
+                          window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Check localStorage first, then system preference
+        const savedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('theme') : null;
+        let darkMode = false;
+        
+        if (savedTheme === 'dark') {
+            darkMode = true;
+        } else if (savedTheme === 'light') {
+            darkMode = false;
+        } else {
+            // If no saved preference, use system preference
+            darkMode = prefersDark;
+        }
+        
+        // Apply the theme to the document
+        applyThemeClass(darkMode);
+        
+        return {
+            language: ELanguages.KA,
+            darkMode,
+        };
+    },
     actions: {
         toggleTheme() {
-            this.darkMode = !this.darkMode
-
+            // Toggle the dark mode state
+            this.darkMode = !this.darkMode;
+            
+            // Save to localStorage
             if (this.darkMode) {
-                localStorage.setItem("theme", "dark")
-                return
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
             }
-
-            localStorage.removeItem("theme")
+            
+            // Apply the theme to the document
+            applyThemeClass(this.darkMode);
+            
+            // Force a re-render of the component tree
+            if (typeof window !== 'undefined') {
+                // This ensures all components update with the new theme
+                window.dispatchEvent(new Event('storage'));
+            }
         },
         setLanguage(language: ELanguages) {
             this.language = language

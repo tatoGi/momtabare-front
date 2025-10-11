@@ -49,7 +49,10 @@ async function fetchHomePageDynamic() {
     const currentLocale = appStore.language === ELanguages.KA ? 'ka' : 'en'
     const fallbackLocale = currentLocale === 'ka' ? 'en' : 'ka'
     
+    console.log("🌐 HomeView: Fetching data for locale:", currentLocale)
+    
     const homePageData = await getHomePageData(currentLocale)
+    console.log("🌐 HomeView: Received homepage data:", homePageData)
    
   // Banners - always ensure we have an array
   homeBanners.value = homePageData?.banners ?? []
@@ -243,8 +246,10 @@ onMounted(async () => {
 // Watch for language changes and re-fetch banner data
 watch(
   () => appStore.language,
-  async () => {
+  async (newLanguage, oldLanguage) => {
+   
     await fetchHomePageDynamic()
+  
   }
 )
 
