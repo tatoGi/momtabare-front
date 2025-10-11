@@ -117,11 +117,11 @@ export default defineConfig(({ command, mode }) => {
       minify: command === 'build' ? 'terser' : false,
       terserOptions: command === 'build' ? {
         compress: {
-          drop_console: true,
-          drop_debugger: true
+          drop_console: false,
+          drop_debugger: false
         }
       } : {},
-      sourcemap: command === 'serve',
+      sourcemap: true,
       cssCodeSplit: true,
       reportCompressedSize: false,
       chunkSizeWarningLimit: 1000
