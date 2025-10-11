@@ -35,10 +35,10 @@ onMounted(() => {
     <!-- Title - First on mobile -->
     <div class="md:hidden flex flex-col gap-4">
       <h2 class="text-3xl font-extrabold font-uppercase dark:text-white first-title-rental">
-        {{ props.titleLine1 ?? 'იქირავე შენთვის სასურველი' }}
+        {{ props.titleLine1 ?? '' }}
       </h2>
       <h2 class="text-3xl font-extrabold font-uppercase dark:text-white second-title-rental">
-        {{ props.titleLine2 ?? 'აღჭურვილობა ' }}<span class="text-customRed">{{ (props.steps && props.steps.length) ? props.steps.length : 3 }} მარტივი</span> ნაბიჯით
+        {{ props.titleLine2 ?? ' ' }}<span class="text-customRed">{{ (props.steps && props.steps.length) ? props.steps.length : 3 }}
       </h2>
     </div>
 
