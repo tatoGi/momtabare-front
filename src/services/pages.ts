@@ -302,10 +302,7 @@ export async function getPageBySlug(slug: string, locale: string = 'ka'): Promis
       
       // Compare normalized slugs (case-insensitive)
       const matches = translation.slug.toLowerCase() === normalizedSearchSlug
-      
-      if (matches) {
-      
-      }
+    
       return matches
     })
     
@@ -357,7 +354,7 @@ export async function getHomePageData(locale?: string): Promise<IPage | null> {
     const homeSlugs = locale === 'ka' ? ['მთავარი'] : ['home', 'Home']
     for (const slug of homeSlugs) {
       const homePage = await getPageBySlug(slug, locale)
-      
+     
       if (homePage) {
         return homePage
       }
