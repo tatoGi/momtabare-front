@@ -12,8 +12,7 @@ import type { IBanner } from '@/ts/models/page.types'
 import { getBannerTranslation } from '@/services/pages'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
-import { ENV } from '@/utils/config/env'
-
+import { getAssetUrl } from '@/utils/config/env'
 // Props
 const props = defineProps<{
   banners?: IBanner[]
@@ -61,13 +60,7 @@ const processedBanners = computed((): BannerDisplay[] => {
     // Process images for display
     if (banner.images?.length) {
       banner.images.forEach((bannerImage, index) => {
-        // Ensure we have a proper URL by checking if it already has http/https
-        let imageUrl = bannerImage.image_name;
-        if (!imageUrl.startsWith('http')) {
-          // If it's a relative path, prepend the backend URL
-          imageUrl = `${ENV.BACKEND_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-        }
-        console.log('slider image url', imageUrl);
+        const imageUrl = getAssetUrl(`/storage/${bannerImage.image_name}`)
         const currentTranslation = getBannerTranslation(banner, currentLocale.value)
        
         slides.push({
