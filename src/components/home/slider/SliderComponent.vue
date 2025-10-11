@@ -61,9 +61,15 @@ const processedBanners = computed((): BannerDisplay[] => {
     // Process images for display
     if (banner.images?.length) {
       banner.images.forEach((bannerImage, index) => {
-        const imageUrl = `${ENV.BACKEND_URL}/storage/${bannerImage.image_name}`
+        // Ensure we have a proper URL by checking if it already has http/https
+        let imageUrl = bannerImage.image_name;
+        if (!imageUrl.startsWith('http')) {
+          // If it's a relative path, prepend the backend URL
+          imageUrl = `${ENV.BACKEND_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+        }
+        console.log('slider image url', imageUrl);
         const currentTranslation = getBannerTranslation(banner, currentLocale.value)
-        console.log('slider image url',imageUrl)
+       
         slides.push({
           id: `${banner.id}-${index}`,
           title: currentTranslation.title,
