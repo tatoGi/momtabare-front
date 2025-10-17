@@ -21,7 +21,7 @@ const selectedTab = defineModel<ERetailerTab>({
   default: ERetailerTab.ALL_PRODUCTS,
 }) as Ref<ERetailerTab>
 
-const backendUrl = ENV.BACKEND_URL
+const backendUrl = 'https://admin.momtabare.com'
 
 const computedUserInitials = computed(() => {
   const firstInitial = props.retailer.first_name?.[0] ?? '';

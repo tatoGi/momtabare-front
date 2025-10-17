@@ -1,9 +1,8 @@
-import axios from 'axios'
-import { ENV, getLocalizedApiUrl } from '@/utils/config/env'
+import AxiosJSON from '@/utils/helpers/axios'
+import { getLocalizedApiUrl } from '@/utils/config/env'
 import type { IGetProductsResponse, IGetProductsQuery } from '@/ts/services/products.types'
 import type { IProductListItem } from '@/ts/models/product.types'
 import { useAppStore } from '@/pinia/app.pinia'
-import { getApiUrl } from '@/utils/api/url'
 import { ELanguages } from '@/ts/pinia/app.types'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
@@ -16,7 +15,7 @@ function getCookie(name: string): string | null {
   return null
 }
 
-const API_BASE_URL = ENV.BACKEND_URL
+const API_BASE_URL = '' // Use relative URLs for static hosting proxy
 
 // Get current locale for API calls
 function getCurrentLocale(): string {
@@ -36,15 +35,14 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
     
     
     // Use API endpoint with locale in headers: /api/products
-    const response = await axios.get(apiUrl, { 
+    const response = await AxiosJSON.get(apiUrl, { 
       params,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Accept-Language': locale,
         'X-Localization': locale,
-      },
-      withCredentials: true
+      }
     })
     
     
@@ -58,9 +56,12 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       price: product.price,
       brand: product.brand,
       color: product.color,
-      rating: null, // Not provided by backend yet
-      ratings_amount: 0, // Not provided by backend yet
-      comments_amount: 0, // Not provided by backend yet
+      rating: product.rating || product.average_rating || null,
+      ratings_amount: product.ratings_amount || product.ratings_count || 0,
+      comments_amount: product.comments_amount || product.comments_count || 0,
+      rental_period: product.rental_period || '',
+      rental_start_date: product.rental_start_date || null,
+      rental_end_date: product.rental_end_date || null,
       categories: product.category ? [{
         id: product.category.id,
         name: {
@@ -116,10 +117,17 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
     }
 
     // Get detailed product data using the ID with locale
-    const detailApiUrl = getApiUrl(`/api/products/${product.id}`, API_BASE_URL)
+    const detailApiUrl = getLocalizedApiUrl(`products/${product.id}`)
     
-    const response = await axios.get(detailApiUrl)
+    const response = await AxiosJSON.get(detailApiUrl)
     const backendProduct = response.data.data
+
+    console.log('📊 Backend product rating data:', {
+      rating: backendProduct.rating,
+      average_rating: backendProduct.average_rating,
+      ratings_amount: backendProduct.ratings_amount,
+      ratings_count: backendProduct.ratings_count
+    })
 
     // Map backend data to frontend IProduct format
     const mappedProduct = {
@@ -130,9 +138,9 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
       location: backendProduct.location || 'თბილისი',
       size: backendProduct.size || 'Standard',
       price: backendProduct.price?.toString() || '0',
-      rating: null, // Not provided by backend yet
-      ratings_amount: 0, // Not provided by backend yet
-      views: 0, // Not provided by backend yet
+      rating: backendProduct.rating || backendProduct.average_rating || null,
+      ratings_amount: backendProduct.ratings_amount || backendProduct.ratings_count || 0,
+      views: backendProduct.views || 0,
       status: 'available',
       description: backendProduct.description || '',
       product_owner: backendProduct.product_owner,
@@ -144,12 +152,12 @@ export async function getProductBySku({ sku }: { sku: string }): Promise<{ messa
         },
         slug: backendProduct.category.slug
       }] : [],
-      comments_amount: 0, // Not provided by backend yet
+      comments_amount: backendProduct.comments_amount || backendProduct.comments_count || 0,
       images: backendProduct.images.map((img: any) => ({
         id: img.id,
         url: img.url.replace(API_BASE_URL + '/', '') // Remove base URL as component adds it back
       })),
-      is_favorite: false, // Not provided by backend yet
+      is_favorite: backendProduct.is_favorite === 1 || backendProduct.is_favorite === true,
       booked_dates: []
     }
 
@@ -180,7 +188,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
        const apiUrl = getLocalizedApiUrl('/retailer/user/products')
 
     
-    const response = await axios.get(apiUrl, {
+    const response = await AxiosJSON.get(apiUrl, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
@@ -210,6 +218,9 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
         rating: 0,
         ratings_amount: 0,
         comments_amount: 0,
+        rental_period: product.rental_period || '',
+        rental_start_date: product.rental_start_date ?? product.start_date ?? null,
+        rental_end_date: product.rental_end_date ?? product.end_date ?? null,
         categories: product.categories?.map((cat: any) => ({
           id: cat.id,
           name: cat.name || 'Uncategorized',
@@ -217,9 +228,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
         })) || [],
         images: mappedImages.length ? mappedImages : [{ id: 0, url: '' }],
         is_favorite: Boolean(product.is_favorite),
-        status: product.status,
-        rental_start_date: product.rental_start_date ?? product.start_date ?? null,
-        rental_end_date: product.rental_end_date ?? product.end_date ?? null
+        status: product.status
       } as IProductListItem & { status?: string }
     })
 
@@ -237,41 +246,55 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
 export async function getPopularProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
+    const locale = getCurrentLocale()
+    const apiUrl = getLocalizedApiUrl('products')
+    
+    // Debug logging
+    console.log('🔍 getPopularProducts Debug:', {
+      locale,
+      apiUrl,
+      params
+    })
     
     // Get all products and filter for popular products (is_popular = 1)
-    const response = await axios.get(apiUrl, { 
+    const response = await AxiosJSON.get(apiUrl, { 
       params,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
-      withCredentials: true
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
     })
     
     // Filter products where is_popular = 1 (only popular products)
     const allProducts = response.data.data || []
     const popularProducts = allProducts.filter((product: any) => product.is_popular === 1)
+   
     
-    const products: IProductListItem[] = popularProducts.map((product: any) => ({
-      id: product.id,
-      name: product.title,
-      sku: product.product_identify_id,
-      slug: product.slug,
-      location: product.location,
-      price: product.price,
-      rating: null,
-      ratings_amount: 0,
-      comments_amount: 0,
-      categories: product.category ? [{
-        id: product.category.id,
-        name: {
-          ka: product.category.title,
-          en: product.category.title
-        },
-        slug: product.category.slug
-      }] : [],
-      images: (() => {
+    const products: IProductListItem[] = popularProducts.map((product: any) => {
+      const mappedProduct = {
+        id: product.id,
+        name: product.title,
+        sku: product.product_identify_id,
+        slug: product.slug,
+        location: product.location,
+        price: product.price,
+        rating: product.rating || product.average_rating || null,
+        ratings_amount: product.ratings_amount || product.ratings_count || 0,
+        comments_amount: product.comments_amount || product.comments_count || 0,
+        rental_period: product.rental_period || '',
+        rental_start_date: product.rental_start_date || null,
+        rental_end_date: product.rental_end_date || null,
+        categories: product.category ? [{
+          id: product.category.id,
+          name: {
+            ka: product.category.title,
+            en: product.category.title
+          },
+          slug: product.category.slug
+        }] : [],
+        images: (() => {
         // If no images, return default placeholder
         if (!product.images || product.images.length === 0) {
           return [{
@@ -283,19 +306,33 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
         return product.images.map((img: any) => {
           // Handle case where image is already in the correct format
           if (img.url) {
-            // If URL already has products directory or is external, use as is
-            if (img.url.includes('storage/products/') || img.url.startsWith('http')) {
+            // If URL already has a protocol (http/https), ensure it doesn't have duplicate domains
+            if (img.url.startsWith('http')) {
+              // Remove any duplicate domain parts
+              const url = new URL(img.url)
+              // If the path already contains the domain, remove the duplicate
+              const cleanPath = url.pathname.replace(new RegExp(`^${url.hostname}/?`), '')
               return {
                 id: img.id,
-                url: img.url
+                url: `https://${url.hostname}${cleanPath}`
               }
             }
             
-            // Transform URL to include products directory
+            // If URL has storage/products, ensure it's a relative path
+            if (img.url.includes('storage/products/')) {
+              // Ensure it's a relative path
+              const cleanUrl = img.url.startsWith('/') ? img.url : `/${img.url}`
+              return {
+                id: img.id,
+                url: cleanUrl
+              }
+            }
+            
+            // Transform relative URLs to include products directory
             return {
               id: img.id,
               url: img.url.includes('storage/products') 
-                ? img.url.replace('storage/products', 'storage/products/')
+                ? `/${img.url.replace(/^\/?(storage\/products)\/?/i, '$1/')}`
                 : `/storage/products/${img.url.replace(/^\//, '')}` // Remove leading slash if present
             }
           }
@@ -316,7 +353,12 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
         })
       })(),
       is_favorite: product.is_favorite === 1 // Map actual favorite status from backend
-    }))
+      }      
+      return mappedProduct
+    })
+    
+    console.log('📊 Total popular products:', products.length, 
+                'With ratings:', products.filter(p => p.rating && p.rating > 0).length)
 
     NProgress.done()
     return {
@@ -348,22 +390,24 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
 export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<IGetProductsResponse> {
   try {
     NProgress.start()
-    const apiUrl = getApiUrl('/api/products', API_BASE_URL)
+    const locale = getCurrentLocale()
+    const apiUrl = getLocalizedApiUrl('products')
     
     // Get all products and filter for favorites (is_favorite = 1)
-    const response = await axios.get(apiUrl, { 
+    const response = await AxiosJSON.get(apiUrl, { 
       params,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-      },
-      withCredentials: true
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
     })
     
     // Filter products where is_favorite = 1 (only actually favorited products)
     const allProducts = response.data.data || []
     const favoriteProducts = allProducts.filter((product: any) => product.is_favorite === 1)
-    
+   
     const products: IProductListItem[] = favoriteProducts.map((product: any) => ({
       id: product.id,
       name: product.title,
@@ -371,9 +415,12 @@ export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<I
       slug: product.slug,
       location: product.location,
       price: product.price,
-      rating: null,
-      ratings_amount: 0,
-      comments_amount: 0,
+      rating: product.rating || product.average_rating || null,
+      ratings_amount: product.ratings_amount || product.ratings_count || 0,
+      comments_amount: product.comments_amount || product.comments_count || 0,
+      rental_period: product.rental_period || '',
+      rental_start_date: product.rental_start_date || null,
+      rental_end_date: product.rental_end_date || null,
       categories: product.category ? [{
         id: product.category.id,
         name: {
@@ -425,11 +472,11 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     
     if (currentFavoriteStatus) {
       // Product is currently favorite, so remove it
-      apiUrl = getApiUrl('/api/remove-from-wishlist', API_BASE_URL)
+      apiUrl = getLocalizedApiUrl('remove-from-wishlist')
       requestData = { product_id: productId }
     } else {
       // Product is not favorite, so add it
-      apiUrl = getApiUrl('/api/add-to-wishlist', API_BASE_URL)
+      apiUrl = getLocalizedApiUrl('add-to-wishlist')
       requestData = { product_id: productId }
     }
     
@@ -447,9 +494,8 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     }
     
     // Make API call to add/remove favorite with credentials
-    const response = await axios.post(apiUrl, requestData, { 
-      headers,
-      withCredentials: true // Important for sessions and cookies
+    const response = await AxiosJSON.post(apiUrl, requestData, { 
+      headers
     })
     
     NProgress.done()
@@ -474,14 +520,14 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
         let requestData: any
         
         if (currentFavoriteStatus) {
-          apiUrl = getApiUrl('/api/remove-from-wishlist', API_BASE_URL)
+          apiUrl = getLocalizedApiUrl('remove-from-wishlist')
           requestData = { product_id: productId }
         } else {
-          apiUrl = getApiUrl('/api/add-to-wishlist', API_BASE_URL)
+          apiUrl = getLocalizedApiUrl('add-to-wishlist')
           requestData = { product_id: productId }
         }
         
-        const response = await axios.post(apiUrl, requestData, {
+        const response = await AxiosJSON.post(apiUrl, requestData, {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'

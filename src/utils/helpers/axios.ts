@@ -1,6 +1,6 @@
 // src/utils/helpers/axios.ts
 import axios, { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ENV } from '../config/env';
+// import { ENV } from '../config/env'; // Not needed since we use empty baseURL
 import { getCurrentLocale } from '@/services/user';
 import { logError, logInfo, logWarning } from '../console';
 
@@ -18,7 +18,7 @@ const getCurrentDomain = (): string => {
 
 // Axios instance
 const AxiosJSON: AxiosInstance = axios.create({
-  baseURL: ENV.BACKEND_URL,
+  baseURL: '', // Use empty base URL since we use full URLs in service calls
   withCredentials: true, // Important for cookies, authorization headers with HTTPS
   headers: {
     'Accept': 'application/json',
@@ -34,6 +34,16 @@ AxiosJSON.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
 // Request interceptor
 AxiosJSON.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Debug logging for production
+    if (typeof window !== 'undefined' && window.location.hostname === 'momtabare.com') {
+      console.log('🔍 Axios Request Debug:', {
+        url: config.url,
+        baseURL: config.baseURL,
+        fullURL: `${config.baseURL || ''}${config.url || ''}`,
+        method: config.method
+      });
+    }
+    
     // Handle preflight requests
     if (config.method?.toLowerCase() === 'options') {
       config.headers['Access-Control-Allow-Origin'] = getCurrentDomain();
@@ -105,7 +115,7 @@ AxiosJSON.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          const res = await axios.post(`${ENV.BACKEND_URL}/api/auth/refresh`, { refresh_token: refreshToken }, { withCredentials: true });
+          const res = await axios.post('/api/auth/refresh', { refresh_token: refreshToken }, { withCredentials: true });
           const { token, refresh_token } = res.data;
           localStorage.setItem('auth_token', token);
           if (refresh_token) localStorage.setItem('refresh_token', refresh_token);

@@ -156,10 +156,10 @@ const fetchShopData = async () => {
       
       // Set image URLs if they exist - construct full URLs
       if (shop.avatar) {
-        avatarImage.value = `${import.meta.env.VITE_BACKEND_URL}/storage/${shop.avatar}`
+        avatarImage.value = `https://admin.momtabare.com/storage/${shop.avatar}`
       }
       if (shop.cover_image) {
-        coverImage.value = `${import.meta.env.VITE_BACKEND_URL}/storage/${shop.cover_image}`
+        coverImage.value = `https://admin.momtabare.com/storage/${shop.cover_image}`
       }
       
       // Set description if it exists

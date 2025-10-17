@@ -23,7 +23,7 @@ import { windowScrollToTop } from "@/utils/helpers/scroll.ts"
 import { productSortingOptions } from "@/constants/productSortingOptions.ts"
 import { getCommentsByRetailer } from "@/services/comments.ts"
 import { getProducts } from "@/services/products.ts"
-import { getUserById } from "@/services/user.ts"
+import { getRetailerUserById } from "@/services/user.ts"
 import { useAppStore } from "@/pinia/app.pinia.ts"
 import { useCategoryStore } from "@/pinia/category.pinia.ts"
 import { computed, nextTick, ref, watch } from "vue"
@@ -54,6 +54,27 @@ const searchValue = ref<string>("")
 const minPrice = ref<number | null>(null)
 const maxPrice = ref<number | null>(null)
 
+// Additional filter states
+const locationFilter = ref<string>("")
+const startDateFilter = ref<string>("")
+const endDateFilter = ref<string>("")
+const selectedBrands = ref<string[]>([])
+const selectedColors = ref<string[]>([])
+
+// Available brands and colors
+const availableBrands = ref<{name: string, count: number}[]>([])
+const availableColors = ref<{name: string, class: string, key: string, translations: any}[]>([
+  { name: "წითელი", class: "bg-red-500", key: "red", translations: { ka: "წითელი", en: "Red" } },
+  { name: "თეთრი", class: "bg-white border-2 border-gray-300", key: "white", translations: { ka: "თეთრი", en: "White" } },
+  { name: "მწვანე", class: "bg-green-500", key: "green", translations: { ka: "მწვანე", en: "Green" } },
+  { name: "ლურჯი", class: "bg-blue-500", key: "blue", translations: { ka: "ლურჯი", en: "Blue" } },
+  { name: "ღია ლურჯი", class: "bg-blue-300", key: "light-blue", translations: { ka: "ღია ლურჯი", en: "Light Blue" } },
+  { name: "ვარდისფერი", class: "bg-pink-500", key: "magenta", translations: { ka: "ვარდისფერი", en: "Pink" } },
+  { name: "იისფერი", class: "bg-purple-500", key: "purple", translations: { ka: "იისფერი", en: "Purple" } },
+  { name: "შავი", class: "bg-black", key: "black", translations: { ka: "შავი", en: "Black" } },
+  { name: "ნაცარი", class: "bg-gray-500", key: "gray", translations: { ka: "ნაცარი", en: "Gray" } }
+])
+
 const comments = ref<IComment[]>([])
 const commentsLoaded = ref<boolean>(false)
 
@@ -62,10 +83,15 @@ const computedRetailerId = computed<number | null>(
 )
 
 const computedRetailerFullName = computed(() => {
-  return (
-    `${retailer.value?.first_name.toLowerCase()} ${retailer.value?.last_name.toLowerCase()}` ||
-    "N/A"
-  )
+  if (!retailer.value) return "N/A"
+  
+  // Handle both name/surname and first_name/last_name formats
+  const firstName = (retailer.value as any).name || retailer.value.first_name || ''
+  const lastName = (retailer.value as any).surname || retailer.value.last_name || ''
+  
+  if (!firstName && !lastName) return "N/A"
+  
+  return `${firstName.toLowerCase()} ${lastName.toLowerCase()}`.trim()
 })
 
 const computedCurrentCategory = computed<ICategory | null>(() => {
@@ -106,6 +132,18 @@ const computedQuery = computed<IGetProductsQuery>(() => {
     query.search = searchValue.value
   }
 
+  if (locationFilter.value) {
+    query.location = locationFilter.value
+  }
+
+  if (startDateFilter.value) {
+    query.start_date = startDateFilter.value
+  }
+
+  if (endDateFilter.value) {
+    query.end_date = endDateFilter.value
+  }
+
   return query
 })
 
@@ -137,6 +175,10 @@ async function fetchProducts(refreshPages?: boolean) {
     totalPages.value = allProducts?.pagination?.last_page || 0
     productsTotal.value = allProducts?.pagination?.total || 0
     products.value = allProducts?.products || []
+    
+    // Extract brands after products are loaded
+    await nextTick()
+    extractBrandsFromProducts()
   } catch (error) {
     console.log(error)
   } finally {
@@ -148,16 +190,24 @@ async function fetchProducts(refreshPages?: boolean) {
 }
 
 async function fetchUser(): Promise<void> {
-  if (!computedRetailerId.value) return
+  if (!computedRetailerId.value) {
+    console.warn('⚠️ No retailer ID provided')
+    return
+  }
 
   try {
-    const response = await getUserById(computedRetailerId.value)
+    console.log('📥 Fetching retailer data for ID:', computedRetailerId.value)
+    const response = await getRetailerUserById(computedRetailerId.value)
 
-    if (!response) return
+    if (!response) {
+      console.error('❌ No response from getUserById')
+      return
+    }
 
+    console.log('✅ Retailer data fetched:', response.user)
     retailer.value = response.user
   } catch (error) {
-    console.error("Error fetching the user:", error)
+    console.error("❌ Error fetching the user:", error)
   }
 }
 
@@ -195,6 +245,11 @@ function goToSubCategory(subCategory: ICategory): void {
 function resetFilters() {
   minPrice.value = null
   maxPrice.value = null
+  locationFilter.value = ""
+  startDateFilter.value = ""
+  endDateFilter.value = ""
+  selectedBrands.value = []
+  selectedColors.value = []
   sortBy.value = "ბოლოს დამატებული"
   currentPage.value = 1
   router.push({
@@ -203,26 +258,78 @@ function resetFilters() {
   })
 }
 
+// Toggle brand selection
+function toggleBrand(brandName: string): void {
+  const index = selectedBrands.value.indexOf(brandName)
+  if (index > -1) {
+    selectedBrands.value.splice(index, 1)
+  } else {
+    selectedBrands.value.push(brandName)
+  }
+  fetchProducts(true)
+}
+
+// Toggle color selection
+function toggleColor(colorKey: string): void {
+  const index = selectedColors.value.indexOf(colorKey)
+  if (index > -1) {
+    selectedColors.value.splice(index, 1)
+  } else {
+    selectedColors.value.push(colorKey)
+  }
+  fetchProducts(true)
+}
+
+// Extract brands from retailer products
+async function extractBrandsFromProducts() {
+  try {
+    if (!products.value || products.value.length === 0) return
+    
+    const brandCounts: { [key: string]: number } = {}
+    
+    products.value.forEach(product => {
+      const brand = (product as any).brand || 'სხვა'
+      if (brandCounts[brand]) {
+        brandCounts[brand] += 1
+      } else {
+        brandCounts[brand] = 1
+      }
+    })
+    
+    availableBrands.value = Object.entries(brandCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+  } catch (error) {
+    console.error('Error extracting brands:', error)
+  }
+}
+
 async function fetchComments(): Promise<void> {
   if (!computedRetailerId.value) return
 
   try {
     commentsLoaded.value = false
+    console.log('💬 Fetching comments for retailer ID:', computedRetailerId.value)
 
-    const response = await getCommentsByRetailer(computedRetailerId.value)
-    if (!response) return
+    const response = await getCommentsByRetailer({ id: computedRetailerId.value })
+    if (!response) {
+      console.warn('⚠️ No response from getCommentsByRetailer')
+      return
+    }
 
-    comments.value = response.comments
+    console.log('✅ Comments fetched:', response.data?.length || 0)
+    comments.value = response.data || []
   } catch (error) {
-    console.error("Error fetching the comments:", error)
+    console.error("❌ Error fetching comments:", error)
   } finally {
     commentsLoaded.value = true
   }
 }
 
 watch(
-  () => computedRetailerId,
+  () => computedRetailerId.value,
   async (value) => {
+    console.log('👤 Retailer ID changed:', value)
     if (value) {
       await fetchProducts(true)
       await fetchComments()
@@ -280,19 +387,110 @@ watch(sortBy, async () => {
               </p>
             </div>
           </BaseCategoryFilterCard>
-          <BaseCategoryFilterCard title="ღირებულება">
+          <BaseCategoryFilterCard title="ღირებულება (ლარი)">
             <div class="flex flex-col gap-3">
               <div class="flex items-start gap-3">
-                <Input v-model="minPrice" placeholder="0 - დან" type="number" />
-                <Input v-model="maxPrice" placeholder="0 - მდე" type="number" />
+                <Input v-model="minPrice" placeholder="20 - დან" type="number" @input="fetchProducts(true)" />
+                <Input v-model="maxPrice" placeholder="400 - მდე" type="number" @input="fetchProducts(true)" />
               </div>
-              <BaseButton
-                :height="52"
-                class="rounded-xl bg-customRed"
-                @click="fetchProducts(true)"
+            </div>
+          </BaseCategoryFilterCard>
+
+          <!-- Period Filter -->
+          <BaseCategoryFilterCard title="პერიოდი">
+            <div class="flex flex-col gap-3">
+              <div class="relative">
+                <Input 
+                  v-model="startDateFilter" 
+                  placeholder="დაწყების თარიღი" 
+                  type="date"
+                  @change="fetchProducts(true)"
+                  class="pr-10"
+                />
+                <BaseIcon 
+                  name="calendar_today" 
+                  :size="20" 
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-customBlack/50 dark:text-white/50 pointer-events-none"
+                />
+              </div>
+              <div class="relative">
+                <Input 
+                  v-model="endDateFilter" 
+                  placeholder="დასრულების თარიღი" 
+                  type="date"
+                  @change="fetchProducts(true)"
+                  class="pr-10"
+                />
+                <BaseIcon 
+                  name="calendar_today" 
+                  :size="20" 
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-customBlack/50 dark:text-white/50 pointer-events-none"
+                />
+              </div>
+            </div>
+          </BaseCategoryFilterCard>
+
+          <!-- Location Filter -->
+          <BaseCategoryFilterCard title="ლოკაცია">
+            <div class="flex flex-col gap-3">
+              <Input 
+                v-model="locationFilter" 
+                placeholder="შეიყვანეთ ლოკაცია" 
+                type="text"
+                @input="fetchProducts(true)"
+              />
+            </div>
+          </BaseCategoryFilterCard>
+
+          <!-- Brand Filter -->
+          <BaseCategoryFilterCard v-if="availableBrands.length > 0" title="ბრენდი">
+            <div class="flex flex-col gap-3">
+              <div
+                v-for="brand in availableBrands"
+                :key="brand.name"
+                class="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                @click="toggleBrand(brand.name)"
               >
-                <p class="font-uppercase text-sm font-bold text-white">ძებნა</p>
-              </BaseButton>
+                <div class="flex items-center gap-3">
+                  <input 
+                    type="checkbox" 
+                    :checked="selectedBrands.includes(brand.name)"
+                    class="w-4 h-4 text-customRed border-gray-300 rounded focus:ring-customRed"
+                    @click.stop
+                    @change="toggleBrand(brand.name)"
+                  />
+                  <span class="text-sm font-medium text-customBlack/70 dark:text-white">
+                    {{ brand.name }}
+                  </span>
+                </div>
+                <span class="text-xs text-customBlack/50 dark:text-white/50">
+                  ({{ brand.count }})
+                </span>
+              </div>
+            </div>
+          </BaseCategoryFilterCard>
+
+          <!-- Color Filter -->
+          <BaseCategoryFilterCard title="ფერი">
+            <div class="flex flex-wrap gap-2">
+              <div
+                v-for="color in availableColors"
+                :key="color.key"
+                class="relative w-8 h-8 rounded-full border-2 cursor-pointer hover:scale-110 transition-transform"
+                :class="[
+                  color.class,
+                  selectedColors.includes(color.key) ? 'border-customRed' : 'border-gray-300 dark:border-gray-600'
+                ]"
+                @click="toggleColor(color.key)"
+                :title="color.name"
+              >
+                <div 
+                  v-if="selectedColors.includes(color.key)"
+                  class="absolute inset-0 flex items-center justify-center"
+                >
+                  <BaseIcon name="check" :size="16" class="text-white drop-shadow-md" />
+                </div>
+              </div>
             </div>
           </BaseCategoryFilterCard>
         </div>

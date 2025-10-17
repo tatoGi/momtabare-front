@@ -40,7 +40,7 @@ class BogPaymentService {
 
   async getToken(): Promise<string | null> {
     try {
-      const response = await AxiosJSON.get('/api/bog/token');
+      const response = await AxiosJSON.get(getLocalizedApiUrl('bog/token'));
       return response.data.access_token;
     } catch (error) {
       console.error('Failed to get BOG token:', error);
@@ -100,7 +100,7 @@ class BogPaymentService {
 
   async getOrderDetails(orderId: string): Promise<IBogOrderResponse> {
     try {
-      const url = getLocalizedApiUrl(`/api/bog/orders/${encodeURIComponent(orderId)}`);
+      const url = getLocalizedApiUrl(`bog/orders/${encodeURIComponent(orderId)}`);
       const response = await AxiosJSON.get(url);
       const responseData = response.data;
 
@@ -211,10 +211,31 @@ class BogPaymentService {
 
   async getSavedCards(): Promise<ISavedCardSummary[]> {
     try {
-      const response = await AxiosJSON.get('/api/bog/cards');
-      return response.data.data || [];
+      // Import and use the cards service to get saved cards
+      const { listCards } = await import('./cards');
+      const result = await listCards();
+      
+      console.log('📇 Fetched saved cards from cards service:', result);
+      
+      if (!result.success || !result.cards) {
+        console.log('❌ No cards found or fetch failed');
+        return [];
+      }
+
+      // Transform Card[] to ISavedCardSummary[] format
+      const transformedCards: ISavedCardSummary[] = result.cards.map(card => ({
+        id: String(card.id),
+        brand: card.card_type.toLowerCase() as 'visa' | 'mastercard' | string,
+        last4: card.card_mask.slice(-4),
+        expires: card.formatted_expiry,
+        holder: card.card_holder_name,
+        parentOrderId: String(card.id) // Use card ID as parent order ID for now
+      }));
+
+      console.log('✅ Transformed cards for checkout:', transformedCards);
+      return transformedCards;
     } catch (error) {
-      console.error('Error fetching saved cards:', error);
+      console.error('❌ Error fetching saved cards:', error);
       return [];
     }
   }
@@ -225,7 +246,7 @@ class BogPaymentService {
       
       console.log('Attempting to save card for order:', orderId, 'with idempotency key:', idempotencyKey);
       
-      const response = await AxiosJSON.post(`/api/bog/orders/${orderId}/save-card`, {}, {
+      const response = await AxiosJSON.post(getLocalizedApiUrl(`bog/orders/${orderId}/save-card`), {}, {
         headers: { 'Idempotency-Key': idempotencyKey }
       });
       
@@ -245,14 +266,28 @@ class BogPaymentService {
   async payWithSavedCard(parentOrderId: string, paymentData: IBogPaymentDetails): Promise<IBogCardOperation> {
     try {
       const locale = getCurrentLocale();
-      const url = getLocalizedApiUrl(`/api/bog/ecommerce/orders/${encodeURIComponent(parentOrderId)}/pay`);
+      const url = getLocalizedApiUrl(`bog/ecommerce/orders/${encodeURIComponent(parentOrderId)}/pay`);
+      
+      console.log('💳 Paying with saved card - URL:', url);
+      console.log('📦 Payment data:', JSON.stringify(paymentData, null, 2));
+      
       const response = await AxiosJSON.post(url, paymentData);
+      
+      console.log('✅ Payment response:', response.data);
+      
       return response.data;
     } catch (error: any) {
+      console.error('❌ Payment with saved card failed:', {
+        message: error.response?.data?.message,
+        errors: error.response?.data?.errors,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+      
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to process payment',
-        error: error.response?.data?.error
+        error: error.response?.data?.errors || error.response?.data?.error
       };
     }
   }
@@ -409,24 +444,7 @@ export function useBogPayment() {
     selectedSavedCard?: ISavedCardSummary | null
   ): Promise<IBogOrderResponse> => {
     try {
-      // If using a saved card
-      if (selectedSavedCard?.parentOrderId) {
-        const paymentResponse = await bogPaymentInstance.payWithSavedCard(
-          selectedSavedCard.parentOrderId,
-          {
-            amount: typeof cart.total_price === 'number' ? cart.total_price : parseFloat(cart.total_price),
-            currency: 'GEL'
-          }
-        );
-
-        return {
-          success: paymentResponse.success,
-          message: paymentResponse.message,
-          data: paymentResponse.data
-        };
-      }
-
-      // Prepare basket items
+      // Prepare basket items (needed for both new and saved card payments)
       const basket = cart.items.map((item: any) => ({
         product_id: String(item.product.id),
         quantity: item.quantity,
@@ -440,10 +458,33 @@ export function useBogPayment() {
       // Get callback URLs
       const callbackBase = (import.meta as any).env?.VITE_CALLBACK_BASE || getBackendUrlWithFallback(true);
       const secureCallbackBase = callbackBase.replace(/^http:/, 'https:');
-
-      // Prepare callback URLs
-      const locale = getCurrentLocale() || 'ka';
       const callbackUrl = `${secureCallbackBase.replace(/\/+$/, '')}/api/bog/callback`;
+
+      // If using a saved card
+      if (selectedSavedCard?.parentOrderId) {
+        console.log('💳 Paying with saved card:', selectedSavedCard);
+        console.log('📦 Payment data:', { amount, basket, callbackUrl });
+
+        const paymentResponse = await bogPaymentInstance.payWithSavedCard(
+          selectedSavedCard.parentOrderId,
+          {
+            amount,
+            currency: 'GEL',
+            callback_url: callbackUrl,
+            basket,
+            external_order_id: cart?.id ? String(cart.id) : `order_${Date.now()}`
+          }
+        );
+
+        return {
+          success: paymentResponse.success,
+          message: paymentResponse.message,
+          data: paymentResponse.data
+        };
+      }
+
+      // Prepare callback URLs for new payment
+      const locale = getCurrentLocale() || 'ka';
       const successUrl = `${window.location.origin}/payment/success`;
       const failUrl = `${window.location.origin}/payment/fail`;
 

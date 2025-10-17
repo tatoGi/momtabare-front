@@ -1,13 +1,12 @@
 <script lang="ts" setup>
 import type { IProduct } from "@/ts/models/product.types.ts"
 import { computed, ref, watch } from "vue"
-import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct | null
+  classVariant?: "mobile" | "desktop"
 }>()
 
-const backendUrl = ENV.BACKEND_URL
 const selectedImageIndex = ref<number>(0)
 
 const computedChosenImage = computed<string | null>(() => {
@@ -16,7 +15,7 @@ const computedChosenImage = computed<string | null>(() => {
   }
   const image = props.product.images[selectedImageIndex.value]
   if (!image?.url) return null
-  return `${backendUrl}/${image.url}`
+  return `${image.url}`
 })
 
 function productImageStyles(index: number): string {
@@ -38,35 +37,41 @@ function selectImage(index: number) {
 }
 </script>
 <template>
-  <div class="flex flex-col gap-8">
-    <div class="w-[464px] h-[314px] flex-center  rounded-lg">
+  <div class="flex flex-col gap-4 sm:gap-6 lg:gap-8">
+    <!-- Main Image Container -->
+    <div 
+      class="w-full flex-center rounded-lg bg-gray-100 dark:bg-gray-800"
+      :class="props.classVariant === 'mobile' ? 'h-64 sm:h-72' : 'w-full h-64 sm:h-80 lg:h-[314px]'"
+    >
       <img
         v-if="computedChosenImage"
         :src="computedChosenImage"
         alt="selected_image"
-        class="h-72 w-72 object-contain"
+        class="h-48 w-48 sm:h-56 sm:w-56 lg:h-72 lg:w-72 object-contain"
       />
       <div v-else class="flex flex-col items-center justify-center text-gray-500">
-        <div class="w-24 h-24 bg-gray-300 rounded-lg mb-4"></div>
-        <p>No image available</p>
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-300 rounded-lg mb-3 sm:mb-4"></div>
+        <p class="text-xs sm:text-sm">No image available</p>
       </div>
     </div>
-    <div v-if="product?.images && product.images.length > 0" class="grid grid-cols-4 gap-4">
+
+    <!-- Thumbnail Images -->
+    <div v-if="product?.images && product.images.length > 0" class="grid gap-2 sm:gap-3 lg:gap-4" :class="props.classVariant === 'mobile' ? 'grid-cols-4 sm:grid-cols-5 lg:grid-cols-4' : 'grid-cols-4'">
       <div
         v-for="(img, index) in product.images"
         :key="index"
-        :class="productImageStyles(index)"
-        class="w-24 h-24 border rounded-2xl cursor-pointer flex-center"
+        :class="[productImageStyles(index), props.classVariant === 'mobile' ? 'h-16 sm:h-20 lg:h-24' : 'h-24']"
+        class="border rounded-lg sm:rounded-xl lg:rounded-2xl cursor-pointer flex-center transition-all"
         @click="selectImage(index)"
       >
         <img
-          :src="`${backendUrl}/${img.url}`"
+          :src="`${img.url}`"
           alt="product_image"
-          class="w-16 h-16 transition-all group-hover:w-[70px] group-hover:h-[70px]"
+          class="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 transition-all group-hover:scale-110"
         />
       </div>
     </div>
-    <div v-else class="flex items-center justify-center h-24 text-gray-500">
+    <div v-else class="flex items-center justify-center h-16 sm:h-20 text-gray-500 text-xs sm:text-sm">
       No images available
     </div>
   </div>

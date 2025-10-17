@@ -15,7 +15,6 @@ import {getProductBySku, getProducts} from "@/services/products.ts"
 import Skeleton from "../../components/ui/skeleton/Skeleton.vue"
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from "vue-router"
-import { getAssetUrl } from "@/utils/config/env"
 const route = useRoute()
 
 const response = ref<IGetProductByIdResponse | null>()
@@ -100,9 +99,9 @@ watch(
 </script>
 
 <template>
-  <div class="py-5">
+  <div class="py-4 sm:py-5 lg:py-6 px-4 sm:px-6 lg:px-0">
     <transition name="fade">
-      <div v-if="productLoaded" class="flex flex-col items-start gap-5">
+      <div v-if="productLoaded" class="flex flex-col items-start gap-4 sm:gap-5 lg:gap-6">
         <BaseBreadcrumbs
             v-if="product"
             :disable-route="true"
@@ -110,10 +109,18 @@ watch(
             prepend-path="products"
         />
 
-        <div class="grid grid-cols-3 gap-2">
-          <ProductImagesComponent :product="product"/>
-          <ProductDetailsComponent :product="product"/>
-          <ProductStatsComponent :product="product"/>
+        <!-- MOBILE & TABLET: Stacked vertical layout -->
+        <div class="flex flex-col lg:hidden gap-4 sm:gap-5 w-full">
+          <ProductImagesComponent :product="product" class-variant="mobile"/>
+          <ProductDetailsComponent :product="product" class-variant="mobile"/>
+          <ProductStatsComponent :product="product" @refresh-product="fetchProductData" class-variant="mobile"/>
+        </div>
+
+        <!-- DESKTOP: 3-column grid layout -->
+        <div class="hidden lg:grid lg:grid-cols-3 lg:gap-6 w-full">
+          <ProductImagesComponent :product="product" class-variant="desktop"/>
+          <ProductDetailsComponent :product="product" class-variant="desktop"/>
+          <ProductStatsComponent :product="product" @refresh-product="fetchProductData" class-variant="desktop"/>
         </div>
         
         <ProductCommentSection
@@ -133,18 +140,18 @@ watch(
           <div
               v-for="(product, index) in recommendedProducts"
               :key="index"
-              class="w-1/4 flex-shrink-0"
+              class="w-full sm:w-1/2 lg:w-1/4 flex-shrink-0"
               style="scroll-snap-align: start"
           >
             <ProductItem :item="product"/>
           </div>
         </BaseSlider>
       </div>
-      <div v-else class="space-y-5 mb-[800px]">
-        <div class="grid grid-cols-3 gap-5 pt-12">
-          <Skeleton v-for="i in 3" :key="i" class="h-96 rounded-2xl"/>
+      <div v-else class="space-y-4 sm:space-y-5 mb-[800px]">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pt-4 sm:pt-8 lg:pt-12">
+          <Skeleton v-for="i in 3" :key="i" class="h-64 sm:h-80 lg:h-96 rounded-2xl"/>
         </div>
-        <Skeleton class="h-52 w-full rounded-2xl"/>
+        <Skeleton class="h-40 sm:h-48 lg:h-52 w-full rounded-2xl"/>
       </div>
     </transition>
   </div>

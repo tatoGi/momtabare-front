@@ -1,4 +1,4 @@
 export interface IRateProductQuery{
   rating : number,
-  id : number,
+  product_id : number,
 }

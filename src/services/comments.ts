@@ -1,5 +1,5 @@
 import AxiosJSON from "../utils/helpers/axios.ts"
-import { getLocalizedApiUrl, getApiUrl } from '@/utils/config/env'
+import { getLocalizedApiUrl } from '@/utils/config/env'
 // Updated interfaces to match Laravel backend API
 interface IGetCommentsQuery {
   id: number
@@ -141,7 +141,27 @@ export async function getCommentsByRetailer(params: IGetCommentsQuery): Promise<
   try {
     const response = await AxiosJSON.get<IGetCommentsResponse>(getLocalizedApiUrl(`/retailer/${params.id}/comments`))
     return response.data
-  } catch (error) {
+  } catch (error: any) {
+    // Silently handle 405 (Method Not Allowed) - retailer may not have comments endpoint
+    if (error?.response?.status === 405) {
+      console.warn(`⚠️ Comments endpoint not available for retailer ${params.id}`)
+      return {
+        data: [],
+        pagination: {
+          current_page: 1,
+          last_page: 1,
+          per_page: 10,
+          total: 0,
+          from: null,
+          to: null
+        },
+        product_stats: {
+          average_rating: 0,
+          total_comments: 0
+        }
+      }
+    }
+    
     console.error("Error fetching retailer comments:", error)
     return {
       data: [],

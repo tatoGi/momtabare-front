@@ -1,11 +1,8 @@
 import axios from 'axios'
-import { ENV } from '@/utils/config/env'
+import { getLocalizedApiUrl } from '@/utils/config/env'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
-import { getApiUrl } from '@/utils/api/url'
 import NProgress from 'nprogress'
-
-const API_BASE_URL = ENV.BACKEND_URL
 
 // Get current locale for API calls
 function getCurrentLocale(): string {
@@ -91,7 +88,7 @@ export async function searchProducts(params: ISearchQuery): Promise<ISearchRespo
   try {
     NProgress.start()
     const locale = getCurrentLocale()
-    const apiUrl = getApiUrl('search', API_BASE_URL)
+    const apiUrl = getLocalizedApiUrl('search')
     
     const response = await axios.get(apiUrl, { 
       params,

@@ -137,7 +137,7 @@ const messagesContainer = ref<HTMLElement | null>(null);
 const fetchRecipient = async () => {
   try {
     const token = localStorage.getItem('auth_token') || '';
-    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/users/${recipientId.value}?include=last_seen`, {
+    const response = await fetch(`/api/users/${recipientId.value}?include=last_seen`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',

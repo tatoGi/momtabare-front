@@ -18,23 +18,27 @@ import { addProduct, updateProduct, getRetailerProduct } from "@/services/retail
 import { useRoute, useRouter } from 'vue-router'
 import { useCategoryStore } from "@/pinia/category.pinia"
 import { useUserStore } from "@/pinia/user.pinia"
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 
 const categoryStore = useCategoryStore()
 const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 
-const { files, open, reset, onCancel, onChange } = useFileDialog()
+const { files, open, reset, onCancel, onChange } = useFileDialog({
+  accept: 'image/*',
+  multiple: true
+})
 
-const uploadedImage = ref("")
+const uploadedImages = ref<string[]>([])
+const selectedFiles = ref<File[]>([])
 const productName = ref('')
 const productCategory = ref('')
 const productPrice = ref('')
 const productLocation = ref('')
 const contactPerson = ref('')
 const contactPhone = ref('')
-const rentalPeriod = ref<Date[]>([])
+const rentalPeriod = ref<any>(null) // Changed to any to see what VDatePicker returns
 const productDescription = ref('')
 const productColor = ref('')
 const productSize = ref('')
@@ -45,6 +49,8 @@ const formErrors = ref<Record<string, string>>({})
 const isEditMode = computed(() => Boolean(route.query.editId))
 const editingProductId = computed(() => Number(route.query.editId))
 
+// Watch rental period changes to debug
+
 interface ISubmitStatus {
   type: 'success' | 'error' | null;
   message: string;
@@ -52,12 +58,17 @@ interface ISubmitStatus {
 
 const submitStatus = ref<ISubmitStatus>({ type: null, message: '' })
 
-onChange((selectedFiles) => {
-  if (selectedFiles && selectedFiles.length > 0) {
-    const file = selectedFiles[0]
-    uploadedImage.value = URL.createObjectURL(file)
+onChange((selectedFilesArray) => {
+  if (selectedFilesArray && selectedFilesArray.length > 0) {
+    selectedFiles.value = Array.from(selectedFilesArray)
+    uploadedImages.value = selectedFiles.value.map(file => URL.createObjectURL(file))
   }
 })
+
+function removeImage(index: number) {
+  uploadedImages.value.splice(index, 1)
+  selectedFiles.value.splice(index, 1)
+}
 
 const categories = computed<ICategory[]>(() => categoryStore.getCategories || [])
 
@@ -124,17 +135,67 @@ async function triggerAddRetailerProduct() {
   
   // Optional fields
   if (productDescription.value) formData.append('description', productDescription.value)
-  if (rentalPeriod.value.length === 2) {
-    formData.append('rental_start_date', rentalPeriod.value[0].toISOString())
-    formData.append('rental_end_date', rentalPeriod.value[1].toISOString())
+  
+  console.log('═══════════════════════════════════════')
+  console.log('🔍 CHECKING RENTAL PERIOD')
+  console.log('═══════════════════════════════════════')
+  console.log('Raw value:', rentalPeriod.value)
+  console.log('Type:', typeof rentalPeriod.value)
+  console.log('Is Array:', Array.isArray(rentalPeriod.value))
+  console.log('Has .start:', rentalPeriod.value?.start)
+  console.log('Has .end:', rentalPeriod.value?.end)
+  console.log('Has length:', rentalPeriod.value?.length)
+  console.log('Full JSON:', JSON.stringify(rentalPeriod.value))
+  console.log('═══════════════════════════════════════')
+  
+  // Handle VDatePicker range object format
+  if (rentalPeriod.value) {
+    let startDate: string | null = null
+    let endDate: string | null = null
+    
+    // Check if it's a range object with start/end properties
+    if (rentalPeriod.value.start && rentalPeriod.value.end) {
+      startDate = new Date(rentalPeriod.value.start).toISOString()
+      endDate = new Date(rentalPeriod.value.end).toISOString()
+      console.log('📅 Range Object Format - Sending to backend:', { startDate, endDate })
+    }
+    // Check if it's an array of dates
+    else if (Array.isArray(rentalPeriod.value) && rentalPeriod.value.length === 2) {
+      startDate = new Date(rentalPeriod.value[0]).toISOString()
+      endDate = new Date(rentalPeriod.value[1]).toISOString()
+      console.log('📅 Array Format - Sending to backend:', { startDate, endDate })
+    }
+    
+    if (startDate && endDate) {
+      formData.append('rental_start_date', startDate)
+      formData.append('rental_end_date', endDate)
+      console.log('✅ Rental dates added to FormData')
+    } else {
+      console.warn('⚠️ Rental period has data but could not parse dates:', rentalPeriod.value)
+    }
+  } else {
+    console.warn('⚠️ Rental period NOT set - dates will be null')
   }
+  
   if (productColor.value) formData.append('color', productColor.value)
   if (productSize.value) formData.append('size', productSize.value)
   if (productBrand.value) formData.append('brand', productBrand.value)
   
-  // Image file
-  if (files.value && files.value.length > 0) {
-    formData.append('image', files.value[0])
+  // Multiple image files
+  if (selectedFiles.value && selectedFiles.value.length > 0) {
+    selectedFiles.value.forEach((file, index) => {
+      formData.append(`images[${index}]`, file)
+    })
+  }
+
+  // Debug: Log all FormData entries
+  console.log('📦 FormData being sent to backend:')
+  for (let [key, value] of formData.entries()) {
+    if (value instanceof File) {
+      console.log(`  ${key}: [File] ${value.name} (${value.size} bytes)`)
+    } else {
+      console.log(`  ${key}: ${value}`)
+    }
   }
 
   try {
@@ -142,26 +203,23 @@ async function triggerAddRetailerProduct() {
       ? await updateProduct(editingProductId.value, formData)
       : await addProduct(formData)
     if (result.success) {
-      submitStatus.value = {
-        type: 'success',
-        message: result.message || (isEditMode.value ? 'პროდუქცია განახლებულია' : 'პროდუქცია წარმატებით დაემატა! ადმინისტრაციის მიერ განხილვის შემდეგ გამოქვეყნდება.')
+      // Use SweetAlert2 for success message
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'success',
+        title: 'წარმატებული!',
+        text: result.message || (isEditMode.value ? 'პროდუქცია განახლებულია' : 'პროდუქცია წარმატებით დაემატა! ადმინისტრაციის მიერ განხილვის შემდეგ გამოქვეყნდება.'),
+        confirmButtonText: 'კარგი',
+        confirmButtonColor: '#DC3545'
+      })
+      
+      // Reset form and redirect
+      if (isEditMode.value) {
+        router.push({ name: 'my-listings' })
+      } else {
+        resetForm()
+        router.push({ name: 'user' })
       }
-      // Redirect to user profile with success message after successful submission
-      setTimeout(() => {
-        if (isEditMode.value) {
-          router.push({ name: 'my-listings' })
-        } else {
-          // Redirect to user profile with success message
-          router.push({ 
-            name: 'user', 
-            query: { 
-              success: 'true',
-              message: 'პროდუქცია წარმატებით დაემატა! ადმინისტრაციის მიერ განხილვის შემდეგ გამოქვეყნდება.'
-            }
-          })
-        }
-        submitStatus.value = { type: null, message: '' }
-      }, 2000) // Redirect after 2 seconds to show success message
     } else {
       submitStatus.value = {
         type: 'error',
@@ -185,13 +243,14 @@ function resetForm() {
   productLocation.value = ''
   contactPerson.value = ''
   contactPhone.value = ''
-  rentalPeriod.value = []
+  rentalPeriod.value = null // Changed to null to match VDatePicker
   productDescription.value = ''
   productColor.value = ''
   productSize.value = ''
   productBrand.value = ''
   selectedCurrency.value = 'gel'
-  uploadedImage.value = ''
+  uploadedImages.value = []
+  selectedFiles.value = []
   formErrors.value = {}
   reset() // Reset file dialog
 }
@@ -218,12 +277,17 @@ async function prefillIfEdit() {
       const start = new Date(p.rental_start_date)
       const end = new Date(p.rental_end_date)
       if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+        // VDatePicker expects either an array or an object with start/end
+        // Try array format first
         rentalPeriod.value = [start, end]
+        console.log('📅 Prefilled rental period:', { start, end, value: rentalPeriod.value })
       }
     }
     const imgUrl = p.image_url || p.main_image || p.thumbnail || (Array.isArray(p.images) ? p.images[0]?.url : '')
     if (imgUrl) {
-      uploadedImage.value = imgUrl
+      uploadedImages.value = [imgUrl]
+    } else if (Array.isArray(p.images) && p.images.length > 0) {
+      uploadedImages.value = p.images.map((img: any) => img.url || img.image_name || '')
     }
   } catch (e) {
     console.error('Failed to prefill product for edit:', e)
@@ -235,39 +299,39 @@ prefillIfEdit()
 
 <template>
   <BaseBreadcrumbs :path="['ჩემი პროფილი']" disable-route />
-  <main class="flex justify-between gap-28 pb-24 pt-3">
-    <section class="w-full">
-      <h2 class="font-uppercase text-xl font-extrabold dark:text-white">
+  <main class="flex flex-col lg:flex-row lg:justify-between lg:gap-28 pb-12 sm:pb-16 lg:pb-24 pt-2 sm:pt-3 px-4 sm:px-6 lg:px-0">
+    <section class="w-full lg:w-full">
+      <h2 class="font-uppercase text-lg sm:text-xl lg:text-2xl font-extrabold dark:text-white mb-4 sm:mb-6">
         დაამატე განცხადება
       </h2>
       
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">პროდუქციის დასახელება</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">პროდუქციის დასახელება</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მიუთითეთ პროდუქციის დასახელება
           </p>
         </div>
-        <div class="flex flex-col gap-2">
-          <Input v-model="productName" class="w-[452px]" placeholder="პროდუქციის დასახელება" />
-          <p v-if="formErrors.name" class="text-sm text-red-500">{{ formErrors.name }}</p>
+        <div class="flex flex-col gap-2 w-full sm:w-auto">
+          <Input v-model="productName" class="w-full sm:w-[452px]" placeholder="პროდუქციის დასახელება" />
+          <p v-if="formErrors.name" class="text-xs text-red-500">{{ formErrors.name }}</p>
         </div>
       </div>
 
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">აირჩიე კატეგორია</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">აირჩიე კატეგორია</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             აირჩე კატეგორია რომელსაც მიეკუთვნება პროდუქცია
           </p>
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 w-full sm:w-auto">
           <Select v-model="productCategory">
-            <SelectTrigger class="w-[452px]">
+            <SelectTrigger class="w-full sm:w-[452px]">
               <SelectValue placeholder="აირჩიე კატეგორია" />
             </SelectTrigger>
             <SelectContent class="rounded-2xl">
@@ -286,26 +350,26 @@ prefillIfEdit()
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p v-if="formErrors.category" class="text-sm text-red-500">{{ formErrors.category }}</p>
+          <p v-if="formErrors.category" class="text-xs text-red-500">{{ formErrors.category }}</p>
         </div>
       </div>
 
       <div
-        class="flex items-start justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
-        <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">საკონტაქტო ინფორმაცია</h2>
+        <div class="flex flex-col items-start flex-shrink-0">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">საკონტაქტო ინფორმაცია</h2>
           <p
-            class="max-w-[410px] text-sm text-customBlack/70 dark:text-white/70"
+            class="max-w-[410px] text-xs sm:text-sm text-customBlack/70 dark:text-white/70"
           >
             მიუთითეთ სად შეძლებს მქირავებელი პროდუქციის აღებას და ასევე ვის
             დაუკავშირდება
           </p>
         </div>
-        <div class="flex flex-col gap-6">
-          <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-4 w-full sm:w-auto">
+          <div class="flex flex-col gap-2 w-full">
             <Select v-model="productLocation">
-              <SelectTrigger class="w-[452px]">
+              <SelectTrigger class="w-full sm:w-[452px]">
                 <SelectValue placeholder="აირჩიე მდებარეობა" />
               </SelectTrigger>
               <SelectContent class="rounded-2xl">
@@ -324,110 +388,120 @@ prefillIfEdit()
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <p v-if="formErrors.location" class="text-sm text-red-500">{{ formErrors.location }}</p>
+            <p v-if="formErrors.location" class="text-xs text-red-500">{{ formErrors.location }}</p>
           </div>
-          <div class="flex flex-col gap-2">
-            <Input v-model="contactPerson" class="w-[452px]" placeholder="საკონტაქტო პირი" />
-            <p v-if="formErrors.contact_person" class="text-sm text-red-500">{{ formErrors.contact_person }}</p>
+          <div class="flex flex-col gap-2 w-full">
+            <Input v-model="contactPerson" class="w-full sm:w-[452px]" placeholder="საკონტაქტო პირი" />
+            <p v-if="formErrors.contact_person" class="text-xs text-red-500">{{ formErrors.contact_person }}</p>
           </div>
-          <div class="flex flex-col gap-2">
-            <Input v-model="contactPhone" class="w-[452px]" placeholder="ტელეფონი" />
-            <p v-if="formErrors.contact_phone" class="text-sm text-red-500">{{ formErrors.contact_phone }}</p>
+          <div class="flex flex-col gap-2 w-full">
+            <Input v-model="contactPhone" class="w-full sm:w-[452px]" placeholder="ტელეფონი" />
+            <p v-if="formErrors.contact_phone" class="text-xs text-red-500">{{ formErrors.contact_phone }}</p>
           </div>
         </div>
       </div>
 
       <div
-        class="flex items-start justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
-        <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">პროდუქციის აღწერა</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+        <div class="flex flex-col items-start flex-shrink-0">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">პროდუქციის აღწერა</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             დაწერეთ პროდუქციის დეტალური აღწერა
           </p>
         </div>
         <textarea
           v-model="productDescription"
-          class="w-[452px] h-[120px] rounded-xl border border-customBlack/10 p-4 text-sm text-customBlack/70 placeholder-customBlack/70 dark:text-white/70 resize-none"
+          class="w-full sm:w-[452px] h-[120px] rounded-xl border border-customBlack/10 p-3 sm:p-4 text-xs sm:text-sm text-customBlack/70 placeholder-customBlack/70 dark:text-white/70 dark:border-white/10 dark:bg-transparent resize-none"
           placeholder="პროდუქციის აღწერა..."
         ></textarea>
       </div>
 
       <div
-        class="flex items-start justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
-        <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">პროდუქციის მახასიათებლები</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+        <div class="flex flex-col items-start flex-shrink-0">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">პროდუქციის მახასიათებლები</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მიუთითეთ პროდუქციის მახასიათებლები
           </p>
         </div>
-        <div class="flex flex-col gap-4">
-          <Input v-model="productColor" class="w-[452px]" placeholder="ფერი (არასავალდებულო)" />
-          <Input v-model="productSize" class="w-[452px]" placeholder="ზომა (არასავალდებულო)" />
-          <Input v-model="productBrand" class="w-[452px]" placeholder="ბრენდი (არასავალდებულო)" />
+        <div class="flex flex-col gap-3 w-full sm:w-auto">
+          <Input v-model="productColor" class="w-full sm:w-[452px]" placeholder="ფერი (არასავალდებულო)" />
+          <Input v-model="productSize" class="w-full sm:w-[452px]" placeholder="ზომა (არასავალდებულო)" />
+          <Input v-model="productBrand" class="w-full sm:w-[452px]" placeholder="ბრენდი (არასავალდებულო)" />
         </div>
       </div>
 
       <div
-        class="flex items-start justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
-        <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">პროდუქციის ფოტო</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
-            ატვირთეთ პროდუქციის ფოტო
+        <div class="flex flex-col items-start flex-shrink-0">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">პროდუქციის ფოტო</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
+            ატვირთეთ პროდუქციის ფოტოები (მაქსიმუმ 10)
           </p>
         </div>
-        <div class="flex flex-col gap-4">
-          <div
-            v-if="uploadedImage"
-            class="w-[452px] h-[200px] rounded-xl border border-customBlack/10 overflow-hidden"
-          >
-            <img :src="uploadedImage" alt="Uploaded product" class="w-full h-full object-cover" />
+        <div class="flex flex-col gap-3 w-full sm:w-auto">
+          <div v-if="uploadedImages.length > 0" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
+            <div
+              v-for="(image, index) in uploadedImages"
+              :key="index"
+              class="relative w-full h-[100px] sm:h-[120px] rounded-lg border border-customBlack/10 overflow-hidden group"
+            >
+              <img :src="image" alt="Product image" class="w-full h-full object-cover" />
+              <button
+                @click.stop="removeImage(index)"
+                class="absolute top-1 right-1 w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+              >
+                <BaseIcon name="close" :size="16" />
+              </button>
+            </div>
           </div>
           <BaseButton
-            :height="48"
-            class="w-[452px] border border-dashed border-customBlack/30 bg-transparent text-customBlack/70 dark:text-white/70"
+            v-if="uploadedImages.length < 10"
+            :height="44"
+            class="w-full border border-dashed border-customBlack/30 bg-transparent text-xs sm:text-sm text-customBlack/70 dark:text-white/70 dark:border-white/30"
             @click="open"
           >
-            <BaseIcon name="upload" :size="20" class="mr-2" />
-            ატვირთეთ ფოტო
+            <BaseIcon name="upload" :size="18" class="mr-2" />
+            {{ uploadedImages.length > 0 ? 'დაამატე კიდევ ფოტო' : 'ატვირთეთ ფოტოები' }}
           </BaseButton>
         </div>
       </div>
 
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">ღირებულება</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">ღირებულება</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მიუთითეთ პროდუქციის გაქირავების ღირებულება
           </p>
         </div>
         <div
-          class="flex w-[452px] items-center justify-between rounded-xl border border-customBlack/10 py-1.5 pl-5 pr-1.5"
+          class="flex w-full sm:w-[452px] items-center justify-between rounded-xl border border-customBlack/10 dark:border-white/10 py-1.5 pl-3 sm:pl-5 pr-1.5"
         >
           <div class="flex flex-col gap-2 w-full">
             <input
               v-model="productPrice"
-              class="text-sm text-customBlack/70 placeholder-customBlack/70 dark:text-white/70"
+              class="text-xs sm:text-sm text-customBlack/70 placeholder-customBlack/70 dark:text-white/70 dark:placeholder-white/70 dark:bg-transparent w-full"
               placeholder="ღირებულება"
               type="number"
               min="0"
               step="0.01"
             />
-            <p v-if="formErrors.price" class="text-sm text-red-500">{{ formErrors.price }}</p>
+            <p v-if="formErrors.price" class="text-xs text-red-500">{{ formErrors.price }}</p>
           </div>
 
-          <div class="flex items-center">
+          <div class="flex items-center gap-1">
             <div
               :class="
                 selectedCurrency === 'GEL'
                   ? 'bg-customBlue text-white'
                   : 'text-customBlack/70'
               "
-              class="flex-center h-[38px] cursor-pointer rounded-lg px-4 text-sm font-medium text-customBlack/70 dark:text-white/70"
+              class="flex-center h-[36px] sm:h-[38px] cursor-pointer rounded-lg px-2 sm:px-4 text-xs sm:text-sm font-medium text-customBlack/70 dark:text-white/70 transition-colors"
               @click.left="selectCurrency('gel')"
             >
               GEL
@@ -438,7 +512,7 @@ prefillIfEdit()
                   ? 'bg-customBlue text-white'
                   : 'text-customBlack/70'
               "
-              class="flex-center h-[38px] cursor-pointer rounded-lg px-4 text-sm font-medium"
+              class="flex-center h-[36px] sm:h-[38px] cursor-pointer rounded-lg px-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors"
               @click.left="selectCurrency('usd')"
             >
               USD
@@ -448,15 +522,15 @@ prefillIfEdit()
       </div>
 
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-customBlack/10 py-6 sm:py-8 gap-4 sm:gap-6"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">აირჩიე პერიოდი</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="font-bold dark:text-white text-base sm:text-lg">აირჩიე პერიოდი</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მიუთითე პერიოდი როდის აქირავებ
           </p>
         </div>
-        <div class="w-[452px]">
+        <div class="w-full sm:w-[452px]">
           <VDatePicker
             v-model="rentalPeriod"
             is-range
@@ -467,16 +541,16 @@ prefillIfEdit()
         </div>
       </div>
 
-      <div class="flex items-center justify-between py-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between py-6 sm:py-8 gap-4 sm:gap-6">
         <p
-          class="cursor-pointer text-sm font-medium text-customBlack/70 dark:text-white/70"
+          class="cursor-pointer text-xs sm:text-sm font-medium text-customBlack/70 dark:text-white/70"
         >
           გასუფთავება
         </p>
         <BaseButton
-          :height="48"
+          :height="44"
           :disabled="isSubmitting"
-          class="font-uppercase bg-customRed px-5 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          class="font-uppercase bg-customRed px-4 sm:px-5 text-xs sm:text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
           @click="triggerAddRetailerProduct"
         >
           <span v-if="isSubmitting">იტვირთება...</span>
@@ -484,27 +558,40 @@ prefillIfEdit()
         </BaseButton>
       </div>
     </section>
+
+    <!-- RIGHT SIDEBAR: Image preview (hide on mobile, show on lg+) -->
     <section
-      class="flex h-[236px] w-[420px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed"
+      class="hidden lg:flex max-h-[236px] w-full lg:w-[420px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed flex-shrink-0 mt-6 lg:mt-0"
       @click="open"
     >
-      <template v-if="uploadedImage">
-        <div class="h-full w-full overflow-hidden rounded-2xl">
-          <img
-            :src="uploadedImage"
-            alt="Uploaded Image"
-            class="h-full w-full object-cover"
-          />
+      <template v-if="uploadedImages.length > 0">
+        <div class="w-full h-full p-3 sm:p-4">
+          <div class="grid grid-cols-2 gap-2 w-full">
+            <div
+              v-for="(image, index) in uploadedImages.slice(0, 4)"
+              :key="index"
+              class="relative w-full h-[80px] sm:h-[100px] overflow-hidden rounded-lg"
+            >
+              <img
+                :src="image"
+                alt="Uploaded Image"
+                class="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+          <p v-if="uploadedImages.length > 4" class="text-center text-xs sm:text-sm text-customBlack/70 dark:text-white/70 mt-2">
+            +{{ uploadedImages.length - 4 }} სურათი
+          </p>
         </div>
       </template>
       <template v-else>
-        <div class="flex-center h-16 w-16 rounded-full bg-customGrey">
-          <BaseIcon :size="28" :weight="300" name="upload" />
+        <div class="flex-center h-12 sm:h-16 w-12 sm:w-16 rounded-full bg-customGrey">
+          <BaseIcon :size="24" :weight="300" name="upload" />
         </div>
         <div class="flex flex-col items-center gap-1">
-          <h2 class="text-sm font-medium">ატვირთე მთავარი სურათი</h2>
+          <h2 class="text-xs sm:text-sm font-medium">ატვირთე სურათები</h2>
           <p class="text-xs text-customBlack/70 dark:text-white/70">
-            მაქსიმალური ზომა 5მბ
+            მაქსიმალური ზომა 5მბ თითო სურათისთვის
           </p>
         </div>
       </template>

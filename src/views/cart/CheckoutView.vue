@@ -12,10 +12,13 @@ import { computed, ref, watch } from "vue"
 import { useBogPayment } from '@/services/bogPayment'
 import type { ISavedCardSummary } from '@/services/bogPayment'
 import { useI18n } from 'vue-i18n'
+import visa from '@/assets/svg/visa.svg'
+import mastercard from '@/assets/svg/mastercard.svg'
+import { onMounted } from 'vue'
 
 const cartStore = useCartStore()
 const userStore = useUserStore()
-const { processCheckout } = useBogPayment()
+const { processCheckout, getSavedCards } = useBogPayment()
 const { t } = useI18n()
 
 const fullName = ref<string>()
@@ -24,6 +27,18 @@ const saveCard = ref<boolean>(false)
 const savedCards = ref<ISavedCardSummary[]>([])
 const selectedCardId = ref<string | null>(null)
 const selectedSavedCard = computed(() => savedCards.value.find(c => c.id === selectedCardId.value) || null)
+
+// Load saved cards on mount
+onMounted(async () => {
+  console.log('🔄 Loading saved cards for checkout...')
+  try {
+    const cards = await getSavedCards()
+    savedCards.value = cards
+    console.log('✅ Loaded saved cards:', cards)
+  } catch (error) {
+    console.error('❌ Failed to load saved cards:', error)
+  }
+})
 
 async function handleSelectOtherCard(): Promise<void> {
   selectedCardId.value = null
@@ -52,12 +67,6 @@ watch(
   },
   { immediate: true },
 )
-
-// Lazy load saved cards when checkout page is opened
-import bogPaymentService from '@/services/bogPayment'
-bogPaymentService.getSavedCards?.().then(cards => {
-  if (Array.isArray(cards)) savedCards.value = cards
-}).catch(() => {})
 </script>
 
 <template>

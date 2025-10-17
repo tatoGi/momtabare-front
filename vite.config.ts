@@ -20,7 +20,8 @@ export default defineConfig(({ command, mode }) => {
       changeOrigin: true,
       secure: false,
       ws: true,
-      rewrite: (path: string) => path.replace(/^\/api/, ''),
+      // Keep /api in the path since backend expects it
+      rewrite: (path: string) => path,
       configure: (proxy: any) => {
         proxy.on('error', (err: Error) => {
           console.error('Proxy error:', err);

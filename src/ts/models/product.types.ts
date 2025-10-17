@@ -25,6 +25,9 @@ export interface IProduct {
   images: IProductThumbnail[]
   is_favorite : boolean
   booked_dates : IBookedDate[]
+  rental_period?: string | null
+  rental_start_date?: string | null
+  rental_end_date?: string | null
 }
 
 export interface IBookedDate {
@@ -53,4 +56,7 @@ export interface IProductListItem {
   categories: ICategory[]
   images: IProductThumbnail[]
   is_favorite : boolean
+  rental_period?: string | null
+  rental_start_date?: string | null
+  rental_end_date?: string | null
 }

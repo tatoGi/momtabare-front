@@ -202,6 +202,7 @@ export async function uploadUserAvatar(file: File): Promise<IUser | null> {
 // Tries to be resilient to different backend response shapes
 export async function getUserById(userId: number): Promise<{ user: IUser; message: string } | null> {
   try {
+   
     const url = getLocalizedApiUrl(`/users/${userId}`)
 
     const resp = await AxiosJSON.get(url, {
@@ -239,6 +240,59 @@ export async function getUserById(userId: number): Promise<{ user: IUser; messag
     return null
   } catch (error) {
     console.error('getUserById failed:', error)
+    return null
+  }
+}
+export async function getRetailerUserById(userId: number): Promise<{ user: IUser; message: string } | null> {
+  try {
+   
+    const url = getLocalizedApiUrl(`/retailer/${userId}`)
+
+    const resp = await AxiosJSON.get(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    })
+
+    const data = resp?.data
+
+    // Helper function to map API fields to IUser interface
+    const mapUserFields = (userData: any): IUser => {
+      return {
+        ...userData,
+        // Map name/surname to first_name/last_name if needed
+        first_name: userData.first_name || userData.name || '',
+        last_name: userData.last_name || userData.surname || '',
+      } as IUser
+    }
+
+    // Possible formats:
+    // 1) { user, message }
+    if (data?.user) {
+      return { user: mapUserFields(data.user), message: data?.message || '' }
+    }
+
+    // 2) { data: { user }, message }
+    if (data?.data?.user) {
+      return { user: mapUserFields(data.data.user), message: data?.message || '' }
+    }
+
+    // 3) { data: { ...user }, message }
+    if (data?.data && typeof data.data === 'object' && 'id' in data.data) {
+      return { user: mapUserFields(data.data), message: data?.message || '' }
+    }
+
+    // 4) { ...user }
+    if (data && typeof data === 'object' && 'id' in data) {
+      return { user: mapUserFields(data), message: '' }
+    }
+
+    console.warn('getRetailerUserById: unexpected response shape', data)
+    return null
+  } catch (error) {
+    console.error('getRetailerUserById failed:', error)
     return null
   }
 }

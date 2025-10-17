@@ -11,13 +11,23 @@ import ProductReviewComponent from "./ProductReviewComponent.vue"
 import {useUserStore} from "@/pinia/user.pinia"
 import {computed, onMounted, onUnmounted, ref, watch} from "vue"
 import {useRouter} from "vue-router"
+import { rateProduct, getProductRatings } from "@/services/ratings"
 
 const router = useRouter()
 const userStore = useUserStore()
 const { addToCart } = useCart()
 const props = defineProps<{
   product: IProduct | null
+  classVariant?: "mobile" | "desktop"
 }>()
+
+const emit = defineEmits<{
+  (e: 'refreshProduct'): void
+}>()
+
+// Local reactive rating data
+const localRating = ref<number | null>(null)
+const localRatingsAmount = ref<number>(0)
 
 const dialogOpen = ref<boolean>()
 const retailerDialogOpen = ref<boolean>()
@@ -27,8 +37,30 @@ const endDate = ref<Date | null>(null)
 const datePickerOpen = ref<boolean>(false)
 const calendarContainerRef = ref<HTMLDivElement | null>(null)
 
+// Initialize local rating from product prop
+watch(() => props.product, (newProduct: IProduct | null) => {
+  if (newProduct) {
+    localRating.value = newProduct.rating
+    localRatingsAmount.value = newProduct.ratings_amount || 0
+  }
+}, { immediate: true })
+
+// Function to fetch and update rating
+async function fetchAndUpdateRating() {
+  if (!props.product?.id) return
+  
+  const ratingData = await getProductRatings(props.product.id)
+  if (ratingData.success) {
+    localRating.value = ratingData.average
+    localRatingsAmount.value = ratingData.count
+    console.log('⭐ Updated rating:', ratingData.average, 'Count:', ratingData.count)
+  }
+}
+
 onMounted(() => {
   window.addEventListener('click', calendarClickOutside)
+  // Fetch initial rating data
+  fetchAndUpdateRating()
 })
 
 onUnmounted(() => {
@@ -50,14 +82,37 @@ function changeDialogState() {
 
 
 const attributes = computed(() => {
-  return startDate.value && endDate.value
-      ? [
-        {
-          highlight: "red",
-          dates: [{start: startDate.value, end: endDate.value}],
-        },
-      ]
-      : []
+  const attrs = []
+  
+  // User's selected rental dates (green highlight)
+  if (startDate.value && endDate.value) {
+    attrs.push({
+      highlight: {
+        color: 'green',
+        fillMode: 'solid'
+      },
+      dates: [{ start: startDate.value, end: endDate.value }],
+    })
+  }
+  
+  // Product's rental period (red highlight)
+  if (props.product?.rental_start_date && props.product?.rental_end_date) {
+    attrs.push({
+      highlight: {
+        color: 'red',
+        fillMode: 'light'
+      },
+      dates: [{
+        start: new Date(props.product.rental_start_date),
+        end: new Date(props.product.rental_end_date)
+      }],
+      popover: {
+        label: 'გაქირავების პერიოდი'
+      }
+    })
+  }
+  
+  return attrs
 })
 const computedRetailer = computed<IUser | null>(() => {
   return props.product?.product_owner || null
@@ -74,7 +129,23 @@ const computedDisabledDates = computed(() => {
 })
 
 function routeToRetailerPage(): void {
-  router.replace({path: `/retailer/${props.product?.product_owner.id}`})
+  const retailerId = props.product?.product_owner?.id;
+  if (!retailerId) {
+    console.error('Retailer ID is missing');
+    return;
+  }
+  
+  // Use the correct route name and parameter name
+  router.push({ 
+    name: 'retailer',  // Changed from 'retailer-profile' to 'retailer'
+    params: { 
+      retailerId: retailerId  // Make sure this matches the route parameter name
+    }
+  }).catch(error => {
+    if (error.name !== 'NavigationDuplicated') {
+      console.error('Navigation error:', error);
+    }
+  });
 }
 
 function isDateRangeOverlappingDisabledDates(
@@ -144,11 +215,110 @@ function contactOwner() {
 
 
 const AddingItemToCart = ref<boolean>(false)
+const isRenting = ref<boolean>(false)
 const userRating = ref<number>(0)
 const hoverRating = ref<number>(0)
 const isSubmittingRating = ref<boolean>(false)
 const showSuccessAlert = ref<boolean>(false)
 const successMessage = ref<string>('')
+
+// Format date helper function
+function formatDate(date: string | Date | null): string {
+  if (!date) return ''
+  
+  try {
+    const d = new Date(date)
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }
+    return d.toLocaleDateString('ka-GE', options)
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return ''
+  }
+}
+
+async function rentProduct() {
+  if (!props.product) return
+  
+  // Check if user selected dates
+  if (!startDate.value || !endDate.value) {
+    const Swal = (await import('sweetalert2')).default
+    await Swal.fire({
+      icon: 'warning',
+      title: 'გაფრთხილება',
+      text: 'გთხოვთ აირჩიოთ გაქირავების პერიოდი',
+      confirmButtonText: 'კარგი',
+      confirmButtonColor: '#F59E0B'
+    })
+    return
+  }
+  
+  isRenting.value = true
+  try {
+    // Add product to cart with rental dates
+    const result = await addToCart(props.product.id, {
+      rental_start_date: startDate.value.toISOString(),
+      rental_end_date: endDate.value.toISOString()
+    })
+    
+    if (!result.success && result.message === 'Authentication required') {
+      // Redirect to login page with return URL
+      router.push({ 
+        path: '/login', 
+        query: { redirect: router.currentRoute.value.fullPath }
+      })
+      return
+    }
+    
+    if (result.success) {
+      // Reset date selection
+      startDate.value = null
+      endDate.value = null
+      selectedDate.value = null
+      
+      // Show success alert
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'success',
+        title: 'წარმატებული!',
+        text: result.message || 'პროდუქტი წარმატებით დაემატა კალათაში',
+        timer: 1500,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      })
+      
+      // Navigate to cart after showing success
+      setTimeout(() => {
+        router.push('/cart')
+      }, 1500)
+    } else {
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'error',
+        title: 'შეცდომა',
+        text: result.message || 'პროდუქტის დამატება ვერ მოხერხდა',
+        confirmButtonText: 'კარგი',
+        confirmButtonColor: '#EF4444'
+      })
+    }
+  } catch (error) {
+    console.error('Error renting product:', error)
+    const Swal = (await import('sweetalert2')).default
+    await Swal.fire({
+      icon: 'error',
+      title: 'შეცდომა',
+      text: 'დაფიქსირდა შეცდომა. სცადეთ თავიდან.',
+      confirmButtonText: 'კარგი',
+      confirmButtonColor: '#EF4444'
+    })
+  } finally {
+    isRenting.value = false
+  }
+}
 
 async function triggerAddToCart(product: IProduct | null) {
   if (!product) return
@@ -167,30 +337,38 @@ async function triggerAddToCart(product: IProduct | null) {
     }
     
     if (result.success) {
-      successMessage.value = result.message || 'Product added to cart successfully'
-      showSuccessAlert.value = true
-      
-      // Auto-hide alert after 3 seconds
-      setTimeout(() => {
-        showSuccessAlert.value = false
-      }, 3000)
+      // Show success alert with SweetAlert2
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'success',
+        title: 'წარმატებული!',
+        text: result.message || 'პროდუქტი კალათაში დაემატა',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      })
     } else {
-      // Show error message if adding to cart failed for other reasons
-      successMessage.value = result.message || 'Failed to add product to cart'
-      showSuccessAlert.value = true
-      
-      setTimeout(() => {
-        showSuccessAlert.value = false
-      }, 3000)
+      // Show error alert
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'error',
+        title: 'შეცდომა',
+        text: result.message || 'პროდუქტის დამატება ვერ მოხერხდა',
+        confirmButtonText: 'კარგი',
+        confirmButtonColor: '#EF4444'
+      })
     }
   } catch (error) {
     console.error('Error adding product to cart:', error)
-    successMessage.value = 'An error occurred while adding to cart'
-    showSuccessAlert.value = true
-    
-    setTimeout(() => {
-      showSuccessAlert.value = false
-    }, 3000)
+    const Swal = (await import('sweetalert2')).default
+    await Swal.fire({
+      icon: 'error',
+      title: 'შეცდომა',
+      text: 'დაფიქსირდა შეცდომა. სცადეთ თავიდან.',
+      confirmButtonText: 'კარგი',
+      confirmButtonColor: '#EF4444'
+    })
   } finally {
     AddingItemToCart.value = false
   }
@@ -213,21 +391,56 @@ async function submitRating() {
   
   isSubmittingRating.value = true
   try {
-    // TODO: Implement actual API call to submit rating
     console.log('Submitting rating:', userRating.value, 'for product:', props.product.id)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Call the actual API
+    const result = await rateProduct({
+      rating: userRating.value,
+      product_id: props.product.id
+    })
     
-    // You might want to show a success message here
-    console.log('Rating submitted successfully')
-    
-    // Reset the rating form
-    userRating.value = 0
-    hoverRating.value = 0
+    if (result.success || result.data) {
+      console.log('Rating submitted successfully')
+      
+      // Fetch updated rating from backend
+      await fetchAndUpdateRating()
+      
+      // Reset the rating form
+      userRating.value = 0
+      hoverRating.value = 0
+      
+      // Show success alert with SweetAlert2
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'success',
+        title: 'მადლობა!',
+        text: 'შეფასება წარმატებით გაიგზავნა',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      })
+    } else {
+      console.error('Rating submission failed:', result)
+      const Swal = (await import('sweetalert2')).default
+      await Swal.fire({
+        icon: 'error',
+        title: 'შეცდომა',
+        text: 'შეფასების გაგზავნა ვერ მოხერხდა. სცადეთ თავიდან.',
+        confirmButtonText: 'კარგი',
+        confirmButtonColor: '#EF4444'
+      })
+    }
   } catch (error) {
     console.error('Error submitting rating:', error)
-    // You might want to show an error message here
+    const Swal = (await import('sweetalert2')).default
+    await Swal.fire({
+      icon: 'error',
+      title: 'შეცდომა',
+      text: 'შეფასების გაგზავნა ვერ მოხერხდა. სცადეთ თავიდან.',
+      confirmButtonText: 'კარგი',
+      confirmButtonColor: '#EF4444'
+    })
   } finally {
     isSubmittingRating.value = false
   }
@@ -239,48 +452,48 @@ async function submitRating() {
   <!-- Success Alert -->
   <div 
     v-if="showSuccessAlert"
-    class="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in-right"
+    class="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in-right text-xs sm:text-sm"
   >
-    <BaseIcon name="check-circle" class="w-5 h-5" />
+    <BaseIcon name="check-circle" class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
     <span class="font-medium">{{ successMessage }}</span>
     <button 
       @click="showSuccessAlert = false"
-      class="ml-2 text-white hover:text-green-100 transition-colors"
+      class="ml-2 text-white hover:text-green-100 transition-colors flex-shrink-0"
     >
-      <BaseIcon name="x" class="w-4 h-4" />
+      <BaseIcon name="x" class="w-3 h-3 sm:w-4 sm:h-4" />
     </button>
   </div>
 
-  <div class="flex flex-col items-start gap-5 p-3">
+  <div class="flex flex-col items-start gap-3 sm:gap-4 lg:gap-5 p-2 sm:p-3 lg:p-3">
     <div
-        class="flex w-full items-center justify-between rounded-2xl border border-customBlack/10 cursor-pointer hover:border-customRed dark:border-white/10 group p-4"
+        class="flex w-full items-center justify-between rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 cursor-pointer hover:border-customRed dark:border-white/10 group p-2 sm:p-3 lg:p-4 transition-all"
         @click="routeToRetailerPage"
     >
-      <div class="flex items-center gap-3">
-        <div class="bg-customRed rounded-full w-16 h-16 flex-center flex-shrink-0">
-          <h2 class="text-customGrey font-bold font-uppercase pb-1">{{ computedUserInitials }}</h2>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="bg-customRed rounded-full w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 flex-center flex-shrink-0">
+          <h2 class="text-xs sm:text-sm lg:text-base text-customGrey font-bold font-uppercase pb-1">{{ computedUserInitials }}</h2>
         </div>
-        <div>
+        <div class="min-w-0 flex-1">
           <div class="flex items-center gap-1">
-            <h2 class="text-sm font-semibold dark:text-white">
+            <h2 class="text-xs sm:text-sm lg:text-base font-semibold dark:text-white truncate">
               {{ computedRetailer?.first_name || 'Unknown' }}
             </h2>
             <BaseIcon
-                :size="20"
-                class="text-customBlue pt-0.5"
+                :size="16"
+                class="sm:w-5 sm:h-5 text-customBlue flex-shrink-0"
                 name="verified"
             />
           </div>
 
           <h2
-              class="text-xs font-medium text-customBlue transition-all group-hover:text-customRed"
+              class="text-xs font-medium text-customBlue transition-all group-hover:text-customRed truncate"
           >
             {{ computedRetailer?.products_count || computedRetailer?.products_amount || 0 }} პროდუქტი
           </h2>
         </div>
       </div>
       <h2
-          class="h-6 w-10 rounded-full bg-customRed text-center text-sm text-white"
+          class="h-5 w-8 sm:h-6 sm:w-10 rounded-full bg-customRed flex-center text-xs sm:text-sm text-white flex-shrink-0"
       >
       {{ computedRetailer?.products_count || computedRetailer?.products_amount || 0 }}
       </h2>
@@ -288,49 +501,48 @@ async function submitRating() {
 
     <!-- Contact Owner Button -->
     <div
-        class="flex w-full items-center justify-between rounded-2xl border border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed p-4 cursor-pointer group transition-all"
+        class="flex w-full items-center justify-between rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed p-2 sm:p-3 lg:p-4 cursor-pointer group transition-all"
         @click="contactOwner"
     >
-      <div class="flex flex-col items-start gap-2">
-        <h2 class="text-sm text-customBlack/70 dark:text-white/70">
+      <div class="flex flex-col items-start gap-1 min-w-0 flex-1">
+        <h2 class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
           მფლობელთან დაკავშირება
         </h2>
-        <p class="text-xs text-customBlack/50 dark:text-white/50">
+        <p class="text-xs text-customBlack/50 dark:text-white/50 truncate">
           {{ computedRetailer?.email }}
         </p>
       </div>
 
       <BaseIcon
-          :size="24"
-          class="text-customBlack/70 dark:text-white/70 group-hover:text-customRed"
+          :size="20"
+          class="sm:w-6 sm:h-6 text-customBlack/70 dark:text-white/70 group-hover:text-customRed flex-shrink-0 ml-2"
           name="mail"
       />
     </div>
 
     <!-- Product Rating Section -->
-    <div class="flex w-full flex-col rounded-2xl border border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed p-4 transition-all">
-      <div class="flex w-full items-center justify-between mb-4">
-        <div class="flex flex-col items-start gap-2">
-          <h2 class="text-sm text-customBlack/70 dark:text-white/70">
+    <div class="flex w-full flex-col rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed p-2 sm:p-3 lg:p-4 transition-all">
+      <div class="flex w-full items-center justify-between mb-3 sm:mb-4">
+        <div class="flex flex-col items-start gap-1 min-w-0 flex-1">
+          <h2 class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             პროდუქციის შეფასება
           </h2>
           <RatingStatusComponent
-              v-if="product"
-              :rating="product.rating || 0"
-              :ratings-amount="product.ratings_amount || 0"
+              :rating="localRating"
+              :ratings-amount="localRatingsAmount"
           />
         </div>
 
         <BaseIcon
-            :size="24"
-            class="text-customBlack/70 dark:text-white/70 cursor-pointer hover:text-customRed"
+            :size="20"
+            class="sm:w-6 sm:h-6 text-customBlack/70 dark:text-white/70 cursor-pointer hover:text-customRed flex-shrink-0 ml-2"
             name="star"
         />
       </div>
 
       <!-- Interactive Star Rating -->
-      <div v-if="userStore.user" class="flex flex-col gap-3">
-        <h3 class="text-sm font-medium text-customBlack dark:text-white">
+      <div v-if="userStore.user" class="flex flex-col gap-2 sm:gap-3">
+        <h3 class="text-xs sm:text-sm font-medium text-customBlack dark:text-white">
           შეაფასეთ ეს პროდუქტი:
         </h3>
         
@@ -342,7 +554,7 @@ async function submitRating() {
             @click="selectRating(star)"
             @mouseenter="hoverStar(star)"
             @mouseleave="resetHover"
-            class="text-2xl transition-colors duration-200 cursor-pointer"
+            class="text-lg sm:text-2xl transition-colors duration-200 cursor-pointer"
             :class="(hoverRating || userRating) && star <= (hoverRating || userRating) ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'"
           >
             ★
@@ -352,24 +564,24 @@ async function submitRating() {
         <!-- Submit Rating Button -->
         <BaseButton
           v-if="userRating > 0"
-          :height="40"
+          :height="36"
           :loader="isSubmittingRating"
-          class="w-full bg-customRed text-white"
+          class="w-full bg-customRed text-white text-xs sm:text-sm"
           @click="submitRating"
         >
-          <BaseIcon :size="20" class="text-white" name="send"/>
-          <span class="text-sm font-medium">შეფასების გაგზავნა</span>
+          <BaseIcon :size="16" class="sm:w-5 sm:h-5 text-white" name="send"/>
+          <span class="font-medium">შეფასების გაგზავნა</span>
         </BaseButton>
       </div>
 
       <!-- Login Prompt -->
-      <div v-else class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <span class="text-sm text-customBlack/70 dark:text-white/70">
+      <div v-else class="flex items-center justify-between p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg gap-2">
+        <span class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
           შეფასებისთვის გაიარეთ ავტორიზაცია
         </span>
         <BaseButton
           :height="32"
-          class="bg-customBlue text-white text-xs px-4"
+          class="bg-customBlue text-white text-xs px-3 flex-shrink-0"
           @click="changeDialogState"
         >
           შესვლა
@@ -378,31 +590,54 @@ async function submitRating() {
     </div>
 
     <div
-        class="flex w-full items-center justify-between rounded-2xl border border-customBlack/10 dark:border-white/10 px-6 pb-8"
+        class="flex w-full items-center justify-between rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 px-3 sm:px-4 lg:px-6 pb-6 sm:pb-8 pt-3 sm:pt-4 lg:pt-4"
     >
-      <div class="flex w-full items-center gap-3">
-        <div class="flex w-full flex-col items-start gap-6">
+      <div class="flex w-full items-center gap-2 sm:gap-3">
+        <div class="flex w-full flex-col items-start gap-4 sm:gap-6">
           <div
-              class="flex w-full items-end gap-1 border-b border-customBlack/10 dark:border-white/10 py-4"
+              class="flex w-full items-end gap-1 border-b border-customBlack/10 dark:border-white/10 py-3 sm:py-4"
           >
-            <p class="text-lg font-extrabold text-customRed">
+            <p class="text-base sm:text-lg lg:text-2xl font-extrabold text-customRed">
               {{ product?.price }} ₾
             </p>
-            <p
-                class="pb-1 text-xs font-medium text-customBlack/70 dark:text-white/70"
-            >
-              / დღეში
+           
+          </div>
+          <!-- Product Rental Period Display -->
+          <div v-if="product?.rental_period || (product?.rental_start_date && product?.rental_end_date)" 
+               class="w-full rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 bg-blue-50 dark:bg-blue-900/20">
+            <div class="flex items-center gap-2 mb-2">
+              <BaseIcon :size="18" class="sm:w-5 sm:h-5 text-customBlue" name="info" />
+              <h3 class="text-xs sm:text-sm font-semibold text-customBlack dark:text-white">
+                გაქირავების პერიოდი
+              </h3>
+            </div>
+            <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
+              <template v-if="product.rental_period">
+                {{ product.rental_period }}
+              </template>
+              <template v-else-if="product.rental_start_date && product.rental_end_date">
+                {{ formatDate(product.rental_start_date) }} - {{ formatDate(product.rental_end_date) }}
+              </template>
             </p>
           </div>
+
           <div class="relative w-full">
             <div
-                class="flex w-full items-center justify-between rounded-2xl border cursor-pointer transition-all border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed px-6 py-4"
+                class="flex w-full items-center justify-between rounded-lg sm:rounded-xl lg:rounded-2xl border cursor-pointer transition-all border-customBlack/10 dark:border-white/10 hover:border-customRed dark:hover:border-customRed px-3 sm:px-4 lg:px-6 py-3 sm:py-4"
                 @click.stop="() => (datePickerOpen = !datePickerOpen)"
             >
-              <h2>აირჩიე პერიოდი</h2>
+              <div class="flex flex-col gap-1 min-w-0">
+                <h2 class="text-xs sm:text-sm font-medium dark:text-white">აირჩიე პერიოდი</h2>
+                <p v-if="startDate && endDate" class="text-xs text-customBlack/70 dark:text-white/70 truncate">
+                  {{ formatDate(startDate) }} - {{ formatDate(endDate) }}
+                </p>
+                <p v-else class="text-xs text-customBlack/50 dark:text-white/50">
+                  აირჩიეთ თარიღები
+                </p>
+              </div>
               <BaseIcon
-                  :size="22"
-                  class="dark:text-white"
+                  :size="20"
+                  class="sm:w-6 sm:h-6 dark:text-white flex-shrink-0"
                   name="calendar_month"
               />
             </div>
@@ -425,21 +660,24 @@ async function submitRating() {
       </div>
     </div>
 
-    <div class="flex flex-col w-full gap-3">
+    <div class="flex flex-col w-full gap-2 sm:gap-3">
       <BaseButton
-          :height="50"
+          :height="44"
           :loader="AddingItemToCart"
-          class="w-full bg-customBlack dark:bg-customDarkGrey"
+          class="w-full bg-customBlack dark:bg-customDarkGrey text-sm sm:text-base"
           @click.left="triggerAddToCart(product)"
       >
-        <BaseIcon :size="24" class="text-white" name="shopping_bag"/>
-        <h2 class="text-sm font-uppercase font-bold text-white">
+        <BaseIcon :size="20" class="sm:w-6 sm:h-6 text-white" name="shopping_bag"/>
+        <h2 class="text-xs sm:text-sm font-uppercase font-bold text-white">
           ჩანთაში დამატება
         </h2>
       </BaseButton>
       <BaseButton
-          :height="50"
-          class="text-sm font-uppercase w-full bg-customRed font-bold text-white"
+          :height="44"
+          :loader="isRenting"
+          :disabled="!startDate || !endDate"
+          class="text-xs sm:text-sm font-uppercase w-full bg-customRed font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          @click="rentProduct"
       >
         იქირავე
       </BaseButton>

@@ -142,20 +142,20 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex w-full flex-col items-start gap-5">
+  <div class="flex w-full flex-col items-start gap-4 sm:gap-5 lg:gap-6">
     <!-- Comment Writing Form -->
     <div v-if="canWriteComment" class="w-full">
-      <h2 class="text-lg font-bold text-customBlack mb-4">კომენტარის დაწერა</h2>
+      <h2 class="text-base sm:text-lg lg:text-xl font-bold text-customBlack mb-3 sm:mb-4">კომენტარის დაწერა</h2>
       
       <!-- Rating Selection -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-customBlack mb-2">შეფასება (არასავალდებულო)</label>
+      <div class="mb-3 sm:mb-4">
+        <label class="block text-xs sm:text-sm font-medium text-customBlack mb-2">შეფასება (არასავალდებულო)</label>
         <div class="flex gap-1">
           <button
             v-for="star in 5"
             :key="star"
             @click="selectRating(star)"
-            class="text-2xl transition-colors duration-200"
+            class="text-lg sm:text-2xl transition-colors duration-200"
             :class="selectedRating && star <= selectedRating ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'"
           >
             ★
@@ -164,12 +164,12 @@ onMounted(() => {
       </div>
 
       <!-- Comment Text Area -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-customBlack mb-2">კომენტარი *</label>
+      <div class="mb-3 sm:mb-4">
+        <label class="block text-xs sm:text-sm font-medium text-customBlack mb-2">კომენტარი *</label>
         <textarea
           v-model="commentText"
           placeholder="დაწერეთ თქვენი კომენტარი..."
-          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F44000] focus:border-transparent resize-none"
+          class="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F44000] focus:border-transparent resize-none text-sm"
           rows="4"
           :disabled="isSubmitting"
         ></textarea>
@@ -177,10 +177,10 @@ onMounted(() => {
       </div>
 
       <!-- Error/Success Messages -->
-      <div v-if="submitError" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+      <div v-if="submitError" class="mb-3 sm:mb-4 p-2 sm:p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-xs sm:text-sm">
         {{ submitError }}
       </div>
-      <div v-if="submitSuccess" class="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+      <div v-if="submitSuccess" class="mb-3 sm:mb-4 p-2 sm:p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-xs sm:text-sm">
         {{ submitSuccess }}
       </div>
 
@@ -188,7 +188,7 @@ onMounted(() => {
       <button
         @click="submitComment"
         :disabled="isSubmitting || !commentText.trim()"
-        class="bg-[#F44000] text-white px-6 py-2 rounded-lg hover:bg-[#d63600] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200"
+        class="bg-[#F44000] text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-[#d63600] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 text-xs sm:text-sm font-medium"
       >
         <span v-if="isSubmitting">იგზავნება...</span>
         <span v-else>კომენტარის გაგზავნა</span>
@@ -197,11 +197,11 @@ onMounted(() => {
 
 
     <!-- Login Prompt -->
-    <div v-else-if="!userStore.user" class="w-full p-4 bg-gray-100 border border-gray-300 rounded-lg">
-      <p class="text-gray-700">კომენტარის დასაწერად საჭიროა ავტორიზაცია.</p>
+    <div v-else-if="!userStore.user" class="w-full p-2 sm:p-4 bg-gray-100 border border-gray-300 rounded-lg">
+      <p class="text-xs sm:text-sm text-gray-700">კომენტარის დასაწერად საჭიროა ავტორიზაცია.</p>
       <button
         @click="userStore.setAuthDialog(true)"
-        class="mt-2 bg-[#F44000] text-white px-4 py-2 rounded hover:bg-[#d63600] transition-colors duration-200"
+        class="mt-2 bg-[#F44000] text-white px-3 sm:px-4 py-2 rounded hover:bg-[#d63600] transition-colors duration-200 text-xs sm:text-sm font-medium"
       >
         შესვლა
       </button>
@@ -210,32 +210,32 @@ onMounted(() => {
     <!-- Comments List -->
     <div
       v-if="props?.comments?.length"
-      class="flex w-full flex-col items-start gap-3"
+      class="flex w-full flex-col items-start gap-2 sm:gap-3"
     >
-      <h1 class="font-uppercase text-lg font-extrabold text-customBlack">
+      <h1 class="font-uppercase text-base sm:text-lg lg:text-xl font-extrabold text-customBlack">
         მომხმარებლების შეფასება
       </h1>
       <div
         v-for="comment in props.comments"
         :key="comment.id"
-        class="flex w-full flex-col items-start gap-3 rounded-lg bg-gray-50 p-5 border-l-4 border-orange-500"
+        class="flex w-full flex-col items-start gap-2 sm:gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 lg:p-5 border-l-4 border-orange-500"
       >
         <!-- Star Rating -->
         <div class="flex items-center gap-1">
-          <span v-for="star in 5" :key="star" class="text-lg">
+          <span v-for="star in 5" :key="star" class="text-base sm:text-lg">
             {{ comment.rating && star <= comment.rating ? '★' : '☆' }}
           </span>
-          <span class="text-sm text-gray-500 ml-2">({{ comment.rating || 0 }})</span>
+          <span class="text-xs sm:text-sm text-gray-500 ml-2 dark:text-gray-400">({{ comment.rating || 0 }})</span>
         </div>
         
         <!-- User and Date -->
-        <div class="text-sm text-gray-700">
+        <div class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
           {{ getUserInitials(comment.user.name) }}
-          <span class="text-gray-500 ml-2">{{ formatCommentDate(comment.created_at) }}</span>
+          <span class="text-gray-500 dark:text-gray-400 ml-2">{{ formatCommentDate(comment.created_at) }}</span>
         </div>
         
         <!-- Comment Text -->
-        <p class="text-sm text-gray-800 leading-relaxed">
+        <p class="text-xs sm:text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
           {{ comment.comment }}
         </p>
       </div>

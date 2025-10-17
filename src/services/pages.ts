@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { getLocalizedApiUrl } from '@/utils/config/env'
-import { ENV } from '@/utils/config/env'
 import AxiosJSON from '@/utils/helpers/axios'
 import { useAppStore } from '@/pinia/app.pinia'
 import { ELanguages } from '@/ts/pinia/app.types'
@@ -11,7 +10,7 @@ import type { IPage, INavigationItem, IPageTranslation, IBanner, IBannerTranslat
 
 // Create axios instance for pages API
 const PagesAxios = axios.create({
-  baseURL: ENV.BACKEND_URL,
+  baseURL: '', // Use relative URLs for static hosting proxy
   withCredentials: true,
   headers: {
     'Accept': 'application/json',
@@ -64,7 +63,7 @@ export async function getAllPages(locale?: string): Promise<IPage[] | null> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       // Fetch from /api/pages - locale is sent in headers
-      const endpoint = '/api/pages'
+      const endpoint = getLocalizedApiUrl('pages')
       
       const response = await PagesAxios.get(endpoint, {
         headers: {
@@ -325,7 +324,7 @@ export async function getContent(slug: string, locale: string = 'ka') {
 // Get blog posts for homepage with fallback and shorter per-attempt timeout
 export async function getBlogPosts(locale: string = 'ka'): Promise<any> {
   try {
-    const response = await AxiosJSON.get('/api/blog-posts', { 
+    const response = await AxiosJSON.get(getLocalizedApiUrl('blog-posts'), { 
       timeout: 12000,
       headers: {
         'Accept-Language': locale,

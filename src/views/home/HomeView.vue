@@ -69,17 +69,21 @@ async function fetchHomePageDynamic() {
     }
     
     // Map popular products to match IProductListItem interface
+    // Preserve rating and comment data from the service
     popularProducts = popularProducts.map((product: any) => ({
       id: product.id,
-      sku: product.product_identify_id || `product-${product.id}`,
+      sku: product.sku || product.product_identify_id || `product-${product.id}`,
       slug: product.slug,
-      name: product.title,
+      name: product.name || product.title,
       price: product.price?.toString() || '0',
       location: product.location || 'Tbilisi, Georgia',
-      rating: null,
-      ratings_amount: 0,
-      comments_amount: 0,
-      categories: product.category ? [{
+      rating: product.rating,
+      ratings_amount: product.ratings_amount || 0,
+      comments_amount: product.comments_amount || 0,
+      rental_period: product.rental_period || '',
+      rental_start_date: product.rental_start_date || null,
+      rental_end_date: product.rental_end_date || null,
+      categories: product.categories || (product.category ? [{
         id: product.category.id,
         name: {
           ka: product.category.title,
@@ -88,7 +92,7 @@ async function fetchHomePageDynamic() {
         slug: product.category.slug,
         parent: null,
         children: []
-      }] : [],
+      }] : []),
       images: product.images?.map((img: any) => {
         if (!img.url) {
           console.log('Backend image not provided:', img);

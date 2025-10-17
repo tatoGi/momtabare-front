@@ -33,9 +33,12 @@ export const useCartStore = defineStore("cart", {
             }
         },
         
-        async addProductToCart(productId: number): Promise<boolean> {
+        async addProductToCart(
+            productId: number, 
+            rentalDates?: { rental_start_date: string; rental_end_date: string }
+        ): Promise<boolean> {
             try {
-                const result = await addToCart(productId)
+                const result = await addToCart(productId, rentalDates)
                 if (result.success) {
                     // Always refetch cart to get updated items and count
                     await this.fetchCart()

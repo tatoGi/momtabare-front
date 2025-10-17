@@ -38,7 +38,7 @@ const getImageUrl = (imageUrl?: string) => {
     console.log('No imageUrl provided, using placeholder')
     return '/img/itemplaceholder.png'
   }
-  const fullUrl = `${ENV.BACKEND_URL}/storage/products/${imageUrl}`
+  const fullUrl = `https://admin.momtabare.com/storage/products/${imageUrl}`
   console.log('Generated image URL:', fullUrl)
   return fullUrl
 }

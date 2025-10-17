@@ -125,12 +125,23 @@ export async function getCart(): Promise<ICart> {
 /**
  * Add product to cart
  */
-export async function addToCart(productId: number): Promise<AddToCartResponse> {
+export async function addToCart(
+  productId: number, 
+  rentalDates?: { rental_start_date: string; rental_end_date: string }
+): Promise<AddToCartResponse> {
   try { 
     await ensureCsrfToken()
+    const payload: any = { productId }
+    
+    // Add rental dates if provided
+    if (rentalDates) {
+      payload.rental_start_date = rentalDates.rental_start_date
+      payload.rental_end_date = rentalDates.rental_end_date
+    }
+    
     const response = await AxiosJSON.post<AddToCartResponse>(
       getLocalizedApiUrl('/add-to-cart'),
-      { productId },
+      payload,
       { withCredentials: true }
     )
 

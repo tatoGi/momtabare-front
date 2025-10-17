@@ -1,15 +1,23 @@
 // Environment detection
 const isProduction = import.meta.env.PROD;
 const isDevelopment = import.meta.env.DEV;
-const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
 const isProductionDomain = typeof window !== 'undefined' && 
   (window.location.hostname === 'momtabare.com' || window.location.hostname === 'www.momtabare.com');
+const isStaticHosting = typeof window !== 'undefined' && 
+  (window.location.hostname === 'momtabare.com' || window.location.hostname === 'www.momtabare.com') &&
+  !window.location.hostname.includes('vercel.app');
+const isLiteSpeedHosting = isStaticHosting; // Assume static hosting is LiteSpeed
+ 
 
 // Get the appropriate backend URL based on environment
 const getBackendUrl = (): string => {
-  // Always use full URL in production to avoid CORS issues
-  if (isProduction || isVercel || isProductionDomain || window.location.hostname === 'www.momtabare.com') {
-    // For production, use the Vercel proxy to avoid CORS issues
+  // For LiteSpeed hosting, use direct backend URL since proxy is not supported
+  if (isStaticHosting) {
+    return 'https://admin.momtabare.com';
+  }
+  
+  // For other production environments
+  if (isProduction || isProductionDomain) {
     return '';
   }
 
@@ -38,8 +46,13 @@ const getBackendUrl = (): string => {
 export const getApiUrl = (endpoint: string): string => {
   let baseUrl = getBackendUrl();
   
-  // For production, use the Vercel proxy
-  if (isProduction || isVercel || isProductionDomain) {
+  // For static hosting (Apache), use relative path for .htaccess proxy
+  if (isStaticHosting) {
+    return `/api/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`;
+  }
+
+  // For other production environments
+  if (isProduction || isProductionDomain) {
     return `/api/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`;
   }
   
@@ -65,12 +78,11 @@ export const ENV = {
   API_BASE_URL: getBackendUrl(),
   
   // Asset URLs (for images, files, etc.)
-  ASSET_URL: (isProduction || isVercel || isProductionDomain) ? getProductionBackendBase() : getBackendUrl(),
+  ASSET_URL: (isProduction ||  isProductionDomain || isStaticHosting) ? getProductionBackendBase() : getBackendUrl(),
   
   // Environment flags
   IS_PRODUCTION: isProduction,
   IS_DEVELOPMENT: isDevelopment,
-  IS_VERCEL: isVercel,
   
   // Default locale
   DEFAULT_LOCALE: 'ka' // Georgian
@@ -81,7 +93,7 @@ export const getAssetUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  const base = (isProduction || isVercel || isProductionDomain) ? getProductionBackendBase() : getBackendUrl();
+  const base = (isProduction || isProductionDomain) ? getProductionBackendBase() : getBackendUrl();
   return `${base}${cleanPath ? '/' + cleanPath : ''}`;
 };
 
@@ -94,27 +106,49 @@ const cleanUrl = (url: string): string => {
 
 // Update all API calls to use the cleaned URL
 export const getLocalizedApiUrl = (endpoint: string): string => {
-  // For production, use the Vercel proxy
-  if (isProduction || isVercel || isProductionDomain) {
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  
+  // For LiteSpeed hosting, use direct backend URL since proxy is not supported
+  if (isLiteSpeedHosting) {
+    return `https://admin.momtabare.com/api/${cleanEndpoint}`;
+  }
+  
+  // For static hosting (Apache), use relative path for .htaccess proxy
+  if (isStaticHosting) {
     return `/api/${cleanEndpoint}`;
   }
   
-  // Development environment
-  const base = getApiUrl('');
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return cleanUrl(`${base}api/${cleanEndpoint}`);
+  // For other production environments
+  if (isProduction || isProductionDomain) {
+    return `/api/${cleanEndpoint}`;
+  }
+  
+  // Development environment - use the backend URL directly with /api/
+  const backendUrl = getBackendUrl();
+  return cleanUrl(`${backendUrl}/api/${cleanEndpoint}`);
 };
 
 // Environment info for debugging
 export const getEnvironmentInfo = () => {
-  return {
+  const info = {
     isProduction,
     isDevelopment,
-    isVercel,
+    isProductionDomain,
+    isStaticHosting,
+    isLiteSpeedHosting,
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
     backendUrl: getBackendUrl()
   };
+  
+  // Log environment info in production for debugging
+  if (typeof window !== 'undefined' && window.location.hostname === 'momtabare.com') {
+    console.log('🔍 Environment Debug Info:', info);
+    console.log('🔍 API URL Test - pages:', getLocalizedApiUrl('pages'));
+    console.log('🔍 API URL Test - languages:', getLocalizedApiUrl('languages'));
+    console.log('🔍 Hosting Type:', isLiteSpeedHosting ? 'LiteSpeed' : 'Apache');
+  }
+  
+  return info;
 };
 
 // Helper function to get backend URL with protocol fallback
@@ -136,7 +170,7 @@ export const getStorageUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   // In production, use the production storage URL
-  if (isProduction || isVercel || isProductionDomain) {
+  if (isProduction || isProductionDomain || isStaticHosting) {
     // If the path already has a full URL, return it as is
     if (path.startsWith('http')) {
       return path;

@@ -104,6 +104,13 @@ const userCards = computed<IUserCard[]>(() => [
     height: 139
   },
   {
+    icon: "credit_card",
+    title: "ბარათები",
+    description: "საბანკო ბარათების მართვა",
+    name: "userCreditCards",
+    height: 139
+  },
+  {
     icon: "logout",
     title: "გასვლა",
     description: "პროფილის დატოვება",
@@ -287,6 +294,9 @@ function handleCardClick(name: string): void {
     case "userAddresses":
       router.push("/user/addresses")
       break
+    case "userCreditCards":
+      router.push("/user/credit-cards")
+      break
     case "addProduct":
       router.push("/add-retailer-product")
       break
@@ -307,7 +317,7 @@ function handleCardClick(name: string): void {
 </script>
 
 <template>
-  <main class="pb-20 flex flex-col gap-3">
+  <main class="pb-20 flex flex-col gap-3 px-4 sm:px-6 lg:px-0">
     <BaseBreadcrumbs :path="['ჩემი პროფილი']" disable-route/>
     
     <!-- Success Message -->
@@ -329,15 +339,16 @@ function handleCardClick(name: string): void {
       </div>
     </div>
     
-    <div class="flex flex-col gap-10">
-      <div class="flex items-center justify-between">
+    <div class="flex flex-col gap-6 sm:gap-8 lg:gap-10">
+      <!-- Header Section -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex flex-col gap-1.5">
           <h2
-              class="text-customRed dark:text-white text-xl font-extrabold font-uppercase"
+              class="text-customRed dark:text-white text-lg sm:text-xl lg:text-2xl font-extrabold font-uppercase"
           >
             ჩემი პროფილი
           </h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70 font-medium">
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70 font-medium">
             <span class="text-customBlack dark:text-white font-bold">
               {{ fullName }}
             </span>
@@ -349,7 +360,7 @@ function handleCardClick(name: string): void {
             v-if="canRequestRetailer"
             :height="36"
             :width="205"
-            class="bg-customBlue text-white text-xs font-bold font-uppercase"
+            class="bg-customBlue text-white text-xs font-bold font-uppercase w-full sm:w-auto"
             @click.left="handleRetailerRequest"
         >
           გახდი გამქირავებელი
@@ -359,54 +370,121 @@ function handleCardClick(name: string): void {
             v-else-if="isPendingRetailer"
             :height="36"
             :width="205"
-            class="bg-yellow-500 text-white text-xs font-bold font-uppercase"
+            class="bg-yellow-500 text-white text-xs font-bold font-uppercase w-full sm:w-auto"
             disabled
         >
           მოთხოვნა განიხილება
         </BaseButton>
       </div>
 
-      <section v-if="isApprovedRetailer" class="flex flex-col gap-4">
-        <h2
-            class="text-customBlack dark:text-white text-xl font-extrabold font-uppercase"
-        >
-          გამქირავებელი
-        </h2>
+      <!-- MOBILE LIST VIEW: Show on mobile, hide on desktop -->
+      <div class="flex flex-col lg:hidden gap-2">
+        <!-- Retailer Section Mobile -->
+        <section v-if="isApprovedRetailer" class="flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-customBlack/60 dark:text-white/60 uppercase px-4 py-2">
+            გამქირავებელი
+          </h3>
+          <div class="flex flex-col gap-1">
+            <div
+              v-for="card in retailerCards"
+              :key="card.name"
+              class="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors"
+              @click="handleCardClick(card.name)"
+            >
+              <div class="flex items-center gap-3">
+                <BaseIcon :name="card.icon" :size="24" class="text-customRed dark:text-customRed" />
+                <div class="flex flex-col gap-0.5">
+                  <p class="text-sm font-semibold text-customBlack dark:text-white">{{ card.title }}</p>
+                  <p class="text-xs text-customBlack/60 dark:text-white/60">{{ card.description }}</p>
+                </div>
+              </div>
+              <div v-if="card.showBadge" class="bg-customRed text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                {{ card.badgeCount }}
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <div class="grid grid-cols-4 items-center gap-7">
-          <BaseCard
-  v-for="card in retailerCards"
-  :key="card.name"
-  :icon="card.icon"
-  :title="card.title"
-  :description="card.description"
-  :show-badge="card.showBadge"
-  :badge-count="card.badgeCount"
-  class="relative cursor-pointer hover:shadow-md transition-shadow duration-200"
-  @click="handleCardClick(card.name)"
-/>
-        </div>
-      </section>
-
-      <section class="flex flex-col gap-4">
-        <h2
-            class="text-customBlack dark:text-white text-xl font-extrabold font-uppercase"
-        >
-          მომხმარებელი
-        </h2>
-
-        <div class="grid grid-cols-4 items-center gap-7">
-          <BaseCard
+        <!-- User Section Mobile -->
+        <section class="flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-customBlack/60 dark:text-white/60 uppercase px-4 py-2">
+            მომხმარებელი
+          </h3>
+          <div class="flex flex-col gap-1">
+            <div
               v-for="userCard in userCards"
               :key="userCard.name"
-              :description="userCard.description"
-              :height="139"
-              :icon="userCard.icon"
-              :title="userCard.title"
+              class="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 border-b border-gray-200 dark:border-gray-700 cursor-pointer transition-colors"
               @click.left="handleCardClick(userCard.name)"
-          />
-        </div>
-      </section>
+            >
+              <div class="flex items-center gap-3">
+                <BaseIcon :name="userCard.icon" :size="24" class="text-customRed dark:text-customRed" />
+                <div class="flex flex-col gap-0.5">
+                  <p class="text-sm font-semibold text-customBlack dark:text-white">{{ userCard.title }}</p>
+                  <p class="text-xs text-customBlack/60 dark:text-white/60">{{ userCard.description }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Logout Button Mobile -->
+        <button
+          class="flex items-center gap-2 px-4 py-3 text-customRed font-semibold hover:bg-red-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-200 dark:border-gray-700 mt-2"
+          @click="handleSignOut"
+        >
+          <BaseIcon name="logout" :size="20" class="text-customRed" />
+          გასვლა
+        </button>
+      </div>
+
+      <!-- DESKTOP GRID VIEW: Show on desktop, hide on mobile -->
+      <div class="hidden lg:flex lg:flex-col lg:gap-8">
+        <!-- Retailer Section -->
+        <section v-if="isApprovedRetailer" class="flex flex-col gap-4">
+          <h2
+              class="text-customBlack dark:text-white text-xl lg:text-2xl font-extrabold font-uppercase"
+          >
+            გამქირავებელი
+          </h2>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-7">
+            <BaseCard
+              v-for="card in retailerCards"
+              :key="card.name"
+              :icon="card.icon"
+              :title="card.title"
+              :description="card.description"
+              :show-badge="card.showBadge"
+              :badge-count="card.badgeCount"
+              class="relative cursor-pointer hover:shadow-md transition-shadow duration-200"
+              @click="handleCardClick(card.name)"
+            />
+          </div>
+        </section>
+
+        <!-- User Section -->
+        <section class="flex flex-col gap-4">
+          <h2
+              class="text-customBlack dark:text-white text-xl lg:text-2xl font-extrabold font-uppercase"
+          >
+            მომხმარებელი
+          </h2>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-7">
+            <BaseCard
+                v-for="userCard in userCards"
+                :key="userCard.name"
+                :description="userCard.description"
+                :height="139"
+                :icon="userCard.icon"
+                :title="userCard.title"
+                class="relative cursor-pointer hover:shadow-md transition-shadow duration-200"
+                @click.left="handleCardClick(userCard.name)"
+            />
+          </div>
+        </section>
+      </div>
     </div>
   </main>
 </template>

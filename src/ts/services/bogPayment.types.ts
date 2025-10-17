@@ -38,7 +38,13 @@ export interface IBogOrderResponse {
 export interface IBogPaymentDetails {
   amount: number;
   currency: string;
-  callback_url?: string;
+  callback_url: string;
+  basket: Array<{
+    product_id: string;
+    quantity: number;
+    unit_price: number;
+    name: string;
+  }>;
   external_order_id?: string;
   save_card?: boolean;
   pre_authorize?: boolean;

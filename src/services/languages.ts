@@ -1,11 +1,11 @@
+
 import axios from 'axios'
-import { ENV } from '@/utils/config/env'
 import type { IBackendLanguage } from '@/ts/models/language.types'
-import { getApiUrl } from '@/utils/api/url'
+import { getLocalizedApiUrl } from '@/utils/config/env'
 
 // Axios instance for languages API
 const LanguagesAxios = axios.create({
-  baseURL: ENV.BACKEND_URL,
+  baseURL: '', // Use relative URLs for static hosting proxy
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -18,13 +18,14 @@ let cachedLanguages: IBackendLanguage[] | null = null
 let langCacheTimestamp = 0
 const LANG_CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-export async function getLanguages(locale: string = 'en'): Promise<IBackendLanguage[] | null> {
-  const now = Date.now()
+export async function getLanguages(locale: string): Promise<IBackendLanguage[] | null> {
+  const now = Date.now();
   if (cachedLanguages && (now - langCacheTimestamp) < LANG_CACHE_DURATION) {
-    return cachedLanguages
+    return cachedLanguages;
   }
 
-  const endpoint = `/api/languages`
+  // The function getLocalizedApiUrl does not exist, replace with proper endpoint:
+  const endpoint = getLocalizedApiUrl('languages')
   const maxRetries = 3
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -72,9 +73,9 @@ export async function getLanguages(locale: string = 'en'): Promise<IBackendLangu
 }
 
 // Sync current locale with backend session (Laravel route: POST /api/locale/sync)
-export async function syncLocale(locale: string = 'en'): Promise<{ current_locale?: string } | null> {
+export async function syncLocale(locale: string): Promise<{ current_locale?: string } | null> {
   try {
-    const url = getApiUrl('/api/locale/sync', ENV.BACKEND_URL)
+    const url = getLocalizedApiUrl('locale/sync')
     const response = await LanguagesAxios.post(url, {}, {
       withCredentials: true,
       headers: {

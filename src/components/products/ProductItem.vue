@@ -8,17 +8,12 @@ import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { toggleFavoriteProduct } from "../../services/products"
 import { useUserStore } from "../../pinia/user.pinia"
-import { useCart } from "@/composables/useCart"
-import { ENV } from "@/utils/config/env"
 
 const props = defineProps<{
   item: IProductListItem
   routeToPath?: string
 }>()
-
-
 const userStore = useUserStore()
-const { addToCart } = useCart()
 const heart = ref<boolean>(props.item.is_favorite)
 const computedImageUrl = computed<string>(() => {
   // Safely access images array with null checks
@@ -35,9 +30,37 @@ const computedImageUrl = computed<string>(() => {
   }
   
   // Otherwise, prepend the backend URL
-  return `${ENV.BACKEND_URL}/${imageUrl}`
+  return `https://admin.momtabare.com/${imageUrl}`
 })
 const router = useRouter()
+
+// Format rental period dates
+const formattedRentalPeriod = computed<string>(() => {
+  // If rental_period string is available, use it
+  if (props.item.rental_period) {
+    return props.item.rental_period
+  }
+  
+  // Otherwise, format from start and end dates
+  if (props.item.rental_start_date && props.item.rental_end_date) {
+    try {
+      const startDate = new Date(props.item.rental_start_date)
+      const endDate = new Date(props.item.rental_end_date)
+      
+      // Format dates as "DD MMM - DD MMM" (e.g., "15 Oct - 20 Oct")
+      const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+      const startFormatted = startDate.toLocaleDateString('ka-GE', options)
+      const endFormatted = endDate.toLocaleDateString('ka-GE', options)
+      
+      return `${startFormatted} - ${endFormatted}`
+    } catch (error) {
+      console.error('❌ Error formatting rental dates:', error)
+      return ''
+    }
+  }
+  
+  return ''
+})
 
 function navigateToProduct() {
   // Use slug if available, otherwise fallback to SKU or ID
@@ -89,8 +112,8 @@ async function favoriteProduct(): Promise<void> {
 
       <div class="flex flex-col gap-1.5 pt-3">
         <RatingStatusComponent :rating="props.item.rating" :ratings-amount="props.item.ratings_amount" />
-        <p class="text-xs font-medium text-customBlack/70 dark:text-white/70">
-          15 თებ - 24 თებ
+        <p v-if="formattedRentalPeriod" class="text-xs font-medium text-customBlack/70 dark:text-white/70">
+          {{ formattedRentalPeriod }}
         </p>
       </div>
 

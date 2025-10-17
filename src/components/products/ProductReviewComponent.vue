@@ -12,14 +12,13 @@ import BaseButton from "../base/BaseButton.vue"
 import BaseIcon from "../base/BaseIcon.vue"
 import { computed, ref } from "vue"
 import { VisuallyHidden } from "radix-vue"
-import { ENV } from "@/utils/config/env"
+import { getApiUrl } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct | null
 }>()
 const dialogOpen = defineModel<boolean>()
 
-const backendUrl = ENV.BACKEND_URL
 
 const hoveredRating = ref<number>(0)
 const chosenRating = ref<number>(0)
@@ -29,7 +28,7 @@ const computedEffectiveRating = computed(() =>
   hoveredRating.value > 0 ? hoveredRating.value : chosenRating.value,
 )
 const computedImgUrl = computed<string>(() => {
-  return `${backendUrl}/${props.product?.images[0].url}`
+  return `${getApiUrl('')}${props.product?.images[0].url}`
 })
 
 async function submitReview(): Promise<void> {

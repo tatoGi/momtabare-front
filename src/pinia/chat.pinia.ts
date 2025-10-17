@@ -25,7 +25,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       isLoading.value = true;
       const token = localStorage.getItem('auth_token') || '';
-      const response = await axios.get(`${ENV.BACKEND_URL}/api/messages/${userId}`, {
+      const response = await axios.get(`/api/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
@@ -47,7 +47,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const token = localStorage.getItem('auth_token') || '';
       const response = await axios.post(
-        `${ENV.BACKEND_URL}/api/messages/${receiverId}`,
+        `/api/messages/${receiverId}`,
         { message },
         {
           headers: {
@@ -73,7 +73,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const token = localStorage.getItem('auth_token') || '';
       await axios.post(
-        `${ENV.BACKEND_URL}/api/messages/${messageId}/read`,
+        `/api/messages/${messageId}/read`,
         {},
         {
           headers: {

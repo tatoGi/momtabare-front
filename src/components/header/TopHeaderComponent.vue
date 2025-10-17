@@ -338,7 +338,7 @@ watch(chosenLanguage, async () => {
     <div class="flex items-center justify-end gap-6">
       <div class="relative">
         <button
-          class="flex-center h-10 w-24 cursor-pointer gap-1 rounded-3xl bg-[#F8F8F8] border border-gray-200 shadow-sm transition-all"
+          class="flex-center h-10 w-24 cursor-pointer gap-1 rounded-3xl bg-[#F8F8F8] dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm transition-all"
           @click="toggleLangDropdown"
         >
           <img
@@ -346,30 +346,30 @@ watch(chosenLanguage, async () => {
             alt="lang icon"
             class="w-5 h-5"
           />
-          <span class="text-sm font-semibold">{{ selectedLanguageObj()?.label }}</span>
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedLanguageObj()?.label }}</span>
         </button>
         <div
           v-if="showLangDropdown"
           ref="dropdownRef"
-          class="absolute left-0 top-12 z-10 w-24 bg-white border border-gray-200 rounded-3xl shadow-lg"
+          class="absolute left-0 top-12 z-10 w-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-3xl shadow-lg"
           @click.stop
         >
           <button
             v-for="lang in otherLanguages()"
             :key="lang.code"
-            class="flex-center h-10 w-24 gap-1 rounded-3xl bg-[#F8F8F8] hover:bg-gray-100 transition-all"
+            class="flex-center h-10 w-24 gap-1 rounded-3xl bg-[#F8F8F8] dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
             @click.stop="selectLanguage(lang.code)"
           >
             <img :src="lang.icon" alt="lang icon" class="w-5 h-5" />
-            <span class="text-sm font-semibold">{{ lang.label }}</span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ lang.label }}</span>
           </button>
         </div>
       </div>
-      <Switch
-        :checked="appStore.darkMode"
-        class="cursor-pointer modeswitch"
-        @update:checked="appStore.toggleTheme"
-      />
+     <Switch
+  v-model:checked="appStore.darkMode"
+  class="cursor-pointer modeswitch"
+  @update:checked="appStore.toggleTheme"
+/>
     </div>
   </header>
 </template>

@@ -20,7 +20,10 @@ export function useCart() {
    * Add product to cart
    * Requires user authentication
    */
-  const addToCart = async (productId: number): Promise<{ success: boolean; message?: string }> => {
+  const addToCart = async (
+    productId: number,
+    rentalDates?: { rental_start_date: string; rental_end_date: string }
+  ): Promise<{ success: boolean; message?: string }> => {
     // Check if user is authenticated
     if (!userStore.authenticated || !userStore.user) {
       return {
@@ -31,7 +34,10 @@ export function useCart() {
 
     try {
       console.log(`🛒 Adding product ${productId} to cart...`)
-      const success = await cartStore.addProductToCart(productId)
+      if (rentalDates) {
+        console.log(`📅 With rental dates: ${rentalDates.rental_start_date} - ${rentalDates.rental_end_date}`)
+      }
+      const success = await cartStore.addProductToCart(productId, rentalDates)
       
       if (success) {
         console.log(`✅ Product ${productId} added to cart successfully`)

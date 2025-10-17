@@ -272,15 +272,15 @@ const userInitials = computed(() => {
 </script>
 
 <template>
-  <main class="pb-20 pt-8">
-    <h2 class="font-uppercase text-xl font-extrabold dark:text-white">პირადი ინფორმაცია</h2>
+  <main class="pb-12 sm:pb-16 lg:pb-20 pt-4 sm:pt-6 lg:pt-8 px-4 sm:px-6 lg:px-0">
+    <h2 class="font-uppercase text-lg sm:text-xl lg:text-2xl font-extrabold dark:text-white">პირადი ინფორმაცია</h2>
     
     <!-- Avatar Section -->
-    <div class="flex justify-center pt-6 pb-4">
-      <div class="flex flex-col items-center gap-4">
+    <div class="flex justify-center pt-4 sm:pt-5 lg:pt-6 pb-3 sm:pb-4">
+      <div class="flex flex-col items-center gap-3 sm:gap-4">
         <!-- Avatar Display -->
         <div class="relative">
-          <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600">
+          <div class="w-20 sm:w-24 lg:w-28 h-20 sm:h-24 lg:h-28 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600">
             <img 
               v-if="avatarPreview || userAvatarUrl" 
               :src="avatarPreview || userAvatarUrl" 
@@ -289,7 +289,7 @@ const userInitials = computed(() => {
             />
             <div 
               v-else 
-              class="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xl font-bold text-gray-600 dark:text-gray-300"
+              class="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-base sm:text-lg lg:text-xl font-bold text-gray-600 dark:text-gray-300"
             >
               {{ userInitials }}
             </div>
@@ -298,28 +298,28 @@ const userInitials = computed(() => {
           <!-- Upload Button -->
           <button
             @click="triggerAvatarUpload"
-            class="absolute -bottom-1 -right-1 w-8 h-8 bg-[#F44000] text-white rounded-full flex items-center justify-center hover:bg-[#d63700] transition-colors"
+            class="absolute -bottom-1 -right-1 w-6 sm:w-7 lg:w-8 h-6 sm:h-7 lg:h-8 bg-[#F44000] text-white rounded-full flex items-center justify-center hover:bg-[#d63700] transition-colors"
             :disabled="isUploadingAvatar"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 sm:w-4 lg:w-4 h-3 sm:h-4 lg:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
           </button>
         </div>
         
         <!-- Upload Controls -->
-        <div v-if="avatarFile" class="flex gap-2">
+        <div v-if="avatarFile" class="flex gap-2 flex-wrap justify-center">
           <button
             @click="uploadAvatar"
             :disabled="isUploadingAvatar"
-            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm"
+            class="px-3 sm:px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-xs sm:text-sm font-medium"
           >
             {{ isUploadingAvatar ? 'იტვირთება...' : 'ატვირთვა' }}
           </button>
           <button
             @click="cancelAvatarUpload"
             :disabled="isUploadingAvatar"
-            class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 text-sm"
+            class="px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50 text-xs sm:text-sm font-medium"
           >
             გაუქმება
           </button>
@@ -336,9 +336,9 @@ const userInitials = computed(() => {
       </div>
     </div>
     
-    <div class="flex gap-6 pt-7">
-      <div class="w-1/2 rounded-2xl border border-customBlack/10 dark:border-white/10 px-6 pt-4">
-        <p class="font-uppercase font-extrabold dark:text-white">პერსონალური</p>
+    <div class="flex flex-col lg:flex-row gap-4 sm:gap-5 lg:gap-6 pt-4 sm:pt-6 lg:pt-7">
+      <div class="w-full lg:w-1/2 rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-4">
+        <p class="font-uppercase font-extrabold text-xs sm:text-sm lg:text-base dark:text-white">პერსონალური</p>
         <div
           v-for="(personalInfoField, index) in personalInfoFields"
           :key="personalInfoField.key"
@@ -346,45 +346,45 @@ const userInitials = computed(() => {
             'border-b border-b-customBlack/10 dark:border-white/10':
               index !== personalInfoFields.length - 1,
           }"
-          class="flex h-20 items-center justify-between pb-1"
+          class="flex flex-col sm:flex-row sm:items-start lg:items-center gap-2 sm:gap-3 lg:gap-4 py-4 sm:py-5 lg:py-5"
         >
-          <div class="flex flex-col flex-1">
-            <p class="text-sm font-medium text-customBlack/70 dark:text-white/70">
+          <div class="flex flex-col flex-1 w-full">
+            <p class="text-xs sm:text-sm lg:text-sm font-medium text-customBlack/70 dark:text-white/70">
               {{ personalInfoField.title }}
             </p>
             
             <!-- Password change form -->
-            <div v-if="editingField === personalInfoField.key && personalInfoField.key === 'password'" class="flex flex-col gap-3 mt-1">
+            <div v-if="editingField === personalInfoField.key && personalInfoField.key === 'password'" class="flex flex-col gap-2 mt-1 w-full">
               <div class="flex flex-col gap-2">
                 <input
                   v-model="passwordForm.current_password"
                   type="password"
                   placeholder="მიმდინარე პაროლი"
-                  class="text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
+                  class="text-xs sm:text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5"
                 />
                 <input
                   v-model="passwordForm.new_password"
                   type="password"
                   placeholder="ახალი პაროლი (მინ. 8 სიმბოლო)"
-                  class="text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
+                  class="text-xs sm:text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5"
                 />
                 <input
                   v-model="passwordForm.confirm_password"
                   type="password"
                   placeholder="დაადასტურეთ ახალი პაროლი"
-                  class="text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
+                  class="text-xs sm:text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5"
                 />
               </div>
-              <div class="flex gap-2">
+              <div class="flex gap-2 flex-wrap">
                 <button
                   @click="saveField(personalInfoField.key)"
-                  class="text-green-600 hover:text-green-700 text-xs px-3 py-2 border border-green-600 rounded"
+                  class="text-green-600 hover:text-green-700 text-xs px-2 sm:px-3 py-1.5 border border-green-600 rounded font-medium"
                 >
                   პაროლის შეცვლა
                 </button>
                 <button
                   @click="cancelEditing"
-                  class="text-red-600 hover:text-red-700 text-xs px-3 py-2 border border-red-600 rounded"
+                  class="text-red-600 hover:text-red-700 text-xs px-2 sm:px-3 py-1.5 border border-red-600 rounded font-medium"
                 >
                   გაუქმება
                 </button>
@@ -392,30 +392,32 @@ const userInitials = computed(() => {
             </div>
             
             <!-- Regular edit mode input -->
-            <div v-else-if="editingField === personalInfoField.key" class="flex items-center gap-2 mt-1">
+            <div v-else-if="editingField === personalInfoField.key" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 w-full">
               <input
                 v-model="editValues[personalInfoField.key]"
                 :type="personalInfoField.key === 'birth_date' ? 'date' : 'text'"
-                class="text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 flex-1"
+                class="text-xs sm:text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 flex-1"
                 @keyup.enter="saveField(personalInfoField.key)"
                 @keyup.escape="cancelEditing"
               />
-              <button
-                @click="saveField(personalInfoField.key)"
-                class="text-green-600 hover:text-green-700 text-xs px-2 py-1 border border-green-600 rounded"
-              >
-                შენახვა
-              </button>
-              <button
-                @click="cancelEditing"
-                class="text-red-600 hover:text-red-700 text-xs px-2 py-1 border border-red-600 rounded"
-              >
-                გაუქმება
-              </button>
+              <div class="flex gap-2">
+                <button
+                  @click="saveField(personalInfoField.key)"
+                  class="text-green-600 hover:text-green-700 text-xs px-2 sm:px-3 py-1.5 border border-green-600 rounded font-medium whitespace-nowrap"
+                >
+                  შენახვა
+                </button>
+                <button
+                  @click="cancelEditing"
+                  class="text-red-600 hover:text-red-700 text-xs px-2 sm:px-3 py-1.5 border border-red-600 rounded font-medium whitespace-nowrap"
+                >
+                  გაუქმება
+                </button>
+              </div>
             </div>
             
             <!-- Display mode -->
-            <p v-else class="text-sm font-semibold dark:text-white">
+            <p v-else class="text-xs sm:text-sm font-semibold dark:text-white break-words">
               {{ personalInfoField.value || 'არ არის მითითებული' }}
             </p>
           </div>
@@ -425,16 +427,16 @@ const userInitials = computed(() => {
             v-if="personalInfoField.editable && editingField !== personalInfoField.key"
             @click="startEditing(personalInfoField.key, personalInfoField.value)"
             :class="{ 'text-customBlue dark:text-customBlue': !personalInfoField.value }"
-            class="cursor-pointer text-sm font-medium text-customBlack/70 dark:text-white/70 underline ml-4"
+            class="cursor-pointer text-xs sm:text-sm font-medium text-customBlack/70 dark:text-white/70 underline whitespace-nowrap flex-shrink-0 sm:ml-2 lg:ml-4 mt-1 sm:mt-0"
           >
             {{ personalInfoField.value ? "რედაქტირება" : "დაამატე" }}
           </p>
         </div>
       </div>
       <div
-        class="h-fit w-1/2 rounded-2xl border border-customBlack/10 dark:border-white/10 px-6 pt-4"
+        class="w-full lg:w-1/2 rounded-lg sm:rounded-xl lg:rounded-2xl border border-customBlack/10 dark:border-white/10 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-4 h-fit"
       >
-        <p class="font-uppercase font-extrabold">საკონტაქტო</p>
+        <p class="font-uppercase font-extrabold text-xs sm:text-sm lg:text-base dark:text-white">საკონტაქტო</p>
         <div
           v-for="(contactInfoField, index) in contactInfoFields"
           :key="contactInfoField.key"
@@ -442,38 +444,40 @@ const userInitials = computed(() => {
             'border-b border-b-customBlack/10 dark:border-white/10':
               index !== contactInfoFields.length - 1,
           }"
-          class="flex h-20 items-center justify-between pb-1"
+          class="flex flex-col sm:flex-row sm:items-start lg:items-center gap-2 sm:gap-3 lg:gap-4 py-4 sm:py-5 lg:py-5"
         >
-          <div class="flex flex-col flex-1">
-            <p class="text-sm font-medium text-customBlack/70 dark:text-white/70">
+          <div class="flex flex-col flex-1 w-full">
+            <p class="text-xs sm:text-sm lg:text-sm font-medium text-customBlack/70 dark:text-white/70">
               {{ contactInfoField.title }}
             </p>
             
             <!-- Edit mode input -->
-            <div v-if="editingField === contactInfoField.key" class="flex items-center gap-2 mt-1">
+            <div v-if="editingField === contactInfoField.key" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1 w-full">
               <input
                 v-model="editValues[contactInfoField.key]"
                 :type="contactInfoField.key === 'email' ? 'email' : 'tel'"
-                class="text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 flex-1"
+                class="text-xs sm:text-sm font-semibold dark:text-white bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 flex-1"
                 @keyup.enter="saveField(contactInfoField.key)"
                 @keyup.escape="cancelEditing"
               />
-              <button
-                @click="saveField(contactInfoField.key)"
-                class="text-green-600 hover:text-green-700 text-xs px-2 py-1 border border-green-600 rounded"
-              >
-                შენახვა
-              </button>
-              <button
-                @click="cancelEditing"
-                class="text-red-600 hover:text-red-700 text-xs px-2 py-1 border border-red-600 rounded"
-              >
-                გაუქმება
-              </button>
+              <div class="flex gap-2">
+                <button
+                  @click="saveField(contactInfoField.key)"
+                  class="text-green-600 hover:text-green-700 text-xs px-2 sm:px-3 py-1.5 border border-green-600 rounded font-medium whitespace-nowrap"
+                >
+                  შენახვა
+                </button>
+                <button
+                  @click="cancelEditing"
+                  class="text-red-600 hover:text-red-700 text-xs px-2 sm:px-3 py-1.5 border border-red-600 rounded font-medium whitespace-nowrap"
+                >
+                  გაუქმება
+                </button>
+              </div>
             </div>
             
             <!-- Display mode -->
-            <p v-else class="text-sm font-semibold dark:text-white">
+            <p v-else class="text-xs sm:text-sm font-semibold dark:text-white break-words">
               {{ contactInfoField.value || 'არ არის მითითებული' }}
             </p>
           </div>
@@ -483,7 +487,7 @@ const userInitials = computed(() => {
             v-if="contactInfoField.editable && editingField !== contactInfoField.key"
             @click="startEditing(contactInfoField.key, contactInfoField.value)"
             :class="{ 'text-customBlue dark:text-customBlue': !contactInfoField.value }"
-            class="cursor-pointer text-sm font-medium text-customBlack/70 dark:text-white/70 underline ml-4"
+            class="cursor-pointer text-xs sm:text-sm font-medium text-customBlack/70 dark:text-white/70 underline whitespace-nowrap flex-shrink-0 sm:ml-2 lg:ml-4 mt-1 sm:mt-0"
           >
             {{ contactInfoField.value ? "რედაქტირება" : "დაამატე" }}
           </p>
