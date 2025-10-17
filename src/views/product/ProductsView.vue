@@ -33,6 +33,9 @@ const productsTotal = ref<number>(0)
 
 const productsLoading = ref<boolean>(false)
 
+// Mobile filters visibility
+const showMobileFilters = ref<boolean>(false)
+
 const sortBy = ref<string>("ბოლოს დამატებული")
 const sortByIsOpen = ref<boolean>(false)
 
@@ -539,19 +542,47 @@ function resetFilters() {
   })
 }
 
+// Toggle mobile filters
+function toggleMobileFilters() {
+  showMobileFilters.value = !showMobileFilters.value
+  // Prevent body scroll when filters are open
+  if (showMobileFilters.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+// Close mobile filters
+function closeMobileFilters() {
+  showMobileFilters.value = false
+  document.body.style.overflow = ''
+}
+
+// Apply filters and close modal
+function applyFilters() {
+  // Trigger route update with current filters
+  updateRouteWithFilters()
+  // Close the modal
+  closeMobileFilters()
+}
+
+
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 py-5">
+  <div class="flex flex-col gap-2 py-2 sm:py-5 px-3 sm:px-0">
     <BaseBreadcrumbs
         v-if="computedCategoriesPath"
         :path="computedCategoriesPath"
         prependPath="products"
         route-as-query="category"
+        class="hidden sm:block"
     />
 
-    <div class="flex gap-6">
-      <div class="flex w-80 flex-shrink-0 flex-col gap-4">
+    <div class="flex flex-col lg:flex-row gap-4 sm:gap-6">
+      <!-- Desktop Sidebar Filters -->
+      <div class="hidden lg:flex w-80 flex-shrink-0 flex-col gap-4">
         <!-- Categories Section -->
         <BaseCategoryFilterCard title="კატეგორიები">
           <div class="flex flex-col gap-3">
@@ -707,20 +738,232 @@ function resetFilters() {
         </BaseCategoryFilterCard>
       </div>
 
-      <div class="flex-grow">
-        <div
-            class="mb-5 flex flex-col border-b border-customBlack/10 dark:border-white/10 pb-5"
+      <!-- Mobile Filters Modal/Drawer -->
+      <div 
+        v-if="showMobileFilters"
+        class="fixed inset-0 z-50 lg:hidden"
+        @click="closeMobileFilters"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50"></div>
+        
+        <!-- Filter Panel -->
+        <div 
+          class="absolute inset-y-0 left-0 w-full sm:w-96 bg-white dark:bg-gray-900 overflow-y-auto"
+          @click.stop
         >
-          <p class="text-sm font-medium text-customRed">
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-customBlack/10 dark:border-white/10 p-4 flex items-center justify-between">
+            <h3 class="text-lg font-bold dark:text-white">ფილტრები</h3>
+            <button 
+              @click="closeMobileFilters"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <BaseIcon name="close" :size="24" class="text-customBlack dark:text-white" />
+            </button>
+          </div>
+
+          <!-- Filter Content -->
+          <div class="p-4 flex flex-col gap-4">
+            <!-- Categories Section -->
+            <BaseCategoryFilterCard title="კატეგორიები">
+              <div class="flex flex-col gap-3">
+                <div v-if="availableCategories.length === 0" class="text-center py-4">
+                  <div class="animate-pulse">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </div>
+                </div>
+                
+                <div
+                    v-for="category in availableCategories"
+                    :key="category.id"
+                    class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                    :class="computedCurrentCategory?.id === category.id ? 'bg-gray-100 dark:bg-gray-800' : ''"
+                    @click="selectCategory(category); closeMobileFilters()"
+                >
+                  <BaseIcon 
+                    :name="getCategoryIcon(category.slug)" 
+                    :size="20" 
+                    class="text-customBlack/70 dark:text-white/70"
+                  />
+                  <span class="text-sm font-medium text-customBlack/70 dark:text-white hover:text-customRed dark:hover:text-customRed">
+                    {{ getCategoryDisplayName(category) }}
+                  </span>
+                </div>
+                
+                <div v-if="availableCategories.length === 0 && categoryStore.getCategories" class="text-center py-4 text-sm text-customBlack/50 dark:text-white/50">
+                  კატეგორიები არ მოიძებნა
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Price Section -->
+            <BaseCategoryFilterCard title="ღირებულება (ლარი)">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                  <Input 
+                    v-model="minPrice" 
+                    placeholder="20 - დან" 
+                    type="number" 
+                    @input="updateRouteWithFilters"
+                    class="flex-1"
+                  />
+                  <span class="text-sm text-customBlack/70 dark:text-white/70">-</span>
+                  <Input 
+                    v-model="maxPrice" 
+                    placeholder="400 - მდე" 
+                    type="number" 
+                    @input="updateRouteWithFilters"
+                    class="flex-1"
+                  />
+                </div>
+                <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full relative">
+                  <div class="absolute left-0 right-0 h-full bg-customRed rounded-full" style="width: 30%"></div>
+                  <div class="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-customRed rounded-full shadow-md" style="left: 30%"></div>
+                  <div class="absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-customRed rounded-full shadow-md" style="right: 20%"></div>
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Period Section -->
+            <BaseCategoryFilterCard title="პერიოდი">
+              <div class="flex flex-col gap-3">
+                <div class="relative">
+                  <Input 
+                    v-model="startDateFilter" 
+                    placeholder="აირჩიე პერიოდი" 
+                    type="date"
+                    @change="updateRouteWithFilters"
+                    class="pr-10"
+                  />
+                  <BaseIcon 
+                    name="calendar_today" 
+                    :size="20" 
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-customBlack/50 dark:text-white/50 pointer-events-none"
+                  />
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Brand Section -->
+            <BaseCategoryFilterCard title="ბრენდი">
+              <div class="flex flex-col gap-3">
+                <div v-if="availableBrands.length === 0" class="text-center py-4">
+                  <div class="animate-pulse">
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                    <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </div>
+                </div>
+                
+                <div
+                    v-for="brand in availableBrands"
+                    :key="brand.name"
+                    class="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                    @click="toggleBrand(brand.name)"
+                >
+                  <div class="flex items-center gap-3">
+                    <input 
+                      type="checkbox" 
+                      :checked="selectedBrands.includes(brand.name)"
+                      class="w-4 h-4 text-customRed border-gray-300 rounded focus:ring-customRed"
+                      @click.stop
+                      @change="toggleBrand(brand.name)"
+                    />
+                    <span class="text-sm font-medium text-customBlack/70 dark:text-white">
+                      {{ brand.name }}
+                    </span>
+                  </div>
+                  <span class="text-xs text-customBlack/50 dark:text-white/50">
+                    ({{ brand.count }})
+                  </span>
+                </div>
+                
+                <div v-if="availableBrands.length === 0 && !availableBrands.some((b: any) => b.name === 'Generic Brand')" class="text-center py-4 text-sm text-customBlack/50 dark:text-white/50">
+                  ბრენდები არ მოიძებნა
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Color Section -->
+            <BaseCategoryFilterCard title="ფერი">
+              <div class="flex flex-wrap gap-2">
+                <div
+                    v-for="color in availableColors"
+                    :key="color.key"
+                    class="relative w-8 h-8 rounded-full border-2 cursor-pointer hover:scale-110 transition-transform"
+                    :class="[
+                      color.class,
+                      selectedColors.includes(color.key) ? 'border-customRed' : 'border-gray-300 dark:border-gray-600'
+                    ]"
+                    @click="toggleColor(color.key)"
+                    :title="color.name"
+                >
+                  <div 
+                    v-if="selectedColors.includes(color.key)"
+                    class="absolute -top-1 -right-1 w-4 h-4 bg-customRed rounded-full flex items-center justify-center"
+                  >
+                    <BaseIcon name="check" :size="12" class="text-white" />
+                  </div>
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Apply/Reset Buttons -->
+            <div class="flex gap-3 pt-4 border-t border-customBlack/10 dark:border-white/10">
+              <BaseButton 
+                @click="resetFilters(); closeMobileFilters()"
+                variant="outline"
+                class="flex-1"
+              >
+                გასუფთავება
+              </BaseButton>
+              <BaseButton 
+                @click="applyFilters()"
+                class="flex-1 bg-customRed text-white hover:bg-customRed/90"
+              >
+                გაფილტვრა
+              </BaseButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-grow w-full lg:w-auto">
+        <div
+            class="mb-3 sm:mb-5 flex flex-col border-b border-customBlack/10 dark:border-white/10 pb-3 sm:pb-5 gap-2"
+        >
+          <!-- Mobile: Product count first, Desktop: Product count stays on top -->
+          <p class="text-xs sm:text-sm font-medium text-customRed order-1">
             {{ computedProductsAmountString }}
           </p>
-          <div class="flex items-center justify-between">
-            <h2 class="font-uppercase text-xl font-extrabold dark:text-white">
-              {{ computedPageTitle }}
-            </h2>
+          
+          <div class="flex items-center justify-between gap-2 order-2">
+            <div class="block items-center gap-2 flex-1">
+              <!-- Mobile: Page Title Button -->
+              <h2 class="lg:hidden font-uppercase text-base font-extrabold dark:text-white truncate">
+                {{ computedPageTitle }}
+              </h2>
+              
+              <!-- Desktop: Page Title (normal) -->
+              <h2 class="hidden lg:block font-uppercase text-base sm:text-xl font-extrabold dark:text-white truncate">
+                {{ computedPageTitle }}
+              </h2>
+              
+              <!-- Mobile Filter Button -->
+              <button 
+                @click="toggleMobileFilters"
+                class="lg:hidden flex items-center gap-1 px-3 py-2  text-white rounded-lg hover:bg-customRed/90 transition-colors flex-shrink-0"
+              >
+                <BaseIcon name="filter_list" :size="20" />
+                <span class="text-sm font-medium">ფილტრი</span>
+              </button>
+            </div>
 
-            <div class="flex items-center gap-1">
-              <p class="text-sm text-customBlack/70 dark:text-white/70">
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70 hidden sm:inline">
                 დალაგება:
               </p>
               <BaseSelect
@@ -730,15 +973,15 @@ function resetFilters() {
               >
                 <template #trigger>
                   <div class="flex cursor-pointer items-center gap-1">
-                    <p class="text-sm font-medium dark:text-white">
+                    <p class="text-xs sm:text-sm font-medium dark:text-white">
                       {{ sortBy }}
                     </p>
                     <BaseIcon
                         :class="{
                         '-rotate-180': sortByIsOpen,
                       }"
-                        :size="22"
-                        class="text-customBlack/70 dark:text-white/70 transition"
+                        :size="18"
+                        class="text-customBlack/70 dark:text-white/70 transition sm:w-[22px] sm:h-[22px]"
                         name="keyboard_arrow_down"
                     />
                   </div>
@@ -756,13 +999,13 @@ function resetFilters() {
             (!productsLoading && !products)
           "
             action_title="მთელი პროდუქცია"
-            class="py-36"
+            class="py-20 sm:py-36"
             description="სცადეთ ფილტრაციის შემსუბუება ან ყველა პროდუქტის დათვალიერება"
             title="პროდუქტები არ მოიძებნება ცარიელია"
             @action="resetFilters"
         />
 
-        <div v-if="products?.length !== 0" class="flex-center py-5">
+        <div v-if="products?.length !== 0" class="flex-center py-3 sm:py-5">
           <BasePagination v-model="currentPage" :total-pages="totalPages"/>
         </div>
       </div>

@@ -4,7 +4,7 @@ import BaseNoData from "@/components/base/BaseNoData.vue"
 import OrderAccordion from "@/components/order/OrderAccordion.vue"
 import { Accordion } from "@/components/ui/accordion"
 import { useOrderStore } from "@/pinia/order.pinia.ts"
-import { ref } from "vue"
+import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 
 const router = useRouter()
@@ -14,14 +14,33 @@ const orderStore = useOrderStore()
 const orderNavItems = ["ყველა", "მიმდინარე", "ჩაბარებული", "გაუქმებული"]
 
 const selectedOrderNavItem = ref<string>("ყველა")
+const isLoading = ref<boolean>(true)
+
+// Fetch orders when component mounts
+onMounted(async () => {
+  console.log('🔄 Loading user orders...')
+  isLoading.value = true
+  await orderStore.fetchOrders()
+  isLoading.value = false
+  console.log('✅ Orders loaded:', orderStore.orders)
+})
 </script>
 
 <template>
   <main class="pb-20 flex flex-col gap-6">
     <BaseBreadcrumbs :path="['ჩემი შეკვეთები']" disable-route />
 
+    <!-- Loading state -->
+    <div v-if="isLoading" class="flex-center py-44">
+      <div class="flex flex-col items-center gap-3">
+        <div class="w-12 h-12 border-4 border-customRed border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">იტვირთება...</p>
+      </div>
+    </div>
+
+    <!-- No data state -->
     <div
-      v-if="!orderStore.orders || orderStore.orders?.length < 1"
+      v-else-if="!orderStore.orders || orderStore.orders?.length < 1"
       class="flex-center py-44"
     >
       <BaseNoData
@@ -32,7 +51,8 @@ const selectedOrderNavItem = ref<string>("ყველა")
       />
     </div>
 
-    <div class="flex flex-col gap-10">
+    <!-- Orders list -->
+    <div v-else class="flex flex-col gap-10">
       <div class="flex items-center justify-between">
         <div class="flex flex-col gap-1.5">
           <h2 class="dark:text-white text-xl font-extrabold font-uppercase">

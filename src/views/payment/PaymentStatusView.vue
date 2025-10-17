@@ -109,11 +109,16 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBogPayment } from '@/services/bogPayment'
+import { updateCartProductsRentalStatus } from '@/services/products'
+import { useCartStore } from '@/pinia/cart.pinia'
+import { useUserStore } from '@/pinia/user.pinia'
 import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
 const { getOrderDetails, handlePostPaymentCardSaving } = useBogPayment()
+const cartStore = useCartStore()
+const userStore = useUserStore()
 const { t: $t } = useI18n()
 
 const status = ref<'success' | 'error'>('error')
@@ -151,6 +156,48 @@ const getStatusClass = () => {
 
 const goToOrders = () => router.push('/orders')
 const goToHome = () => router.push('/')
+
+// Update product rental status
+const updateProductsRentalStatus = async () => {
+  try {
+    const cart = cartStore.getCart
+    const user = userStore.user
+    
+    if (!cart || !cart.items || cart.items.length === 0) {
+      console.warn('⚠️ No cart items found to update rental status')
+      return
+    }
+    
+    if (!user || !user.id) {
+      console.warn('⚠️ No user found to update rental status')
+      return
+    }
+    
+    console.log('📦 Updating rental status for cart items:', cart.items)
+    
+    const rentalUpdates = cart.items.map(item => ({
+      product_id: item.product.id,
+      rental_start_date: item.start_date,
+      rental_end_date: item.end_date,
+      ordered_by: user.id
+    }))
+    
+    const result = await updateCartProductsRentalStatus(rentalUpdates)
+    
+    if (result.success) {
+      console.log('✅ Successfully updated product rental status')
+      // Clear the cart after successful rental status update
+      await cartStore.fetchCart()
+    } else {
+      console.error('❌ Failed to update product rental status:', result.message)
+      if (result.errors) {
+        console.error('Errors:', result.errors)
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error updating product rental status:', error)
+  }
+}
 
 // Get and verify order status on mount
 onMounted(async () => {
@@ -192,6 +239,9 @@ onMounted(async () => {
       status.value = 'success';
       errorMessage.value = null; // Clear any error message
       
+      // Update product rental status after successful payment
+      await updateProductsRentalStatus()
+      
       // Handle post-payment card saving if this was a successful payment
       // Use setTimeout to make it non-blocking
       if (orderId) {
@@ -204,6 +254,9 @@ onMounted(async () => {
       console.warn('Payment API reports failure but user is on success page. Keeping success status.');
       status.value = 'success';
       errorMessage.value = null; // Clear any error message since we're on success page
+      
+      // Update product rental status even if API reports failure but we're on success page
+      await updateProductsRentalStatus()
       
       // Still try to save card if we're on success page (user was redirected here)
       // Use setTimeout to make it non-blocking

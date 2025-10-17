@@ -78,6 +78,9 @@ const availableColors = ref<{name: string, class: string, key: string, translati
 const comments = ref<IComment[]>([])
 const commentsLoaded = ref<boolean>(false)
 
+// Mobile filters visibility
+const showMobileFilters = ref<boolean>(false)
+
 const computedRetailerId = computed<number | null>(
   () => Number(route.params?.retailerId) || null,
 )
@@ -326,6 +329,29 @@ async function fetchComments(): Promise<void> {
   }
 }
 
+// Toggle mobile filters
+function toggleMobileFilters() {
+  showMobileFilters.value = !showMobileFilters.value
+  // Prevent body scroll when filters are open
+  if (showMobileFilters.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}
+
+// Close mobile filters
+function closeMobileFilters() {
+  showMobileFilters.value = false
+  document.body.style.overflow = ''
+}
+
+// Apply filters and close modal
+function applyFilters() {
+  fetchProducts(true)
+  closeMobileFilters()
+}
+
 watch(
   () => computedRetailerId.value,
   async (value) => {
@@ -365,9 +391,183 @@ watch(sortBy, async () => {
       @search-action="triggerSearch"
     />
 
-    <div v-if="retailer && chosenTab === 'ყველა პროდუქტი'" class="pt-8">
+    <div v-if="retailer && chosenTab === 'ყველა პროდუქტი'" class="pt-4 sm:pt-8 px-3 sm:px-0">
+      <!-- Mobile Filters Modal -->
+      <div 
+        v-if="showMobileFilters"
+        class="fixed inset-0 z-50 lg:hidden"
+        @click="closeMobileFilters"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50"></div>
+        
+        <!-- Filter Panel -->
+        <div 
+          class="absolute inset-y-0 left-0 w-full sm:w-96 bg-white dark:bg-gray-900 overflow-y-auto"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-customBlack/10 dark:border-white/10 p-4 flex items-center justify-between">
+            <h3 class="text-lg font-bold dark:text-white">ფილტრები</h3>
+            <button 
+              @click="closeMobileFilters"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <BaseIcon name="close" :size="24" class="text-customBlack dark:text-white" />
+            </button>
+          </div>
+
+          <!-- Filter Content - Mobile -->
+          <div class="p-4 flex flex-col gap-4">
+            <!-- Category Filter -->
+            <BaseCategoryFilterCard
+              :go-back="true"
+              :title="computedCategoryName ?? 'ყველა პროდუქტი'"
+              @go-back="handleGoBack"
+            >
+              <div
+                v-if="computedSubCategories.length > 0"
+                class="flex flex-col items-start gap-3"
+              >
+                <p
+                  v-for="subCategory in computedSubCategories"
+                  :key="subCategory"
+                  class="text-sm font-medium text-black/70 dark:text-white/70 hover:cursor-pointer dark:hover:text-customRed hover:text-customRed hover:underline"
+                  @click="goToSubCategory(subCategory); closeMobileFilters()"
+                >
+                  {{ subCategory.name[computedLanguage] }}
+                </p>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Price Filter -->
+            <BaseCategoryFilterCard title="ღირებულება (ლარი)">
+              <div class="flex flex-col gap-3">
+                <div class="flex items-start gap-3">
+                  <Input v-model="minPrice" placeholder="20 - დან" type="number" />
+                  <Input v-model="maxPrice" placeholder="400 - მდე" type="number" />
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Period Filter -->
+            <BaseCategoryFilterCard title="პერიოდი">
+              <div class="flex flex-col gap-3">
+                <div class="relative">
+                  <Input 
+                    v-model="startDateFilter" 
+                    placeholder="დაწყების თარიღი" 
+                    type="date"
+                    class="pr-10"
+                  />
+                  <BaseIcon 
+                    name="calendar_today" 
+                    :size="20" 
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-customBlack/50 dark:text-white/50 pointer-events-none"
+                  />
+                </div>
+                <div class="relative">
+                  <Input 
+                    v-model="endDateFilter" 
+                    placeholder="დასრულების თარიღი" 
+                    type="date"
+                    class="pr-10"
+                  />
+                  <BaseIcon 
+                    name="calendar_today" 
+                    :size="20" 
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-customBlack/50 dark:text-white/50 pointer-events-none"
+                  />
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Location Filter -->
+            <BaseCategoryFilterCard title="ლოკაცია">
+              <div class="flex flex-col gap-3">
+                <Input 
+                  v-model="locationFilter" 
+                  placeholder="შეიყვანეთ ლოკაცია" 
+                  type="text"
+                />
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Brand Filter -->
+            <BaseCategoryFilterCard v-if="availableBrands.length > 0" title="ბრენდი">
+              <div class="flex flex-col gap-3">
+                <div
+                  v-for="brand in availableBrands"
+                  :key="brand.name"
+                  class="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                  @click="toggleBrand(brand.name)"
+                >
+                  <div class="flex items-center gap-3">
+                    <input 
+                      type="checkbox" 
+                      :checked="selectedBrands.includes(brand.name)"
+                      class="w-4 h-4 text-customRed border-gray-300 rounded focus:ring-customRed"
+                      @click.stop
+                      @change="toggleBrand(brand.name)"
+                    />
+                    <span class="text-sm font-medium text-customBlack/70 dark:text-white">
+                      {{ brand.name }}
+                    </span>
+                  </div>
+                  <span class="text-xs text-customBlack/50 dark:text-white/50">
+                    ({{ brand.count }})
+                  </span>
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Color Filter -->
+            <BaseCategoryFilterCard title="ფერი">
+              <div class="flex flex-wrap gap-2">
+                <div
+                  v-for="color in availableColors"
+                  :key="color.key"
+                  class="relative w-8 h-8 rounded-full border-2 cursor-pointer hover:scale-110 transition-transform"
+                  :class="[
+                    color.class,
+                    selectedColors.includes(color.key) ? 'border-customRed' : 'border-gray-300 dark:border-gray-600'
+                  ]"
+                  @click="toggleColor(color.key)"
+                  :title="color.name"
+                >
+                  <div 
+                    v-if="selectedColors.includes(color.key)"
+                    class="absolute inset-0 flex items-center justify-center"
+                  >
+                    <BaseIcon name="check" :size="16" class="text-white drop-shadow-md" />
+                  </div>
+                </div>
+              </div>
+            </BaseCategoryFilterCard>
+
+            <!-- Action Buttons -->
+            <div class="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-customBlack/10 dark:border-white/10 p-4 flex gap-3">
+              <BaseButton
+                :height="48"
+                class="flex-1 bg-gray-200 dark:bg-gray-700 text-customBlack dark:text-white font-medium"
+                @click="resetFilters(); closeMobileFilters()"
+              >
+                გასუფთავება
+              </BaseButton>
+              <BaseButton
+                :height="48"
+                class="flex-1 bg-customRed text-white font-medium"
+                @click="applyFilters"
+              >
+                გაფილტვრა
+              </BaseButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="flex gap-6">
-        <div class="flex w-80 flex-shrink-0 flex-col gap-4">
+        <div class="hidden lg:flex w-80 flex-shrink-0 flex-col gap-4">
           <BaseCategoryFilterCard
             :go-back="true"
             :title="computedCategoryName ?? 'ყველა პროდუქტი'"
@@ -496,16 +696,18 @@ watch(sortBy, async () => {
         </div>
         <div class="flex-grow">
           <div
-            class="mb-5 flex flex-col border-b border-black/10 dark:border-white/10 pb-5"
+            class="mb-3 sm:mb-5 flex flex-col border-b border-black/10 dark:border-white/10 pb-3 sm:pb-5"
           >
-            <p class="text-sm font-medium text-customRed">
+            <p class="text-xs sm:text-sm font-medium text-customRed mb-2">
               {{ computedProductsAmountString }}
             </p>
-            <div class="flex items-center justify-between">
-              <h2 class="font-uppercase text-xl font-extrabold dark:text-white">
+
+            <!-- Desktop Layout -->
+            <div class="hidden lg:flex items-center justify-between">
+              <h2 class="font-uppercase text-xl font-extrabold dark:text-white truncate">
                 {{ computedPageTitle }}
               </h2>
-
+              
               <div class="flex items-center gap-1">
                 <p class="text-sm text-black/70 dark:text-white/70">
                   დალაგება:
@@ -513,7 +715,7 @@ watch(sortBy, async () => {
                 <BaseSelect
                   v-model="sortBy"
                   v-model:isOpen="sortByIsOpen"
-                  :options="productSortingOptions.map((val: any) => val.label)"
+                  :options="productSortingOptions.map((val) => val.label)"
                 >
                   <template #trigger>
                     <div class="flex cursor-pointer items-center gap-1">
@@ -525,6 +727,49 @@ watch(sortBy, async () => {
                           '-rotate-180': sortByIsOpen,
                         }"
                         :size="22"
+                        class="text-black/70 dark:text-white/70 transition"
+                        name="keyboard_arrow_down"
+                      />
+                    </div>
+                  </template>
+                </BaseSelect>
+              </div>
+            </div>
+
+            <!-- Mobile Layout -->
+            <div class="flex lg:hidden flex-col gap-3">
+              <!-- Title -->
+              <h2 class="font-uppercase text-base sm:text-lg font-extrabold dark:text-white">
+                {{ computedPageTitle }}
+              </h2>
+              
+              <!-- Filter Button and Sort -->
+              <div class="flex items-center justify-between gap-3">
+                <!-- Filter Button -->
+                <button 
+                  @click="toggleMobileFilters"
+                  class="flex items-center gap-1 px-3 py-2 bg-customRed text-white rounded-lg hover:bg-customRed/90 transition-colors"
+                >
+                  <BaseIcon name="filter_list" :size="20" />
+                  <span class="text-sm font-medium">ფილტრი</span>
+                </button>
+
+                <!-- Sort Dropdown -->
+                <BaseSelect
+                  v-model="sortBy"
+                  v-model:isOpen="sortByIsOpen"
+                  :options="productSortingOptions.map((val) => val.label)"
+                >
+                  <template #trigger>
+                    <div class="flex cursor-pointer items-center gap-1">
+                      <p class="text-xs sm:text-sm font-medium text-black dark:text-white">
+                        {{ sortBy }}
+                      </p>
+                      <BaseIcon
+                        :class="{
+                          '-rotate-180': sortByIsOpen,
+                        }"
+                        :size="20"
                         class="text-black/70 dark:text-white/70 transition"
                         name="keyboard_arrow_down"
                       />

@@ -55,12 +55,13 @@ watch(quantity, async (value: number) => {
 </script>
 
 <template>
-  <section class="flex items-center justify-between py-4">
+  <!-- Desktop/Tablet View -->
+  <section class="hidden sm:flex items-center justify-between py-4">
     <div class="flex items-center gap-4">
       <Checkbox default-checked />
 
       <div class="flex items-center gap-4">
-        <img :src="computedImageUrl" alt="Product Image" class="h-20 w-20" />
+        <img :src="computedImageUrl" alt="Product Image" class="h-20 w-20 rounded-lg object-cover" />
 
         <div class="flex flex-col gap-2">
           <h2
@@ -116,6 +117,60 @@ watch(quantity, async (value: number) => {
           name="delete"
         />
       </BaseAlertDialog>
+    </div>
+  </section>
+
+  <!-- Mobile View -->
+  <section class="flex sm:hidden flex-col py-3 gap-3">
+    <div class="flex gap-3">
+      <!-- Product Image -->
+      <img :src="computedImageUrl" alt="Product Image" class="h-20 w-20 rounded-lg object-cover flex-shrink-0" />
+
+      <!-- Product Info -->
+      <div class="flex flex-col flex-1 min-w-0 gap-1.5">
+        <h2 class="text-sm font-medium line-clamp-2 dark:text-white">
+          {{ props.product.name }}
+        </h2>
+        <div class="flex items-center gap-2 text-[10px]">
+          <p class="text-customBlack/70 dark:text-white/70 font-medium whitespace-nowrap">
+            15 თებ - 22 მარ
+          </p>
+          <p class="text-customBlack/60 dark:text-white/60 font-medium">/</p>
+          <p class="text-customBlack/70 dark:text-white/70 font-medium">
+            ზომა: {{ props.product.size }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <p class="text-customBlack/70 dark:text-white/70 font-medium">დღე:</p>
+          <p class="font-semibold dark:text-white">{{ props.rental_days }}</p>
+        </div>
+      </div>
+
+      <!-- Delete Button -->
+      <BaseAlertDialog
+        :description="props.product.name"
+        title="პროდუქტის წაშლა"
+        @action="removeFromCartTrigger(props.id)"
+      >
+        <BaseIcon
+          :size="20"
+          class="cursor-pointer dark:text-white flex-shrink-0"
+          name="delete"
+        />
+      </BaseAlertDialog>
+    </div>
+
+    <!-- Bottom: Quantity and Price -->
+    <div class="flex items-center justify-between">
+      <NumberField v-model="quantity" :min="1" class="w-24">
+        <NumberFieldContent>
+          <NumberFieldDecrement />
+          <NumberFieldInput class="text-xs" />
+          <NumberFieldIncrement />
+        </NumberFieldContent>
+      </NumberField>
+
+      <p class="text-customRed font-extrabold text-base">{{ props.total_price }} ₾</p>
     </div>
   </section>
 </template>

@@ -32,15 +32,15 @@ function getInitials(firstName?: string, lastName?: string): string {
 
 <template>
   <div
-      class="border rounded-2xl border-customBlack/10 dark:border-white/10 w-full px-6 h-fit"
+      class="border rounded-2xl border-customBlack/10 dark:border-white/10 w-full px-3 sm:px-6 h-fit"
   >
     <section class="flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <Checkbox default-checked/>
+      <div class="flex items-center gap-2 sm:gap-4">
+        <Checkbox default-checked class="hidden sm:flex"/>
 
-        <div class="flex items-center gap-2 py-4">
+        <div class="flex items-center gap-2 py-3 sm:py-4">
           <div
-              class="border border-customBlack/10 dark:border-white/10 w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800"
+              class="border border-customBlack/10 dark:border-white/10 w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0"
           >
             <img 
               v-if="owner.avatar" 
@@ -50,16 +50,16 @@ function getInitials(firstName?: string, lastName?: string): string {
             />
             <div 
               v-else 
-              class="w-full h-full flex items-center justify-center text-customRed font-bold text-sm"
+              class="w-full h-full flex items-center justify-center text-customRed font-bold text-xs sm:text-sm"
             >
               {{ getInitials(owner.first_name, owner.surname || owner.last_name) }}
             </div>
           </div>
           <div class="flex flex-col gap-0.5">
-            <h2 class="text-sm font-semibold dark:text-white">
+            <h2 class="text-xs sm:text-sm font-semibold dark:text-white">
               {{ owner.first_name }} {{ owner.surname || owner.last_name }}
             </h2>
-            <p class="text-customBlack/70 dark:text-white/70 text-xs">
+            <p class="text-customBlack/70 dark:text-white/70 text-[10px] sm:text-xs">
               შეფასება (9.1)
             </p>
           </div>

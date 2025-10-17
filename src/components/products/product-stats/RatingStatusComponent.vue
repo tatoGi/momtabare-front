@@ -5,6 +5,7 @@ import { computed, watch } from "vue"
 const props = defineProps<{
   rating: number | null
   ratingsAmount?: number | null
+  mobileMode?: boolean
 }>()
 
 const computedRating = computed<number>(() => {
@@ -41,7 +42,28 @@ const getStarFillPercentage = (index: number): number => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <!-- Mobile Mode: Single Star + Count -->
+  <div v-if="props.mobileMode" class="flex items-center gap-0.5">
+    <BaseIcon
+      :fill="computedRating > 0"
+      :size="14"
+      class="transition-all text-customRed"
+      name="star"
+      rounded
+    />
+    <p class="text-[10px] font-medium text-customBlack/70 dark:text-white/70">
+      {{ computedRating.toFixed(1) }}
+    </p>
+    <p
+      v-if="props.ratingsAmount"
+      class="text-[10px] font-medium text-customBlack/70 dark:text-white/70"
+    >
+      {{ `(${computedRatingAmount})` }}
+    </p>
+  </div>
+
+  <!-- Desktop Mode: 5 Stars + Count -->
+  <div v-else class="flex items-center gap-1">
     <div
       v-for="index in 5"
       :key="index"

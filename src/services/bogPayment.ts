@@ -89,10 +89,16 @@ class BogPaymentService {
         headers: error.response?.headers
       });
       
+      // Check for validation errors specifically
+      if (error.response?.data?.errors) {
+        console.error('❌ Validation errors:', error.response.data.errors);
+      }
+      
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to create order',
         error_code: error.response?.data?.error_code || 'order_creation_failed',
+        errors: error.response?.data?.errors,
         details: error.response?.data
       };
     }
@@ -237,6 +243,29 @@ class BogPaymentService {
     } catch (error) {
       console.error('❌ Error fetching saved cards:', error);
       return [];
+    }
+  }
+
+  async getUserPayments(): Promise<any> {
+    try {
+      console.log('📋 Fetching user payment history...');
+      const url = getLocalizedApiUrl('bog/payments');
+      const response = await AxiosJSON.get(url);
+      
+      console.log('✅ Payment history response:', response.data);
+      
+      return {
+        success: true,
+        payments: response.data.payments || response.data.data || [],
+        ...response.data
+      };
+    } catch (error: any) {
+      console.error('❌ Error fetching payment history:', error);
+      return {
+        success: false,
+        payments: [],
+        message: error.response?.data?.message || 'Failed to fetch payment history'
+      };
     }
   }
 
@@ -441,7 +470,9 @@ export function useBogPayment() {
   const processCheckout = async (
     cart: any,
     saveCard: boolean = false,
-    selectedSavedCard?: ISavedCardSummary | null
+    selectedSavedCard?: ISavedCardSummary | null,
+    useModal: boolean = false,
+    userId?: number
   ): Promise<IBogOrderResponse> => {
     try {
       // Prepare basket items (needed for both new and saved card payments)
@@ -463,7 +494,7 @@ export function useBogPayment() {
       // If using a saved card
       if (selectedSavedCard?.parentOrderId) {
         console.log('💳 Paying with saved card:', selectedSavedCard);
-        console.log('📦 Payment data:', { amount, basket, callbackUrl });
+        console.log('📦 Payment data:', { amount, basket, callbackUrl, userId });
 
         const paymentResponse = await bogPaymentInstance.payWithSavedCard(
           selectedSavedCard.parentOrderId,
@@ -494,7 +525,8 @@ export function useBogPayment() {
         callbackUrl,
         successUrl,
         failUrl,
-        currentOrigin: window.location.origin
+        currentOrigin: window.location.origin,
+        userId
       });
 
       const allowedLocales = ['en', 'ka', 'ru'] as const;
@@ -505,6 +537,7 @@ export function useBogPayment() {
         application_type: 'web',
         capture: 'automatic',
         callback_url: callbackUrl,
+        user_id: userId,
         purchase_units: {
           total_amount: amount,
           currency: 'GEL',
@@ -520,13 +553,21 @@ export function useBogPayment() {
       };
 
       console.log('💳 Creating order with save_card flag:', saveCard);
-      console.log('📦 Final order payload being sent to Laravel:', JSON.stringify(orderData, null, 2));
+      console.log('� User ID:', userId || 'Not provided');
+      console.log('�📦 Final order payload being sent to Laravel:', JSON.stringify(orderData, null, 2));
       
       // Validate that save_card flag is properly set
       if (saveCard) {
         console.log('✅ Save card is ENABLED - card will be saved for future payments');
       } else {
         console.log('❌ Save card is DISABLED - card will NOT be saved');
+      }
+      
+      // Validate user_id
+      if (userId) {
+        console.log('✅ User ID is included in payment:', userId);
+      } else {
+        console.warn('⚠️ User ID is NOT included in payment - card may not be saved correctly');
       }
 
       if (cart?.id) {
@@ -548,8 +589,10 @@ export function useBogPayment() {
           }
         }
 
-        // Handle redirect
-        bogPaymentInstance.redirectToPaymentPage(response.redirect_url);
+        // Handle redirect - skip if using modal
+        if (!useModal) {
+          bogPaymentInstance.redirectToPaymentPage(response.redirect_url);
+        }
         return response;
       } else {
         console.error('Order creation failed or no redirect URL:', response);
@@ -570,6 +613,7 @@ export function useBogPayment() {
     processCheckout,
     getOrderDetails: bogPaymentInstance.getOrderDetails.bind(bogPaymentInstance),
     getSavedCards: bogPaymentInstance.getSavedCards.bind(bogPaymentInstance),
+    getUserPayments: bogPaymentInstance.getUserPayments.bind(bogPaymentInstance),
     saveCard: bogPaymentInstance.saveCard.bind(bogPaymentInstance),
     payWithSavedCard: bogPaymentInstance.payWithSavedCard.bind(bogPaymentInstance),
     handlePostPaymentCardSaving: bogPaymentInstance.handlePostPaymentCardSaving.bind(bogPaymentInstance),

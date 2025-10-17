@@ -67,7 +67,7 @@ async function submitReview(): Promise<void> {
         await commentOnRetailer({
           comment: comment.value.trim(),
           rating: chosenRating.value,
-          id: props.retailer.id
+          retailerId: props.retailer.id
         });
       } catch (commentError) {
         console.warn("Comment submission had an issue:", commentError);

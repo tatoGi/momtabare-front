@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import ProductItem from "@/components/products/ProductItem.vue"
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 import type { IProductListItem } from "@/ts/models/product.types.js"
 import { onMounted, ref } from "vue"
 import { useI18n } from "vue-i18n"
@@ -8,6 +9,7 @@ const { t } = useI18n()
 
 const props = defineProps<{
   products: IProductListItem[]
+  routeToPath?: string
 }>()
 const isMobile = ref(false)
 
@@ -25,26 +27,28 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="md:hidden container px-4 sm:px-6">
-    <h2 class="text-lg sm:text-xl md:text-2xl font-extrabold mb-3 sm:mb-4 dark:text-white product-list-title">
-      {{ t('popularProducts') }}
-    </h2>
+  <!-- Mobile Carousel View -->
+  <div class="md:hidden py-4 sm:py-6">
+    <div class="px-4 sm:px-6">
+      <h2 class="text-lg sm:text-xl font-extrabold mb-4 dark:text-white">
+        {{ t('popularProducts') }}
+      </h2>
+    </div>
     <Carousel
       :opts="{
         align: 'start',
+        slidesToScroll: 1,
+        containScroll: 'trimSnaps',
       }"
       class="w-full"
     >
-      <CarouselContent class="-ml-1 sm:-ml-2"> 
+      <CarouselContent class="-ml-4 px-4"> 
         <CarouselItem 
-          v-for="(product, index) in props.products"
-          :key="index"
-          class="pl-1 sm:pl-2 popular-item"
-          :style="{ 'flex': '0 0 calc(50vw - 12px)', 'width': 'calc(50vw - 12px)', 'minWidth': '160px', 'maxWidth': '280px' }"
+          v-for="product in props.products"
+          :key="product.id || product.slug || product.sku"
+          class="pl-4 basis-auto"
         >
-          <div class="p-1 sm:p-2">
-            <ProductItem :item="product" />
-          </div>
+          <ProductItem :item="product" :force-vertical="true" />
         </CarouselItem>
       </CarouselContent>
     </Carousel>
@@ -66,8 +70,8 @@ onMounted(() => {
     
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
       <ProductItem
-        v-for="(product, index) in props.products"
-        :key="index"
+        v-for="product in props.products"
+        :key="product.id || product.slug || product.sku"
         :item="product"
       />
     </div>

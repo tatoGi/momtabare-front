@@ -76,6 +76,7 @@ export async function getCommentsByProduct(params: IGetCommentsQuery): Promise<I
     
     const url = `/products/${params.id}/comments${queryParams.toString() ? '?' + queryParams.toString() : ''}`
     const response = await AxiosJSON.get<IGetCommentsResponse>(getLocalizedApiUrl(url))
+   
     return response.data
   } catch (error) {
     console.error("Error fetching product comments:", error)

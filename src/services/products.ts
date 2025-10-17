@@ -58,7 +58,8 @@ export async function getProducts(params?: IGetProductsQuery): Promise<IGetProdu
       color: product.color,
       rating: product.rating || product.average_rating || null,
       ratings_amount: product.ratings_amount || product.ratings_count || 0,
-      comments_amount: product.comments_amount || product.comments_count || 0,
+      comments_amount: product.comments_amount || product.comments_count || product.product_comments_count || product.productCommentsCount || 0,
+      views: product.views || 0,
       rental_period: product.rental_period || '',
       rental_start_date: product.rental_start_date || null,
       rental_end_date: product.rental_end_date || null,
@@ -218,6 +219,7 @@ export async function getProductsByUser(userId: number): Promise<{ data: IProduc
         rating: 0,
         ratings_amount: 0,
         comments_amount: 0,
+        views: product.views || 0,
         rental_period: product.rental_period || '',
         rental_start_date: product.rental_start_date ?? product.start_date ?? null,
         rental_end_date: product.rental_end_date ?? product.end_date ?? null,
@@ -271,6 +273,20 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
     const allProducts = response.data.data || []
     const popularProducts = allProducts.filter((product: any) => product.is_popular === 1)
    
+    console.log('🔍 Popular Products Debug:', {
+      totalProducts: allProducts.length,
+      popularCount: popularProducts.length,
+      sampleProduct: popularProducts[0] ? {
+        id: popularProducts[0].id,
+        title: popularProducts[0].title,
+        views: popularProducts[0].views,
+        comments_amount: popularProducts[0].comments_amount,
+        comments_count: popularProducts[0].comments_count,
+        product_comments_count: popularProducts[0].product_comments_count,
+        productCommentsCount: popularProducts[0].productCommentsCount,
+        allKeys: Object.keys(popularProducts[0]).filter(k => k.toLowerCase().includes('comment'))
+      } : null
+    })
     
     const products: IProductListItem[] = popularProducts.map((product: any) => {
       const mappedProduct = {
@@ -282,7 +298,8 @@ export async function getPopularProducts(params?: IGetProductsQuery): Promise<IG
         price: product.price,
         rating: product.rating || product.average_rating || null,
         ratings_amount: product.ratings_amount || product.ratings_count || 0,
-        comments_amount: product.comments_amount || product.comments_count || 0,
+        comments_amount: product.comments_amount || product.comments_count || product.product_comments_count || product.productCommentsCount || 0,
+        views: product.views || 0,
         rental_period: product.rental_period || '',
         rental_start_date: product.rental_start_date || null,
         rental_end_date: product.rental_end_date || null,
@@ -417,7 +434,8 @@ export async function getFavoriteProducts(params?: IGetProductsQuery): Promise<I
       price: product.price,
       rating: product.rating || product.average_rating || null,
       ratings_amount: product.ratings_amount || product.ratings_count || 0,
-      comments_amount: product.comments_amount || product.comments_count || 0,
+      comments_amount: product.comments_amount || product.comments_count || product.product_comments_count || product.productCommentsCount || 0,
+      views: product.views || 0,
       rental_period: product.rental_period || '',
       rental_start_date: product.rental_start_date || null,
       rental_end_date: product.rental_end_date || null,
@@ -554,6 +572,102 @@ export async function toggleFavoriteProduct(productId: number, currentFavoriteSt
     return { 
       success: false, 
       message: error.response?.data?.message || 'Failed to update wishlist' 
+    }
+  }
+}
+
+/**
+ * Update product rental status after successful payment
+ */
+export async function updateProductRentalStatus(
+  productId: number,
+  rentalData: {
+    is_rented: boolean
+    is_ordered: boolean
+    ordered_by: number
+    rental_start_date: string
+    rental_end_date: string
+  }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const locale = getCurrentLocale()
+    const apiUrl = getLocalizedApiUrl(`products/${productId}/rental-status`)
+    
+    console.log('📦 Updating rental status for product:', productId, rentalData)
+    
+    const response = await AxiosJSON.post(apiUrl, rentalData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
+    })
+    
+    return {
+      success: true,
+      message: response.data.message || 'Product rental status updated successfully'
+    }
+  } catch (error: any) {
+    console.error('❌ Failed to update product rental status:', error)
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update product rental status'
+    }
+  }
+}
+
+/**
+ * Update multiple products rental status (for cart checkout)
+ */
+export async function updateCartProductsRentalStatus(
+  cartItems: Array<{
+    product_id: number
+    rental_start_date: Date | string
+    rental_end_date: Date | string
+    ordered_by: number
+  }>
+): Promise<{ success: boolean; message: string; errors?: any[] }> {
+  try {
+    const locale = getCurrentLocale()
+    const apiUrl = getLocalizedApiUrl('products/bulk-rental-status')
+    
+    // Format the data
+    const rentalUpdates = cartItems.map(item => ({
+      product_id: item.product_id,
+      is_rented: true,
+      is_ordered: true,
+      ordered_by: item.ordered_by,
+      rental_start_date: typeof item.rental_start_date === 'string' 
+        ? item.rental_start_date 
+        : item.rental_start_date.toISOString(),
+      rental_end_date: typeof item.rental_end_date === 'string'
+        ? item.rental_end_date
+        : item.rental_end_date.toISOString()
+    }))
+    
+    console.log('📦 Bulk updating rental status for products:', rentalUpdates)
+    
+    const response = await AxiosJSON.post(apiUrl, { products: rentalUpdates }, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Language': locale,
+        'X-Localization': locale,
+      }
+    })
+    
+    return {
+      success: true,
+      message: response.data.message || 'Products rental status updated successfully',
+      errors: response.data.errors
+    }
+  } catch (error: any) {
+    console.error('❌ Failed to bulk update product rental status:', error)
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Failed to update products rental status',
+      errors: error.response?.data?.errors
     }
   }
 }

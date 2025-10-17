@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from "vue"
 import TheFooter from "@/layouts/TheFooter.vue"
 import TheHeader from "@/layouts/TheHeader.vue"
 import AppSkeleton from "@/components/skeletons/AppSkeleton.vue"
+import Toast from "@/components/ui/toast/Toast.vue"
 import { Alert } from '@/components/ui/alert/'
 import { CheckCircle } from "lucide-vue-next"
 import { useAppStore } from "@/pinia/app.pinia.ts"
@@ -76,6 +77,9 @@ watch(
 
 <template>
   <div class="min-h-screen py-6" :class="{ 'dark': appStore.darkMode }">
+    <!-- Toast Notifications -->
+    <Toast />
+    
     <!-- Global Success Alert -->
     <div
       v-if="showSuccessAlert"

@@ -39,7 +39,7 @@ onMounted(async () => {
       />
     </div>
 
-    <div v-else class="flex gap-7 pt-9 pb-16">
+    <div v-else class="flex flex-col lg:flex-row gap-4 lg:gap-7 pt-4 sm:pt-9 pb-8 sm:pb-16 px-3 sm:px-0">
       <CartOwnerList v-if="cart?.items" :cart-items="cart.items" />
       <CartDetailsComponent :cart="cart" />
     </div>

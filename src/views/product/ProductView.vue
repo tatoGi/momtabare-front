@@ -65,11 +65,15 @@ async function fetchComments() {
 
   if (!tempProduct || !tempProduct?.id) return
 
+  console.log('🔄 Fetching comments for product ID:', tempProduct.id)
   const response = await getCommentsByProduct({ id: tempProduct.id })
 
+  console.log('📥 Comments response:', response)
+  
   if (!response) return
 
   comments.value = response.data
+  console.log('💬 Comments loaded:', comments.value?.length || 0, 'comments')
   commentsLoaded.value = true
 }
 

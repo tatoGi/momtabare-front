@@ -5,6 +5,7 @@ export interface IBogOrderPayload {
   application_type?: string;
   capture?: 'automatic' | 'manual';
   callback_url?: string;
+  user_id?: number;
   purchase_units: {
     total_amount: number;
     currency: string;
@@ -32,6 +33,7 @@ export interface IBogOrderResponse {
   status?: string;
   error_code?: string;
   message?: string;
+  errors?: any;
   details?: any;
 }
 

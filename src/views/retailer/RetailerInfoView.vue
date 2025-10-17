@@ -201,17 +201,17 @@ watch(user, (value: IUser | null) => {
 
 <template>
   <BaseBreadcrumbs :path="['ჩემი პროფილი']" disable-route />
-  <main class="flex justify-between gap-28 pb-24 pt-3">
+  <main class="flex flex-col-reverse lg:flex-row justify-between gap-6 lg:gap-28 pb-12 sm:pb-24 pt-3 px-3 sm:px-0">
     <section class="w-full">
-      <h2 class="font-uppercase text-xl font-extrabold dark:text-white">
+      <h2 class="font-uppercase text-lg sm:text-xl font-extrabold dark:text-white">
         {{ pageTitle }}
       </h2>
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 border-b border-customBlack/10 py-6 sm:py-8"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">ატვირთე Cover სურათი</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="text-sm sm:text-base font-bold dark:text-white">ატვირთე Cover სურათი</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მაქსიმალური ზომა 5მბ
           </p>
         </div>
@@ -221,11 +221,11 @@ watch(user, (value: IUser | null) => {
       </div>
 
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 border-b border-customBlack/10 py-6 sm:py-8"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">ატვირთე Avatar სურათი</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="text-sm sm:text-base font-bold dark:text-white">ატვირთე Avatar სურათი</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მაქსიმალური ზომა 5მბ
           </p>
         </div>
@@ -235,32 +235,32 @@ watch(user, (value: IUser | null) => {
       </div>
 
       <div
-        class="flex items-center justify-between border-b border-customBlack/10 py-8"
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 border-b border-customBlack/10 py-6 sm:py-8"
       >
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">მაღაზიის დასახელება</h2>
-          <p class="w-[410px] text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="text-sm sm:text-base font-bold dark:text-white">მაღაზიის დასახელება</h2>
+          <p class="max-w-full sm:max-w-[410px] text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             ამ დასახელებას დაინახავს მომხმარებელი, როდესაც თქვენ მაღაზიაში
             გადმოვა.
           </p>
         </div>
         <Input
           v-model="retailerName"
-          class="w-[452px]"
+          class="w-full sm:max-w-[452px]"
           placeholder="დასახელება"
         />
       </div>
 
-      <div class="flex items-start justify-between py-8">
+      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-0 py-6 sm:py-8">
         <div class="flex flex-col items-start">
-          <h2 class="font-bold dark:text-white">საკონტაქტო ინფორმაცია</h2>
-          <p class="text-sm text-customBlack/70 dark:text-white/70">
+          <h2 class="text-sm sm:text-base font-bold dark:text-white">საკონტაქტო ინფორმაცია</h2>
+          <p class="text-xs sm:text-sm text-customBlack/70 dark:text-white/70">
             მიუთითეთ სად შეძლებს მქირავებელი პროდუქციის აღებას და ასევე ვის დაუკავშირდება
           </p>
         </div>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-4 sm:gap-6 w-full sm:w-auto">
           <Select v-model="retailerLocation">
-            <SelectTrigger class="w-[452px]">
+            <SelectTrigger class="w-full sm:max-w-[452px]">
               <SelectValue placeholder="აირჩიე მდებარეობა" />
             </SelectTrigger>
             <SelectContent class="rounded-2xl">
@@ -281,28 +281,28 @@ watch(user, (value: IUser | null) => {
           </Select>
           <Input
             v-model="userFullName"
-            class="w-[452px]"
+            class="w-full sm:max-w-[452px]"
             placeholder="საკონტაქტო პირი"
           />
-          <Input v-model="userPhone" class="w-[452px]" placeholder="ტელეფონი" />
+          <Input v-model="userPhone" class="w-full sm:max-w-[452px]" placeholder="ტელეფონი" />
         </div>
       </div>
 
-      <div class="flex flex-col items-end gap-4">
+      <div class="flex flex-col items-stretch sm:items-end gap-4">
         <div 
           v-if="submitStatus?.type"
           :class="{
             'text-green-600': submitStatus.type === 'success',
             'text-red-600': submitStatus.type === 'error'
           }"
-          class="text-sm font-medium"
+          class="text-xs sm:text-sm font-medium text-center sm:text-right"
         >
           {{ submitStatus.message }}
         </div>
         <BaseButton
           :height="48"
           :disabled="isSubmitting"
-          class="font-uppercase bg-customRed px-5 text-sm font-bold text-white disabled:opacity-70 disabled:cursor-not-allowed"
+          class="font-uppercase bg-customRed px-5 text-sm font-bold text-white disabled:opacity-70 disabled:cursor-not-allowed w-full sm:w-auto"
           @click="handleSubmit"
         >
           <span v-if="isSubmitting">
@@ -315,10 +315,10 @@ watch(user, (value: IUser | null) => {
       </div>
     </section>
     <section
-      class="relative h-[230px] w-[350px] overflow-hidden rounded-2xl bg-white shadow-sm"
+      class="relative h-[200px] sm:h-[230px] w-full lg:w-[350px] overflow-hidden rounded-2xl bg-white shadow-sm flex-shrink-0"
     >
       <!-- Background Image with Overlay -->
-      <div class="relative h-[140px] w-full">
+      <div class="relative h-[120px] sm:h-[140px] w-full">
         <img
           v-if="coverImage"
           :src="coverImage"
@@ -335,7 +335,7 @@ watch(user, (value: IUser | null) => {
         </div>
         
         <!-- Brand Logo (Bottom Left) -->
-        <div class="absolute bottom-3 left-3 h-12 w-12 rounded-full bg-white p-1">
+        <div class="absolute bottom-3 left-3 h-10 sm:h-12 w-10 sm:w-12 rounded-full bg-white p-1">
           <img
             v-if="avatarImage"
             :src="avatarImage"
@@ -346,13 +346,13 @@ watch(user, (value: IUser | null) => {
       </div>
 
       <!-- Content Section -->
-      <div class="flex h-[90px] flex-col justify-center px-4 py-3">
+      <div class="flex h-[80px] sm:h-[90px] flex-col justify-center px-4 py-3">
         <!-- Retailer Name with Verification Badge -->
         <div class="flex items-center gap-2 mb-1">
-          <h2 class="text-base font-semibold text-customBlack">{{ retailerName }}</h2>
+          <h2 class="text-sm sm:text-base font-semibold text-customBlack truncate">{{ retailerName }}</h2>
           <BaseIcon
             :size="16"
-            class="text-blue-500"
+            class="text-blue-500 flex-shrink-0"
             name="verified"
           />
         </div>
@@ -362,10 +362,10 @@ watch(user, (value: IUser | null) => {
           <BaseIcon
             v-show="retailerLocation"
             :size="14"
-            class="text-customRed"
+            class="text-customRed flex-shrink-0"
             name="location_on"
           />
-          <p class="text-sm font-medium text-customRed">
+          <p class="text-xs sm:text-sm font-medium text-customRed truncate">
             {{ retailerLocation }}
           </p>
         </div>

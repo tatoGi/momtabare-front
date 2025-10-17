@@ -89,32 +89,33 @@ console.log(props.retailer, "RETAILER")
     </div>
   </div>
   <div
-      class="flex items-center w-full justify-between bg-customGrey dark:bg-customDarkGrey rounded-b-2xl px-8"
+      class="flex flex-col sm:flex-row items-start sm:items-center w-full justify-between bg-customGrey dark:bg-customDarkGrey rounded-b-2xl px-4 sm:px-8 gap-3 sm:gap-0 py-3 sm:py-0"
   >
-    <div class="flex items-center gap-8 rounded-b-2xl">
+    <div class="flex items-center gap-4 sm:gap-8 rounded-b-2xl overflow-x-auto w-full sm:w-auto">
       <h2
           v-for="tab in tabs"
+          :key="tab"
           :class="tabStyle(tab)"
-          class="flex h-16 cursor-pointer items-center border-b-2 text-sm font-medium transition-all text-customBlack/70 dark:text-white/70 hover:text-customRed dark:hover:text-customRed"
+          class="flex h-12 sm:h-16 cursor-pointer items-center border-b-2 text-xs sm:text-sm font-medium transition-all text-customBlack/70 dark:text-white/70 hover:text-customRed dark:hover:text-customRed whitespace-nowrap"
           @click="triggerTabClick(tab)"
       >
         {{ tab }}
       </h2>
     </div>
     <div
-        class="bg-white dark:bg-customBlack px-5 py-2 flex items-center gap-5 rounded-xl"
+        class="bg-white dark:bg-customBlack px-3 sm:px-5 py-2 flex items-center gap-3 sm:gap-5 rounded-xl w-full sm:w-auto"
     >
       <input
           v-model="searchContent"
-          class="outline-none text-sm dark:bg-customBlack dark:text-white placeholder:text-customBlack/70 dark:placeholder:text-white/70 w-56"
+          class="outline-none text-xs sm:text-sm dark:bg-customBlack dark:text-white placeholder:text-customBlack/70 dark:placeholder:text-white/70 w-full sm:w-56 min-w-0"
           placeholder="პროდუქტის დასახელება"
           type="text"
           @keydown.enter="emits('searchAction', searchContent)"
       />
       <BaseIcon
-          :size="24"
+          :size="20"
           :weight="300"
-          class="text-customBlack/70 dark:text-white/70"
+          class="text-customBlack/70 dark:text-white/70 cursor-pointer flex-shrink-0"
           name="search"
           @click="emits('searchAction', searchContent)"
       />

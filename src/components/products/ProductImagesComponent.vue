@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { IProduct } from "@/ts/models/product.types.ts"
 import { computed, ref, watch } from "vue"
+import { getAssetUrl } from "@/utils/config/env"
 
 const props = defineProps<{
   product: IProduct | null
@@ -15,7 +16,12 @@ const computedChosenImage = computed<string | null>(() => {
   }
   const image = props.product.images[selectedImageIndex.value]
   if (!image?.url) return null
-  return `${image.url}`
+  
+  const imageUrl = image.url
+ 
+  // Always use getAssetUrl to ensure proper URL construction and cleaning
+  // It will handle all cases: full URLs, relative paths, and asset paths
+  return getAssetUrl(imageUrl)
 })
 
 function productImageStyles(index: number): string {
@@ -65,7 +71,7 @@ function selectImage(index: number) {
         @click="selectImage(index)"
       >
         <img
-          :src="`${img.url}`"
+          :src="getAssetUrl(img.url)"
           alt="product_image"
           class="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 transition-all group-hover:scale-110"
         />

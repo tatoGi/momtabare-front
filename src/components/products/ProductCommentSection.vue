@@ -67,13 +67,33 @@ async function submitComment() {
       rating: selectedRating.value || undefined
     })
 
-    if (response) {
-      submitSuccess.value = 'კომენტარი წარმატებით გაიგზავნა. ის გამოჩნდება ადმინისტრაციის დამტკიცების შემდეგ.'
+    if (response && response.data) {
+      submitSuccess.value = 'კომენტარი წარმატებით გაიგზავნა!'
+      
+      // Add the new comment to the local array immediately for display
+      const newComment = {
+        id: response.data.id,
+        comment: response.data.comment,
+        rating: response.data.rating,
+        created_at: response.data.created_at,
+        is_approved: response.data.is_approved,
+        user: {
+          id: userStore.user?.id || 0,
+          name: `${userStore.user?.first_name || ''} ${userStore.user?.last_name || ''}`.trim(),
+          email: userStore.user?.email || ''
+        }
+      }
+      
+      // Add to beginning of comments array
+      if (props.comments) {
+        props.comments.unshift(newComment)
+      }
+      
       commentText.value = ''
       selectedRating.value = null
       hasExistingComment.value = true
       
-      // Refresh comments list
+      // Refresh comments list to get updated data from backend
       emit('refreshComments')
       
       // Check for updated user comment
@@ -87,6 +107,19 @@ async function submitComment() {
     console.error('Error submitting comment:', error)
     if (error.response?.data?.error) {
       submitError.value = error.response.data.error
+      // If user already has a comment, fetch it to display
+      if (error.response.data.error.includes('already commented')) {
+        await checkUserComment()
+      }
+    } else if (error.response?.data?.message) {
+      submitError.value = error.response.data.message
+      // If user already has a comment, fetch it to display
+      if (error.response.data.message.includes('already commented')) {
+        await checkUserComment()
+      }
+    } else if (error.response?.status === 400 || error.response?.status === 422) {
+      submitError.value = 'თქვენ უკვე გაქვთ კომენტარი ამ პროდუქტზე'
+      await checkUserComment()
     } else {
       submitError.value = 'კომენტარის გაგზავნისას მოხდა შეცდომა'
     }
@@ -101,7 +134,9 @@ function selectRating(rating: number) {
 }
 
 const canWriteComment = computed(() => {
-  return userStore.user && !hasExistingComment.value
+  // Allow writing comments if user is logged in
+  // We'll handle duplicate comment prevention on the backend
+  return !!userStore.user
 })
 
 // Helper function to get user initials (like m** j**)
@@ -136,8 +171,34 @@ function formatCommentDate(dateString: string): string {
   return `${day} ${month}, ${year}`
 }
 
+// Computed property to merge user's comment with other comments
+const displayComments = computed(() => {
+  if (!props.comments) return []
+  
+  // If user has a comment that's not in the list, add it
+  if (userComment.value && !props.comments.find((c: any) => c.id === userComment.value.id)) {
+    const userCommentFormatted = {
+      id: userComment.value.id,
+      comment: userComment.value.comment,
+      rating: userComment.value.rating,
+      created_at: userComment.value.created_at,
+      is_approved: userComment.value.is_approved,
+      user: {
+        id: userStore.user?.id || 0,
+        name: `${userStore.user?.first_name || ''} ${userStore.user?.last_name || ''}`.trim(),
+        email: userStore.user?.email || ''
+      }
+    }
+    return [userCommentFormatted, ...props.comments]
+  }
+  
+  return props.comments
+})
+
 onMounted(() => {
   checkUserComment()
+  console.log('📋 ProductCommentSection mounted with comments:', props.comments)
+  console.log('📦 Total comments:', props.comments?.length || 0)
 })
 </script>
 
@@ -208,21 +269,28 @@ onMounted(() => {
     </div>
 
     <!-- Comments List -->
-    <div
-      v-if="props?.comments?.length"
-      class="flex w-full flex-col items-start gap-2 sm:gap-3"
-    >
-      <h1 class="font-uppercase text-base sm:text-lg lg:text-xl font-extrabold text-customBlack">
+    <div class="flex w-full flex-col items-start gap-2 sm:gap-3">
+      <h1 class="font-uppercase text-base sm:text-lg lg:text-xl font-extrabold text-customBlack dark:text-white">
         მომხმარებლების შეფასება
+        <span v-if="displayComments?.length" class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+          ({{ displayComments.length }})
+        </span>
       </h1>
+      
+      <!-- Show message if no comments -->
+      <div v-if="!displayComments?.length" class="w-full p-4 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+        <p class="text-sm text-gray-600 dark:text-gray-400">ჯერ არ არის კომენტარები</p>
+      </div>
+      
+      <!-- Show comments -->
       <div
-        v-for="comment in props.comments"
+        v-for="comment in displayComments"
         :key="comment.id"
         class="flex w-full flex-col items-start gap-2 sm:gap-3 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 lg:p-5 border-l-4 border-orange-500"
       >
         <!-- Star Rating -->
         <div class="flex items-center gap-1">
-          <span v-for="star in 5" :key="star" class="text-base sm:text-lg">
+          <span v-for="star in 5" :key="star" class="text-base sm:text-lg text-yellow-500">
             {{ comment.rating && star <= comment.rating ? '★' : '☆' }}
           </span>
           <span class="text-xs sm:text-sm text-gray-500 ml-2 dark:text-gray-400">({{ comment.rating || 0 }})</span>
@@ -230,8 +298,9 @@ onMounted(() => {
         
         <!-- User and Date -->
         <div class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-          {{ getUserInitials(comment.user.name) }}
+          {{ getUserInitials(comment.user?.name || 'Unknown') }}
           <span class="text-gray-500 dark:text-gray-400 ml-2">{{ formatCommentDate(comment.created_at) }}</span>
+          <span v-if="!comment.is_approved" class="ml-2 text-xs text-orange-600 dark:text-orange-400">(მოლოდინში)</span>
         </div>
         
         <!-- Comment Text -->

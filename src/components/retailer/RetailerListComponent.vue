@@ -80,6 +80,7 @@ onBeforeMount(async () => {
               <BaseIcon
                   :class="{
                   '-rotate-180': sortByIsOpen,
+                  'rotate-0': !sortByIsOpen
                 }"
                   :size="22"
                   class="text-black/70 dark:text-customGrey transition"

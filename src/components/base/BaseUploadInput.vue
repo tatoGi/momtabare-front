@@ -23,9 +23,9 @@ onCancel(() => {
 
 <template>
   <div
-    class="flex w-[452px] items-center justify-between rounded-xl border border-customBlack/10 py-1.5 pl-6 pr-1.5"
+    class="flex w-full sm:max-w-[452px] items-center justify-between rounded-xl border border-customBlack/10 py-1.5 pl-4 sm:pl-6 pr-1.5"
   >
-    <p class="text-sm font-medium text-customBlack/70 dark:text-white/70">
+    <p class="text-sm font-medium text-customBlack/70 dark:text-white/70 truncate">
       {{ uploadedImage }}
     </p>
     <BaseButton

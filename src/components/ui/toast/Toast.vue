@@ -1,3 +1,9 @@
+<script lang="ts">
+export default {
+  name: 'Toast'
+}
+</script>
+
 <script lang="ts" setup>
 import { X } from 'lucide-vue-next';
 import { useToast } from './use-toast';

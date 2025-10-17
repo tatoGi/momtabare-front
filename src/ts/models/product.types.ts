@@ -55,6 +55,7 @@ export interface IProductListItem {
   comments_amount: number
   categories: ICategory[]
   images: IProductThumbnail[]
+  views: number
   is_favorite : boolean
   rental_period?: string | null
   rental_start_date?: string | null

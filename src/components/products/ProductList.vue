@@ -23,14 +23,14 @@ const props = defineProps<{
           :to="props.routeToName ? { name: props.routeToName } : { path: props.routeToPath }"
           class="text-customRed text-sm font-medium underline underline-offset-4 hover:opacity-80 transition-opacity product-list-count"
       >
-        {{ $t('allProducts') }}
+        {{ $t('allProduct') }}
       </RouterLink>
     </div>
     <transition name="fade">
       <div
           v-if="!props.loading"
-          :class="{ 'grid-cols-4': props.title, 'grid-cols-3': !props.title }"
-          class="grid grid-cols-3 gap-5"
+          :class="{ 'sm:grid-cols-2 lg:grid-cols-4': props.title, 'sm:grid-cols-2 lg:grid-cols-3': !props.title }"
+          class="grid grid-cols-1 gap-3 sm:gap-5"
       >
         <ProductItem
             v-for="product in props.products"
@@ -41,8 +41,8 @@ const props = defineProps<{
       </div>
       <div
           v-else
-          :class="{ 'grid-cols-4': props.title, 'grid-cols-3': !props.title }"
-          class="grid grid-cols-3 gap-5"
+          :class="{ 'sm:grid-cols-2 lg:grid-cols-4': props.title, 'sm:grid-cols-2 lg:grid-cols-3': !props.title }"
+          class="grid grid-cols-1 gap-3 sm:gap-5"
       >
         <ProductItemSkeleton v-for="i in 8" :key="i"/>
       </div>

@@ -27,44 +27,43 @@ async function orderButtonAction(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-4 sm:gap-6 w-full lg:w-auto">
     <section
-      class="border border-customBlack/10 rounded-2xl px-6 py-4 flex flex-col gap-4"
+      class="border border-customBlack/10 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-3 sm:gap-4"
     >
-      <h2 class="font-extrabold font-uppercase">{{ t('checkout.orderDetailsTitle') }}</h2>
+      <h2 class="font-extrabold font-uppercase text-sm sm:text-base">{{ t('checkout.orderDetailsTitle') }}</h2>
 
       <div class="flex items-center justify-between">
-        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.itemsCount') }}</p>
-        <p class="text-sm font-bold">{{ cart?.items?.length || 0 }}</p>
+        <p class="text-customBlack/70 text-xs sm:text-sm font-medium">{{ t('checkout.itemsCount') }}</p>
+        <p class="text-xs sm:text-sm font-bold">{{ cart?.items?.length || 0 }}</p>
       </div>
       <div class="flex items-center justify-between">
-        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.discount') }}</p>
-        <p class="text-sm font-bold">0.00 ₾</p>
+        <p class="text-customBlack/70 text-xs sm:text-sm font-medium">{{ t('checkout.discount') }}</p>
+        <p class="text-xs sm:text-sm font-bold">0.00 ₾</p>
       </div>
       <div class="flex items-center justify-between pb-1.5">
-        <p class="text-customBlack/70 text-sm font-medium">{{ t('checkout.productsCost') }}</p>
-        <p class="text-sm font-bold">{{ cart?.total_price ? cart.total_price.toFixed(2) : '0.00' }} ₾</p>
+        <p class="text-customBlack/70 text-xs sm:text-sm font-medium">{{ t('checkout.productsCost') }}</p>
+        <p class="text-xs sm:text-sm font-bold">{{ cart?.total_price ? cart.total_price.toFixed(2) : '0.00' }} ₾</p>
       </div>
       <div class="h-[1px] bg-customBlack/10"></div>
       <div class="flex items-center justify-between">
-        <p class="text-sm font-semibold">{{ t('checkout.total') }}</p>
-        <p class="text-customRed font-extrabold">
+        <p class="text-xs sm:text-sm font-semibold">{{ t('checkout.total') }}</p>
+        <p class="text-customRed font-extrabold text-base sm:text-lg">
           {{ cart?.total_price ? cart.total_price.toFixed(2) : '0.00' }} ₾
         </p>
       </div>
     </section>
 
     <section
-      class="border border-customBlack/10 rounded-2xl px-6 pt-4 pb-9 flex flex-col gap-3"
+      class="border border-customBlack/10 rounded-2xl px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-9 flex flex-col gap-3"
     >
-      <h2 class="font-extrabold font-uppercase">{{ t('checkout.promoCodeTitle') }}</h2>
+      <h2 class="font-extrabold font-uppercase text-sm sm:text-base">{{ t('checkout.promoCodeTitle') }}</h2>
       <Input class="bg-customGrey" :placeholder="t('checkout.promoCodePlaceholder')" />
     </section>
 
     <BaseButton
       :height="48"
-      :width="356"
-      class="bg-customRed"
+      class="bg-customRed w-full lg:w-[356px]"
       @click.left="orderButtonAction"
     >
       <p class="text-white text-sm font-bold font-uppercase">

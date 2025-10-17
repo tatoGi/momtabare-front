@@ -80,6 +80,7 @@ async function fetchHomePageDynamic() {
       rating: product.rating,
       ratings_amount: product.ratings_amount || 0,
       comments_amount: product.comments_amount || 0,
+      views: product.views || 0,
       rental_period: product.rental_period || '',
       rental_start_date: product.rental_start_date || null,
       rental_end_date: product.rental_end_date || null,
@@ -230,6 +231,7 @@ async function fetchHomePageDynamic() {
       rating: null,
       ratings_amount: 0,
       comments_amount: 0,
+      views: backendProduct.views || 0,
       categories: backendProduct.category ? [{
         id: backendProduct.category.id,
         name: {
