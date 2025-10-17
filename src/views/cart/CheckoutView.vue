@@ -15,6 +15,7 @@ import { useCartStore } from "@/pinia/cart.pinia"
 import { useUserStore } from "@/pinia/user.pinia"
 import { computed, ref, watch } from "vue"
 import { useBogPayment } from '@/services/bogPayment'
+import { updateCartProductsRentalStatus } from '@/services/products'
 import type { ISavedCardSummary } from '@/services/bogPayment'
 import { useI18n } from 'vue-i18n'
 import visa from '@/assets/svg/visa.svg'
@@ -53,6 +54,48 @@ onMounted(async () => {
   }
 })
 
+// Update product rental status helper function
+const updateProductsRentalStatus = async () => {
+  try {
+    const currentCart = cart.value
+    const currentUser = user.value
+    
+    if (!currentCart || !currentCart.items || currentCart.items.length === 0) {
+      console.warn('⚠️ No cart items found to update rental status')
+      return
+    }
+    
+    if (!currentUser || !currentUser.id) {
+      console.warn('⚠️ No user found to update rental status')
+      return
+    }
+    
+    console.log('📦 Updating rental status for cart items:', currentCart.items)
+    
+    const rentalUpdates = currentCart.items.map(item => ({
+      product_id: item.product.id,
+      rental_start_date: item.start_date,
+      rental_end_date: item.end_date,
+      ordered_by: currentUser.id
+    }))
+    
+    const result = await updateCartProductsRentalStatus(rentalUpdates)
+    
+    if (result.success) {
+      console.log('✅ Successfully updated product rental status')
+      // Refresh the cart after successful rental status update
+      await cartStore.fetchCart()
+    } else {
+      console.error('❌ Failed to update product rental status:', result.message)
+      if (result.errors) {
+        console.error('Errors:', result.errors)
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error updating product rental status:', error)
+  }
+}
+
 async function handleSelectOtherCard(): Promise<void> {
   selectedCardId.value = null
   try {
@@ -88,6 +131,9 @@ async function handleCheckout(): Promise<void> {
     if (response.success) {
       // Check if it's a saved card payment (no redirect_url)
       if (selectedSavedCard.value && !response.redirect_url) {
+        // Update product rental status immediately for saved card payments
+        await updateProductsRentalStatus()
+        
         addToast({
           title: 'გადახდა დაწყებულია',
           description: 'თქვენი გადახდა შენახული ბარათით წარმატებით დაიწყო. გთხოვთ დაელოდოთ დადასტურებას.',
